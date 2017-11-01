@@ -1,6 +1,6 @@
 from __future__ import division, absolute_import, print_function
 
-class Particle(Object):
+class Particle(object):
     NORMAL = 0
     DUMMY_STATIC = 1
     DUMMY_DYNAMIC = 2
@@ -13,9 +13,10 @@ class Particle(Object):
         self.t = t
     
     def __str__(self):
-        return "({} {} {}, {}):{}".format(self.x, self.y, self.z.
+        return "({} {} {}, {}):{}".format(self.x, self.y, self.z,
                                           self.r,
-                                          PTYPES[self.t])
+                                          Particle.PTYPES[self.t])
+    __repr__ = __str__
     
     def getCoordinate(self):
         return (self.x,self.y,self.z)

@@ -5,7 +5,7 @@ from .restraints import Restraint, ExcludedVolume, HarmonicUpperBound, HarmonicL
 from .particle import Particle
 
 
-class Model(Object):
+class Model(object):
     """
     
     Modeling target system
@@ -43,7 +43,7 @@ class Model(Object):
         """
         Add a basic restraint
         """
-        assert(isinstance(res,Restraint), "Argument should be a Restraint")
+        assert isinstance(res,Restraint), "Argument should be a Restraint"
         
         self.Restraints.append(res)
         
@@ -53,7 +53,7 @@ class Model(Object):
         """
         
         if cfg["kernel"] == "lammps":
-            import .kernel.lammps as lammps
+            from .kernel import lammps
             lammps.optimize(self, cfg)
             
         

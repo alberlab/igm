@@ -1,6 +1,6 @@
 from __future__ import division, absolute_import, print_function
 
-class Restraint(Object):
+class Restraint(object):
     """
     Define Basic Restraint type
     """
@@ -18,8 +18,10 @@ class Restraint(Object):
         self.note = note
     
     def __str__(self):
-        return "{} {}".format(RTYPES[self.rtype], note)
-        
+        return "{} {}".format(Restraint.RTYPES[self.rtype], self.note)
+    
+    __repr__ = __str__
+    
     def getViolation(self):
         pass
 
