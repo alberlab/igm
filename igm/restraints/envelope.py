@@ -7,6 +7,13 @@ from ..model.forces import HarmonicUpperBound
 class Envelope(Restraint):
     """
     A object handles nuclear envelope restraints
+    
+    Parameters
+    ----------
+    nucRadius : float
+        nuclear radius in unit of nm.
+    k : float
+        spring constant
     """
     
     def __init__(self, nucRadius=5000.0, k=1.0):

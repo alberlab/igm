@@ -72,6 +72,11 @@ class Model(object):
     
     Modeling target system
     
+    This is an abstract mid-layer between data-restraints and minization kernel.
+    
+    The Model holds all information about the target system by particles and
+    harmonic forces.
+    
     """
     def __init__(self):
         self.particles = Particles()

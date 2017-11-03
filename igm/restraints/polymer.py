@@ -6,6 +6,16 @@ from ..model.forces import HarmonicUpperBound
 class Polymer(Restraint):
     """
     Object handles consecutive beed restraint
+    
+    Parameters
+    ----------
+    index : alabtools.index object
+        chromosome chain index
+    contactRange : int
+        defining contact range between 2 particles as contactRange*(r1+r2)
+    k : float
+        spring constant
+        
     """
     
     def __init__(self, index, contactRange=2, k=1.0):

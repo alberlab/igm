@@ -36,6 +36,23 @@ class ExcludedVolume(Force):
 #-
     
 class HarmonicUpperBound(Force):
+    """
+    Harmonic upper bound force
+    
+    e = 1/2*k*(x-d)^2 if x > d; otherwise 0
+    
+    Parameters
+    ----------
+    particles : tuple(int, int)
+        Two particle indexes
+    d : float
+        mean distance
+    k : float
+        spring constant
+    note : str
+        additional information
+    """
+    
     ftype = Force.HARMONIC_UPPER_BOUND
     
     def __init__(self, particles, d=0.0, k=1.0, note=""):
@@ -56,6 +73,22 @@ class HarmonicUpperBound(Force):
 #-
 
 class HarmonicLowerBound(Force):
+    """
+    Harmonic lower bound force
+    
+    e = 1/2*k*(x-d)^2 if x < d; otherwise 0
+    
+    Parameters
+    ----------
+    particles : tuple(int, int)
+        Two particle indexes
+    d : float
+        mean distance
+    k : float
+        spring constant
+    note : str
+        additional information
+    """
     ftype = Force.HARMONIC_LOWER_BOUND
     
     def __init__(self, particles, d=0.0, k=1.0, note=""):
