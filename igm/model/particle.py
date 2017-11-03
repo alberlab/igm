@@ -10,12 +10,12 @@ class Particle(object):
     def __init__(self,x,y,z,r,t):
         self.x, self.y, self.z = x, y, z
         self.r = r
-        self.t = t
+        self.ptype = t
     
     def __str__(self):
         return "({} {} {}, {}):{}".format(self.x, self.y, self.z,
                                           self.r,
-                                          Particle.PTYPES[self.t])
+                                          Particle.PTYPES[self.ptype])
     __repr__ = __str__
     
     def getCoordinate(self):
@@ -23,4 +23,8 @@ class Particle(object):
     
     def setCoordinate(self,x,y,z):
         self.x, self.y, self.z = x, y, z
+    
+    def __sub__(self, other):
+        return ((self.x - other.x)**2 + (self.y - other.y)**2 + (self.z - other.z)**2) ** 0.5
+    
     
