@@ -1,7 +1,6 @@
 from __future__ import division, absolute_import, print_function
 
-import numpy as np
-from .forces import Force, ExcludedVolume, HarmonicUpperBound, HarmonicLowerBound
+from .forces import Force
 from .particle import Particle
 
 class Particles(object):
@@ -9,11 +8,11 @@ class Particles(object):
     def __init__(self):
         self.particles = []
     
-    def addParticle(self,x,y,z,r,t):
+    def addParticle(self, pos, r, t):
         """
         Add particle to particles
         """
-        self.particles.append(Particle(x,y,z,r,t))
+        self.particles.append(Particle(pos, r, t))
         return len(self.particles)-1
     
     def getParticle(self,i):
@@ -82,18 +81,17 @@ class Model(object):
         self.particles = Particles()
         self.forces = Forces()
         
-    def addParticle(self,x,y,z,r,t):
+    def addParticle(self, pos, r, t):
         """
         Add particle to system
         """
-        return self.particles.addParticle(x,y,z,r,t)
+        return self.particles.addParticle(pos, r, t)
         
     
     def getParticle(self,i):
         """
         Get particle in the system
         """
-        
         return self.particles[i]
     
     def addForce(self, f):
@@ -131,7 +129,7 @@ class Model(object):
         """
         
         if cfg["kernel"] == "lammps":
-            from .kernel import lammps
+            from ..kernel import lammps
             lammps.optimize(self, cfg)
             
         

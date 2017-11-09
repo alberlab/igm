@@ -1,4 +1,5 @@
 from __future__ import division, absolute_import, print_function
+import numpy as np
 
 class Particle(object):
     NORMAL = 0
@@ -7,24 +8,24 @@ class Particle(object):
     
     PTYPES = ["NORMAL","DUMMY_STATIC","DUMMY_DYNAMIC"]
     
-    def __init__(self,x,y,z,r,t):
-        self.x, self.y, self.z = x, y, z
+    def __init__(self, pos, r, t):
+        self.pos = np.array(pos)
         self.r = r
         self.ptype = t
     
     def __str__(self):
-        return "({} {} {}, {}):{}".format(self.x, self.y, self.z,
+        return "({} {} {}, {}):{}".format(self.pos[0], self.pos[1], self.pos[2],
                                           self.r,
                                           Particle.PTYPES[self.ptype])
     __repr__ = __str__
     
-    def getCoordinate(self):
-        return (self.x,self.y,self.z)
+    def getCoordinates(self):
+        return self.pos
     
-    def setCoordinate(self,x,y,z):
-        self.x, self.y, self.z = x, y, z
+    def setCoordinates(self, pos):
+        self.pos = pos
     
     def __sub__(self, other):
-        return ((self.x - other.x)**2 + (self.y - other.y)**2 + (self.z - other.z)**2) ** 0.5
+        return np.linalg.norm(self.pos - other.pos)
     
     

@@ -25,13 +25,16 @@ class Envelope(Restraint):
         
         self._apply_model(model, override)
         
-        center = model.addParticle(0, 0, 0, 0, Particle.DUMMY_STATIC)
+        center = model.addParticle([0., 0., 0.], 0., Particle.DUMMY_STATIC)
         
         for i, p in enumerate(model.particles):
             if p.ptype != Particle.NORMAL:
                 continue
             
-            f = model.addForce(HarmonicUpperBound((i,center), d = self.nucRadius - p.r, k = self.k, note="Nuclear_envelope"))
+            f = model.addForce(HarmonicUpperBound((i, center), 
+                                                  d=self.nucRadius - p.r, 
+                                                  k=self.k, 
+                                                  note=Restraint.ENVELOPE))
             
             self.forceID.append(f)
         #-

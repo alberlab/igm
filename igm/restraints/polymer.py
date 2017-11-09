@@ -28,11 +28,14 @@ class Polymer(Restraint):
         
         self._apply_model(model, override)
         
-        for i in range(len(self.index)-1):
-            if self.index.chrom[i] == self.index.chrom[i+1]:
-                dij = self.contactRange*(model.particles[i].r + model.particles[i+1].r)
+        for i in range(len(self.index) - 1):
+            if (self.index.chrom[i] == self.index.chrom[i+1] and 
+                self.index.copy[i] == self.index.copy[i+1]):
+                dij = self.contactRange*(model.particles[i].r + 
+                                         model.particles[i+1].r)
                 
-                f = model.addForce(HarmonicUpperBound((i,i+1), dij, self.k, note="Consecutive_chain"))
+                f = model.addForce(HarmonicUpperBound((i, i+1), dij, self.k, 
+                                                      note=Restraint.CONSECUTIVE))
                 self.forceID.append(f)
             #-
         #--
