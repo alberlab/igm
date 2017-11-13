@@ -45,7 +45,7 @@ class ExcludedVolume(Force):
         s = 0.
         for i in range(len(self.particles)):
             for j in range(i):
-                pi, pj = particles[self.particles[i]] - particles[self.particles[j]]
+                pi, pj = particles[self.particles[i]], particles[self.particles[j]]
                 ri, rj = pi.r, pj.r
                 dist = np.linalg(pi.pos - pj.pos)
                 s += 0 if dist >= ri + rj else self.k*(ri + rj - dist)
