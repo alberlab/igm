@@ -16,9 +16,5 @@ pp = igm.restraints.Polymer(index)
 model.addRestraint(pp)
 
 import igm.kernel.lammps
-info = igm.kernel.lammps.optimize(model, {
-                                    'tmp_files_dir':'.', 
-                                    'run_name':'test', 
-                                    'keep_temporary_files': True, 
-                                    'lammps_executable': 'lmp_serial_mod', 
-                                    'optimizer_options':{} })
+cfg = igm.Config("testcfg.json")
+info = igm.kernel.lammps.optimize(model, cfg.optimization)
