@@ -43,6 +43,11 @@ from subprocess import Popen, PIPE
 from .lammps_io import get_info_from_log, get_last_frame
 from .lammps_model import *
 
+try:
+    UNICODE_EXISTS = bool(type(unicode))
+except NameError:
+    unicode = str
+
 __author__  = "Guido Polles"
 __license__ = "GPL"
 __version__ = "0.0.1"

@@ -6,7 +6,10 @@ model = igm.model.Model()
 
 for i in range(500):
     model.addParticle(np.random.randn(3)*500, 200, 0)
-    
+
+ex = igm.restraints.Steric()
+model.addRestraint(ex)
+
 ee = igm.restraints.Envelope(5000, 1)
 model.addRestraint(ee)
     

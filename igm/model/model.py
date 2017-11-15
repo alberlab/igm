@@ -22,7 +22,10 @@ class Model(object):
         """
         Add particle to system
         """
-        return self.particles.append(Particle(pos, r, t))
+        
+        self.particles.append(Particle(pos, r, t))
+        
+        return len(self.particles)-1
         
     
     def getParticle(self,i):
