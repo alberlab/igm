@@ -257,6 +257,7 @@ class LammpsModel(object):
         for f in model.forces:
             
             if f.ftype == f.EXCLUDED_VOLUME:
+                self.evfactor = f.k
                 continue
             pi, pj = self.atoms[self.imap[f.i]], self.atoms[self.imap[f.j]]
             

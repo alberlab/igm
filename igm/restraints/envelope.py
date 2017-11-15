@@ -3,7 +3,11 @@ from __future__ import division, print_function
 from .restraint import Restraint
 from ..model.particle import Particle
 from ..model.forces import HarmonicUpperBound
-
+try:
+    UNICODE_EXISTS = bool(type(unicode))
+except NameError:
+    unicode = lambda s: str(s)
+    
 class Envelope(Restraint):
     """
     A object handles nuclear envelope restraints
@@ -16,14 +20,18 @@ class Envelope(Restraint):
         spring constant
     """
     
-    def __init__(self, nucRadius=5000.0, k=1.0):
-        self.nucRadius = nucRadius
+    def __init__(self, shape="sphere", nucRadius=5000.0, k=1.0):
+        self.shape = unicode(shape)
+        
+        if self.shape == u"sphere":
+            self.nucRadius = nucRadius
+        elif self.shape == u"ellipsoid":
+            self.a, self.b, self.c = nucRadius
+        
         self.k = k
         self.forceID = []
-        
-    def _apply(self, model, override=False):
-        
-        self._apply_model(model, override)
+    
+    def _apply_sphere_envelop(self, model):
         
         center = model.addParticle([0., 0., 0.], 0., Particle.DUMMY_STATIC)
         
@@ -38,4 +46,11 @@ class Envelope(Restraint):
             
             self.forceID.append(f)
         #-
+        
+    def _apply(self, model, override=False):
+        
+        self._apply_model(model, override)
+        
+        if self.shape == u"sphere":
+            self._apply_sphere_envelop(model)
     #=

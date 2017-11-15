@@ -2,10 +2,20 @@ from __future__ import division, print_function
 
 import json
 import numpy as np
-
-
+    
+MOD_DEFAULT = [
+    ('nucleus_radius', 5000.0, float, 'default nucleus radius'),
+    ('nucleus_shape', 'sphere', str, 'default nucleus shape'),
+    ('nucleus_axes', (5000.0, 5000.0, 5000.0), tuple, 'default nucleus axes'),
+    ('occupancy', 0.2, float, 'default volume occupancy (from 0.0 to 1.0)'),
+    ('contact_range', 2.0, float, 'Consecutive contact range (in radius units)'),
+    ('contact_kspring', 1.0, float, 'Consecutive contact spring constant'),
+    ('evfactor', 1.0, float, 'Scale excluded volume by this factor'),
+    
+]
 OPT_DEFAULT = [
-
+    ('nucleus_radius', 5000.0, float, 'default nucleus radius'),
+    
     ('out', 'out.lammpstrj', str, 'Temporary lammps trajectory file name'),
     ('data', 'input.data', str, 'Temporary lammmps input data file name'), 
     ('lmp', 'minimize.lam', str, 'Temporary lammps script file name'), 
@@ -20,7 +30,6 @@ OPT_DEFAULT = [
     ('thermo', 1000, int, 'Output thermodynamic info every <thermo>' 
                           ' MD timesteps'),
     ('max_velocity', 5.0, float, 'Cap particle velocity'),
-    ('evfactor', 1.0, float, 'Scale excluded volume by this factor'),
     ('max_neigh', 2000, int, 'Maximum numbers of neighbors per particle'),
     ('max_cg_iter', 500, int, 'Maximum # of Conjugate Gradient steps'),
     ('max_cg_eval', 500, int, 'Maximum # of Conjugate Gradient evaluations'),
@@ -48,6 +57,11 @@ class Config(object):
             cfg = json.load(f)
         
         self.__dict__.update(cfg)
+        self.model = validate_user_args(self.model, MOD_DEFAULT)
+        if self.model['nucleus_shape'] == 'sphere':
+            self.optimization['optimizer_options']['nucleus_radius'] = self.model['nucleus_radius']
+        elif self.model['nucleus_shape'] == 'ellipsoid':
+            self.optimization['optimizer_options']['nucleus_radius'] = max(self.model['nucleus_axes'])
         self.optimization['optimizer_options'] = validate_user_args(self.optimization['optimizer_options'], OPT_DEFAULT)
     #-
     
@@ -62,10 +76,11 @@ def validate_user_args(inargs, defaults):
             raise ValueError('Keywords argument \'%s\' not recognized.' % k)
         if v is not None:
             args[k] = atypes[k](v)
-
-    if args['write'] == -1:
-        args['write'] = args['mdsteps']  # write only final step
-    
+    try:
+        if args['write'] == -1:
+            args['write'] = args['mdsteps']  # write only final step
+    except:
+        pass
     return args
         
         
