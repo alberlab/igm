@@ -88,6 +88,7 @@ ARG_DEFAULT = [
     ('ev_stop', 0.0, float, 'final excluded volume factor'),
     ('ev_step', 0, int, 'If larger than zero, performs <n> rounds scaling '
                         'excluded volume factors from ev_start to ev_stop'),
+    ('use_gpu', 0, int, 'use gpu options for pair potential'),
 ]
 
 
@@ -175,6 +176,7 @@ def create_lammps_script(model, user_args):
     maxrad = max([at.radius for at in model.atom_types if 
                   at.atom_category == AtomType.BEAD])
 
+
     with open(user_args['lmp'], 'w') as f:
         print('units                 lj', file=f)
         print('atom_style            bond', file=f)
@@ -188,7 +190,11 @@ def create_lammps_script(model, user_args):
 
 
         # excluded volume
-        print('pair_style soft', 2.0 * maxrad, file=f)  # global cutoff
+        if user_args['use_gpu']:
+            pair_style = 'soft/gpu'
+        else:
+            pair_style = 'soft'
+        print('pair_style', pair_style, 2.0 * maxrad, file=f)  # global cutoff
 
         print('read_data', user_args['data'], file=f)
         print('mass * 1.0', file=f)

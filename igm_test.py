@@ -2,15 +2,16 @@ import igm
 from alabtools.utils import Index
 import numpy as np
 
+n_particles = 1000
 model = igm.model.Model()
 
-for i in range(500):
-    model.addParticle(np.random.randn(3)*500, 200, 0)
+for i in range(n_particles):
+    model.addParticle(np.random.randn(3)*n_particles, 200, 0)
     
 ee = igm.restraints.Envelope(5000, 1)
 model.addRestraint(ee)
     
-index = Index(chrom=[0]*500, start=[0]*500, end=[0]*500)
+index = Index(chrom=[0]*n_particles, start=[0]*n_particles, end=[0]*n_particles)
 
 pp = igm.restraints.Polymer(index)
 model.addRestraint(pp)
