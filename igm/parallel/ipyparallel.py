@@ -11,13 +11,13 @@ import sys
 import zmq
 import sqlite3
 import time
-from .map_reduce import MapReduceController 
+from .parallel_controller import ParallelController 
 
 #from .globals import default_log_formatter
 log_fmt = '[%(name)s] %(asctime)s (%(levelname)s) %(message)s'
 default_log_formatter = logging.Formatter(log_fmt, '%d %b %Y %H:%M:%S')
 
-class BasicIPPController(MapReduceController):
+class BasicIppController(ParallelController):
     def setup(self):
         from ipyparallel import Client
         self.client = Client()
@@ -26,7 +26,7 @@ class BasicIPPController(MapReduceController):
     def map(self, parallel_task, args):
         return self.lbv.map_sync(parallel_task, args)
 
-class BasicAsyncIPPController(BasicIPPController):
+class BasicAsyncIppController(BasicIppController):
     def map(self, parallel_task, args):
         return self.lbv.map_async(parallel_task, args)
 
@@ -78,7 +78,7 @@ class IppFunctionWrapper(object):
         return rval
 
 
-class AdvancedIppController(MapReduceController):
+class AdvancedIppController(ParallelController):
     '''
     A wrapper class to deal with monitoring and logging
     parallel jobs activity.

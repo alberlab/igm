@@ -3,6 +3,7 @@ from __future__ import division, print_function
 import json
 import numpy as np
 from copy import deepcopy
+from six import string_types
     
 MOD_DEFAULT = [
     ('nucleus_radius', 5000.0, float, 'default nucleus radius'),
@@ -42,36 +43,43 @@ OPT_DEFAULT = [
     ('ev_step', 0, int, 'If larger than zero, performs <n> rounds scaling '
                         'excluded volume factors from ev_start to ev_stop'),
 ]
-class Config(object):
+
+class Config(dict):
     """
     Config is the class which holds all static parameters 
     e.g. # structures, hic file, SPRITE file etc. 
     and dynamic parameters e.g. activation distance and cluster assignment.
     """
     
-    def __init__(self, cfgfile, **kwargs):
-        
+    def __init__(self, cfg=None):
         
         #put static config into config object
         #dynamic config like genome object can be other members
-        with open(cfgfile) as f:
-            cfg = json.load(f)
-        
-        self.__dict__.update(cfg)
-        self.model = validate_user_args(self.model, MOD_DEFAULT)
-        if self.model['nucleus_shape'] == 'sphere':
-            self.optimization['optimizer_options']['nucleus_radius'] = self.model['nucleus_radius']
-        elif self.model['nucleus_shape'] == 'ellipsoid':
-            self.optimization['optimizer_options']['nucleus_radius'] = max(self.model['nucleus_axes'])
-        self.optimization['optimizer_options'] = validate_user_args(self.optimization['optimizer_options'], OPT_DEFAULT)
-    #-
+        self['model'] = {}
+        self['optimization'] = {}
+        self['optimization']['optimizer_options'] = {}
 
-    def copy(self):
-        return deepcopy(self)
+        if cfg is not None:
+            if isinstance(cfg, string_types):
+                with open(cfg) as f:
+                    self.update(json.load(f))        
+            elif isinstance(cfg, dict):
+                self.update(deepcopy(cfg))
+            else:
+                raise ValueError()
+        
+        self['model'] = validate_user_args(self['model'], MOD_DEFAULT)
+        if self['model']['nucleus_shape'] == 'sphere':
+            self['optimization']['optimizer_options']['nucleus_radius'] = self['model']['nucleus_radius']
+        elif self['model']['nucleus_shape'] == 'ellipsoid':
+            self['optimization']['optimizer_options']['nucleus_radius'] = max(self['model']['nucleus_axes'])
+        self['optimization']['optimizer_options'] = validate_user_args(self['optimization']['optimizer_options'], OPT_DEFAULT)
+
+    #-
 
     def save(self, fname):
         with open(fname, 'w') as f:
-            json.dump(self.__dict__, f)
+            json.dump(self, f)
     
     
 #==
