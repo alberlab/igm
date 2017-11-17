@@ -42,13 +42,22 @@ class ExcludedVolume(Force):
                                                   self.note)
 
     def getScore(self, particles):
-        s = 0.
-        for i in range(len(self.particles)):
-            for j in range(i):
-                pi, pj = particles[self.particles[i]] - particles[self.particles[j]]
-                ri, rj = pi.r, pj.r
-                dist = np.linalg(pi.pos - pj.pos)
-                s += 0 if dist >= ri + rj else self.k*(ri + rj - dist)
+        from scipy.spatial import distance
+        
+        crd = np.array([particles[i].pos for i in self.particles])
+        rad = np.array([[particles[i].r  for i in self.particles]]).T
+        
+        dist = distance.pdist(crd)
+        cap  = distance.pdist(rad, lambda u, v: u+v)
+        
+        s = (cap - dist).clip(min=0).sum()
+        
+        #for i in range(len(self.particles)):
+            #for j in range(i):
+                #pi, pj = particles[self.particles[i]], particles[self.particles[j]]
+                #ri, rj = pi.r, pj.r
+                #dist = np.linalg.norm(pi.pos - pj.pos)
+                #s += 0 if dist >= ri + rj else self.k*(ri + rj - dist)
         return s
         
 #-

@@ -255,6 +255,10 @@ class LammpsModel(object):
             self.imap.append(atom.id)
 
         for f in model.forces:
+            
+            if f.ftype == f.EXCLUDED_VOLUME:
+                self.evfactor = f.k
+                continue
             pi, pj = self.atoms[self.imap[f.i]], self.atoms[self.imap[f.j]]
             
             # dummies creation depend on the number of bonds, so we may need to
@@ -264,9 +268,8 @@ class LammpsModel(object):
             if pj.atom_type == Atom.FIXED_DUMMY:
                 pj = self.get_next_dummy()
             
-            if f.ftype == f.EXCLUDED_VOLUME:
-                continue
-            elif f.ftype == f.HARMONIC_UPPER_BOUND:
+            
+            if f.ftype == f.HARMONIC_UPPER_BOUND:
                 bond_type = HarmonicUpperBound(r0=f.d, k=f.k)
                 self.add_bond(pi.id, pj.id, bond_type)
             elif f.ftype == f.HARMONIC_LOWER_BOUND:
