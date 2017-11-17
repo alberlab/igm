@@ -30,3 +30,9 @@ def reverse_readline(fh, buf_size=8192):
     # Don't yield None if the file was empty
     if segment is not None:
         yield segment
+
+def resolve_templates(templates, args):
+    rt = {}
+    for key, val in templates.items():
+        rt[key] = val.format(*args)
+    return rt

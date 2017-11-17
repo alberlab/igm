@@ -2,6 +2,7 @@ from __future__ import division, print_function
 
 import json
 import numpy as np
+from copy import deepcopy
     
 MOD_DEFAULT = [
     ('nucleus_radius', 5000.0, float, 'default nucleus radius'),
@@ -64,6 +65,13 @@ class Config(object):
             self.optimization['optimizer_options']['nucleus_radius'] = max(self.model['nucleus_axes'])
         self.optimization['optimizer_options'] = validate_user_args(self.optimization['optimizer_options'], OPT_DEFAULT)
     #-
+
+    def copy(self):
+        return deepcopy(self)
+
+    def save(self, fname):
+        with open(fname, 'w') as f:
+            json.dump(self.__dict__, f)
     
     
 #==
