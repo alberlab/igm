@@ -56,62 +56,6 @@ __email__   = "polles@usc.edu"
 
 INFO_KEYS = ['final-energy', 'pair-energy', 'bond-energy', 'md-time', 'n_restr', 'n_hic_restr']
 
-
-<<<<<<< HEAD
-ARG_DEFAULT = [
-    ('nucleus_radius', 5000.0, float, 'default nucleus radius'),
-    ('occupancy', 0.2, float, 'default volume occupancy (from 0.0 to 1.0)'),
-    ('sprite_size', 5.0, float, 'inverse of volume occupancy'),
-    ('sprite_kspring', 1.0, float, 'SPRITE spring constant'),
-    ('out', 'out.lammpstrj', str, 'Temporary lammps trajectory file name'),
-    ('data', 'input.data', str, 'Temporary lammmps input data file name'), 
-    ('lmp', 'minimize.lam', str, 'Temporary lammps script file name'), 
-    ('contact_kspring', 1.0, float, 'HiC contacts spring constant'),
-    ('contact_range', 2.0, float, 'HiC contact range (in radius units)'),
-    ('fish_type', 'rRpP', str, 'FISH restraints type'),
-    ('fish_kspring', 1.0, float, 'FISH restraints spring constant'),
-    ('fish_tol', 0.0, float, 'FISH restraints tolerance (nm)'),
-    ('damid_kspring', 1.0, float, 'lamina DamID restr. spring constant'),
-    ('damid_tol', 50.0, float, 'lamina DamID restraint tolerance (nm)'),
-    ('mdsteps', 20000, int, 'Number of MD steps per round'),
-    ('timestep', 0.25, float, 'MD timestep'),
-    ('tstart', 20.0, float, 'MD initial temperature'),
-    ('tstop', 1.0, float, 'MD final temperature'),
-    ('damp', 50.0, float, 'MD damp parameter'),
-    ('seed', np.random.randint(100000000), int, 'RNG seed'),
-    ('write', -1, int, 'Dump coordinates every <write> MD timesteps'),
-    ('thermo', 1000, int, 'Output thermodynamic info every <thermo>' 
-                          ' MD timesteps'),
-    ('max_velocity', 5.0, float, 'Cap particle velocity'),
-    ('evfactor', 1.0, float, 'Scale excluded volume by this factor'),
-    ('max_neigh', 2000, int, 'Maximum numbers of neighbors per particle'),
-    ('max_cg_iter', 500, int, 'Maximum # of Conjugate Gradient steps'),
-    ('max_cg_eval', 500, int, 'Maximum # of Conjugate Gradient evaluations'),
-    ('etol', 1e-4, float, 'Conjugate Gradient energy tolerance'),
-    ('ftol', 1e-6, float, 'Conjugate Gradient force tolerance'),
-    ('soft_min', 0, int, 'perform a soft minimization of lenght <> timesteps'),
-    ('ev_start', 0.0, float, 'initial excluded volume factor'),
-    ('ev_stop', 0.0, float, 'final excluded volume factor'),
-    ('ev_step', 0, int, 'If larger than zero, performs <n> rounds scaling '
-                        'excluded volume factors from ev_start to ev_stop'),
-    ('use_gpu', 0, int, 'use gpu options for pair potential'),
-]
-
-
-def validate_user_args(kwargs):
-    args = {k: v for k, v, _, _ in ARG_DEFAULT}
-    atypes = {k: t for k, _, t, _ in ARG_DEFAULT}
-    for k, v in kwargs.items():
-        if k not in args:
-            raise ValueError('Keywords argument \'%s\' not recognized.' % k)
-        if v is not None:
-            args[k] = atypes[k](v)
-
-    if args['write'] == -1:
-        args['write'] = args['mdsteps']  # write only final step
-    
-    return args
-
 def create_lammps_data(model, user_args):
     
     n_atom_types = len(model.atom_types)
