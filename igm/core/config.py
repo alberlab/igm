@@ -43,6 +43,7 @@ OPT_DEFAULT = [
     ('ev_stop', 0.0, float, 'final excluded volume factor'),
     ('ev_step', 0, int, 'If larger than zero, performs <n> rounds scaling '
                         'excluded volume factors from ev_start to ev_stop'),
+    ('use_gpu', 0, int, 'use gpu options for pair potential'),
 ]
 
 class Config(dict):

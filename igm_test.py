@@ -15,21 +15,21 @@ model.addRestraint(ee)
 for i in range(500):
     model.addParticle(np.random.randn(3)*500, 200, 0)
 
-ex = igm.restraints.Steric(cfg.model['evfactor'])
+ex = igm.restraints.Steric(cfg['model']['evfactor'])
 model.addRestraint(ex)
 
-ev = igm.restraints.Envelope(cfg.model['nucleus_shape'], 
-                             cfg.model['nucleus_radius'], 
-                             cfg.model['contact_kspring'])
+ev = igm.restraints.Envelope(cfg['model']['nucleus_shape'], 
+                             cfg['model']['nucleus_radius'], 
+                             cfg['model']['contact_kspring'])
 model.addRestraint(ev)
     
 index = Index(chrom=[0]*n_particles, start=[0]*n_particles, end=[0]*n_particles)
 
 pp = igm.restraints.Polymer(index,
-                            cfg.model['contact_range'],
-                            cfg.model['contact_kspring'])
+                            cfg['model']['contact_range'],
+                            cfg['model']['contact_kspring'])
 model.addRestraint(pp)
 
 
 
-model.optimize(cfg.optimization)
+model.optimize(cfg['optimization'])

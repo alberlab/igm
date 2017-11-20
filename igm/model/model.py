@@ -39,7 +39,9 @@ class Model(object):
         Add a basic force
         """
         
-        return self.forces.append(f)
+        self.forces.append(f)
+        
+        return len(self.forces)-1
     
     def getForce(self, i):
         """
