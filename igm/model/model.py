@@ -70,7 +70,7 @@ class Model(object):
         
         if cfg["kernel"] == "lammps":
             from ..kernel import lammps
-            lammps.optimize(self, cfg)
+            return lammps.optimize(self, cfg)
             
         
 #=

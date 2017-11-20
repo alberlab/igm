@@ -23,6 +23,6 @@ pp = igm.restraints.Polymer(index,
                             cfg.model['contact_kspring'])
 model.addRestraint(pp)
 
-import igm.kernel.lammps
 
-info = igm.kernel.lammps.optimize(model, cfg.optimization)
+
+model.optimize(cfg.optimization)

@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 
 import json
+import os
 import numpy as np
     
 MOD_DEFAULT = [
@@ -48,13 +49,17 @@ class Config(object):
     and dynamic parameters e.g. activation distance and cluster assignment.
     """
     
-    def __init__(self, cfgfile, **kwargs):
+    def __init__(self, cfgfile=None, **kwargs):
         
         
         #put static config into config object
         #dynamic config like genome object can be other members
-        with open(cfgfile) as f:
-            cfg = json.load(f)
+        try:
+            with open(cfgfile) as f:
+                cfg = json.load(f)
+        except:
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)) + '/defaults/config_default.json')) as f:
+                cfg = json.load(f)
         
         self.__dict__.update(cfg)
         self.model = validate_user_args(self.model, MOD_DEFAULT)
