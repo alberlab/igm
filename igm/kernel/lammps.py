@@ -56,8 +56,6 @@ __email__   = "polles@usc.edu"
 
 INFO_KEYS = ['final-energy', 'pair-energy', 'bond-energy', 'md-time', 'n_restr', 'n_hic_restr']
 
-
-
 def create_lammps_data(model, user_args):
     
     n_atom_types = len(model.atom_types)
@@ -128,6 +126,7 @@ def create_lammps_script(model, user_args):
     maxrad = max([at.radius for at in model.atom_types if 
                   at.atom_category == AtomType.BEAD])
 
+
     with open(user_args['lmp'], 'w') as f:
         print('units                 lj', file=f)
         print('atom_style            bond', file=f)
@@ -141,7 +140,11 @@ def create_lammps_script(model, user_args):
 
 
         # excluded volume
-        print('pair_style soft', 2.0 * maxrad, file=f)  # global cutoff
+        if user_args['use_gpu']:
+            pair_style = 'soft/gpu'
+        else:
+            pair_style = 'soft'
+        print('pair_style', pair_style, 2.0 * maxrad, file=f)  # global cutoff
 
         print('read_data', user_args['data'], file=f)
         print('mass * 1.0', file=f)
