@@ -9,11 +9,6 @@ cfg = igm.Config("config_test.json")
 for i in range(n_particles):
     model.addParticle(np.random.randn(3)*n_particles, 200, 0)
     
-ee = igm.restraints.Envelope(5000, 1)
-model.addRestraint(ee)
-
-for i in range(500):
-    model.addParticle(np.random.randn(3)*500, 200, 0)
 
 ex = igm.restraints.Steric(cfg['model']['evfactor'])
 model.addRestraint(ex)

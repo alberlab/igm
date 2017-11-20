@@ -24,10 +24,8 @@ class Polymer(Restraint):
         self.k = k
         self.forceID = []
         
-    def _apply(self, model, override=False):
-        
-        self._apply_model(model, override)
-        
+    def _apply(self, model):
+               
         for i in range(len(self.index) - 1):
             if (self.index.chrom[i] == self.index.chrom[i+1] and 
                 self.index.copy[i] == self.index.copy[i+1]):

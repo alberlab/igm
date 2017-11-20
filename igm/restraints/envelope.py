@@ -47,9 +47,7 @@ class Envelope(Restraint):
             self.forceID.append(f)
         #-
         
-    def _apply(self, model, override=False):
-        
-        self._apply_model(model, override)
+    def _apply(self, model):
         
         if self.shape == u"sphere":
             self._apply_sphere_envelop(model)

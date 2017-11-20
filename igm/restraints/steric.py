@@ -20,9 +20,7 @@ class Steric(Restraint):
         self.k = k
         self.forceID = []
         
-    def _apply(self, model, override=False):
-        
-        self._apply_model(model, override)
+    def _apply(self, model):
         
         plist = [i for i, p in enumerate(model.particles) if p.ptype == Particle.NORMAL]
         

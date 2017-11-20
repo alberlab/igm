@@ -57,10 +57,11 @@ class Model(object):
         
         return self.forces[i].getScore(self.particles)
         
-    def addRestraint(self, res):
+    def addRestraint(self, res, override=False):
         """
         Add a type of restraint to model
         """
+        res._apply_model(self, override)
         
         res._apply(self)
     
