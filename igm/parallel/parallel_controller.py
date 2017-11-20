@@ -3,21 +3,29 @@ The reduce function should always accept an iterable
 The map function should always return an iterable
 '''
 
-class MapReduceController(object):
+class ParallelController(object):
+    
     def __init__(self):
-        pass
+        """
+        A parallel controller that map parallel jobs into workers
+        """
+    
     def setup(self):
         pass
+    
     def map(self, parallel_task, args):
         raise NotImplementedError()
+    
     def reduce(self, reduce_task, outs):
         return reduce_task(outs)
+    
     def map_reduce(self, parallel_task, reduce_task, args):
         return self.reduce(reduce_task, self.map(parallel_task, args))
+    
     def teardown(self):
         pass
 
-class SerialController(MapReduceController):
+class SerialController(ParallelController):
     def map(self, parallel_task, args):
         return [parallel_task(a) for a in args]
 

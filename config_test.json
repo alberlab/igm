@@ -4,6 +4,8 @@
         "segmentation" : "tad.bed"
     },
     
+    "population_size" : 10,
+    
     "model" : {
         "nucleus_shape" : "sphere",
         "nucleus_radius" : 5000.0,
