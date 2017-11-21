@@ -2,6 +2,10 @@ from __future__ import division, absolute_import, print_function
 
 from .forces import Force
 from .particle import Particle
+try:
+    from itertools import izip as zip
+except ImportError: 
+    pass
 
 class Model(object):
     """
@@ -17,7 +21,9 @@ class Model(object):
     def __init__(self):
         self.particles = []
         self.forces = []
-        
+    
+    
+    #====Particle methods
     def addParticle(self, pos, r, t):
         """
         Add particle to system
@@ -34,6 +40,51 @@ class Model(object):
         """
         return self.particles[i]
     
+    def setParticlePos(self, i, pos):
+        """
+        set particle coordinates
+        """
+        
+        self.particles[i].setCoordinates(pos)
+    #====
+    
+    
+    #===bulk particle methods
+    def initParticles(self, crd, rad):
+        """
+        initialize particles using numpy array
+        
+        Parameters
+        ----------
+        crd : 2D numpy array (float), N*3
+            Numpy array of coordinates for each particle, N is the number of particles
+        rad : 2D numpy array (float), N*1
+            particle radius
+        """
+        assert crd.shape[0] == rad.shape[0]
+        
+        for pos, r in zip(crd, rad):
+            self.addParticle(pos, r, Particle.NORMAL)
+    #====
+    
+    
+    #====bulk get methods
+    def getCoordinates(self):
+        """
+        Get all particles' Coordinates in numpy array form
+        """
+        return np.array([p.pos for p in self.particles if p.t == Particle.NORMAL])
+    
+    
+    def getRadii(self):
+        """
+        Get all particles' radii in numpy array vector form
+        """
+        return np.array([[p.r for p in self.particles if p.t == Particle.NORMAL]]).T
+    #====
+    
+    
+    #====force methods
     def addForce(self, f):
         """
         Add a basic force
@@ -56,7 +107,10 @@ class Model(object):
         """
         
         return self.forces[i].getScore(self.particles)
+    #====
         
+        
+    #====restraint methods
     def addRestraint(self, res, override=False):
         """
         Add a type of restraint to model

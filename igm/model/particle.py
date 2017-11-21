@@ -1,6 +1,8 @@
 from __future__ import division, absolute_import, print_function
 import numpy as np
 
+POSDTYPE = np.float32
+
 class Particle(object):
     NORMAL = 0
     DUMMY_STATIC = 1
@@ -9,8 +11,8 @@ class Particle(object):
     PTYPES = ["NORMAL","DUMMY_STATIC","DUMMY_DYNAMIC"]
     
     def __init__(self, pos, r, t):
-        self.pos = np.array(pos)
-        self.r = r
+        self.pos = np.array(pos).astype(POSDTYPE)
+        self.r = POSDTYPE(r)
         self.ptype = t
     
     def __str__(self):
