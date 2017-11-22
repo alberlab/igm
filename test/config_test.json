@@ -5,7 +5,7 @@
     "genome" : {
         "genome" : "hg19",
         "segmentation" : "gm12878.TAD.bed",
-        "ploidy" : "diploid",
+        "ploidy" : "diploid"
     },
     
     "model" : {

@@ -1,5 +1,4 @@
 import igm
-from alabtools.utils import Genome, get_index_from_bed, make_diploid
 import numpy as np
 
 #===start pipeline with configure file
