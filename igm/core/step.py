@@ -8,7 +8,7 @@ class Step(object):
         """
         
         self.controller = controller
-        self.config = cfg
+        self.cfg = cfg
         
     def setup(self):
         """
@@ -17,7 +17,8 @@ class Step(object):
         
         raise NotImplementedError()
     
-    def task(self, struct_id):
+    @staticmethod
+    def task(struct_id, cfg):
         """
         actual serial function that supposed to be in the worker
         """
@@ -30,8 +31,8 @@ class Step(object):
         
         """
         
-        serial_function = partial(self.task)
-        argument_list = list(range(self.config["population_size"]))
-        
+        serial_function = partial(self.__class__.task, cfg = self.cfg)
+        argument_list = list(range(self.cfg["population_size"]))
+
         self.controller.map(serial_function, argument_list)
     

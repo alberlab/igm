@@ -60,7 +60,9 @@ class Config(dict):
         self['model'] = {}
         self['optimization'] = {}
         self['optimization']['optimizer_options'] = {}
-
+        
+        
+        
         if cfg is not None:
             if isinstance(cfg, string_types):
                 with open(cfg) as f:
@@ -75,8 +77,11 @@ class Config(dict):
             self['optimization']['optimizer_options']['nucleus_radius'] = self['model']['nucleus_radius']
         elif self['model']['nucleus_shape'] == 'ellipsoid':
             self['optimization']['optimizer_options']['nucleus_radius'] = max(self['model']['nucleus_axes'])
+            
         self['optimization']['optimizer_options'] = validate_user_args(self['optimization']['optimizer_options'], OPT_DEFAULT)
-
+        
+        #runtime should be including all generated parameters
+        self['runtime'] = {}
     #-
 
     def save(self, fname):

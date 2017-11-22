@@ -1,10 +1,19 @@
 #!/usr/bin/env python
 from distutils.core import setup, Extension
+#from setuptools import setup, find_packages
+import re, os
+def find_packages(path='.'):
+    ret = []
+    for root, dirs, files in os.walk(path):
+        if '__init__.py' in files:
+            ret.append(re.sub('^[^A-z0-9_]+', '', root.replace('/', '.')))
+    return ret
 
 install_requires = [
     'numpy>=1.9', 
     'scipy>=0.16', 
     'h5py>=2.5', 
+    'alabtoosl>=0.0.1',
 ]
 
 tests_require = [
@@ -25,7 +34,7 @@ setup(
         author_email = 'polles@usc.edu nhua@usc.edu', 
         url = 'https://github.com/alberlab/gim', 
         description = 'Integrated Genome Modeling',
-        packages=['igm'],
+        packages=find_packages(),
         package_data={'igm' : ['core/defaults/*']},
         install_requires=install_requires,
         tests_require=tests_require,

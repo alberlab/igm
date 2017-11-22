@@ -7,9 +7,16 @@ from math import acos, sin, cos, pi
 from .core import Step
 
 class RandomInit(Step):
-    def task(self, struct_id):
-        with open("tmp/%s.txt"%(struct_id),'w') as f:
-            f.write("%s"%(self.config['genome']['genome']))
+    
+    @staticmethod
+    def task(struct_id, cfg):
+        
+        index = cfg['runtime']['index']
+        R = cfg['model']['nucleus_radius']
+        crd = generate_territories(index, R)
+        
+        numpy.save("%s/current_%s.npy"%(cfg['optimization']['tmp_files_dir'], struct_id), crd)
+    #-
             
     
         

@@ -1,7 +1,7 @@
 {
     "genome" : {
         "genome" : "hg19",
-        "segmentation" : "tad.bed"
+        "segmentation" : "tmp/gm12878.TAD.bed"
     },
     
     "population_size" : 10,
@@ -14,13 +14,18 @@
         "evfactor" : 1.0
     },
     
+    "parallel" : {
+        "controller" : "ipyparallel",
+        "options" : {}    
+    },
+    
     "restraints" : {
         
     },
     
     "optimization" : {
         "kernel" : "lammps",
-        "tmp_files_dir" : ".",
+        "tmp_files_dir" : "./tmp/",
         "run_name" : "test",
         "keep_temporary_files" : true,
         "lammps_executable" : "lmp_serial_mod",

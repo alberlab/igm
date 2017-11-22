@@ -128,7 +128,24 @@ class Model(object):
         if cfg["kernel"] == "lammps":
             from ..kernel import lammps
             return lammps.optimize(self, cfg)
-            
+        #-
+    #-
+    
+    def saveCoordinates(self, filename):
+        """
+        save xyz coordinates into numpy npy file
+        """
+        
+        np.save(filename, self.getCoordinates())
+    #-
+    
+    def saveXYZR(self, filename):
+        """
+        save xyzr into numpy npz file
+        """
+        
+        np.savez(filename, xyz=self.getCoordinates(), r=self.getRadii())
+    #-
         
 #=
 

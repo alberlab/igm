@@ -11,7 +11,7 @@ controller_class = {
 }
 
 def Controller(cfg):
-    pctype = cfg["controller"]
-    pcopts = cfg["options"]
+    pctype = cfg["parallel"]["controller"]
+    pcopts = cfg["parallel"]["options"]
         
     return controller_class[pctype](**pcopts)
