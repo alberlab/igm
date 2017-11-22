@@ -23,7 +23,7 @@ def Preprocess(cfg):
     nstruct = cfg['population_size']
     nbead = len(index)
     
-    hss = hssFile(cfg['structure_output'], 'a')
+    hss = HssFile(cfg['structure_output'], 'a')
     
     
     #Generate model radius
