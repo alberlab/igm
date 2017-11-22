@@ -62,7 +62,11 @@ class IppFunctionWrapper(object):
         # runs on a child process to terminate execution if timeout exceedes 
         try:
             import multiprocessing
-            from Queue import Empty
+            try:
+                from Queue import Empty
+            except:
+                from queue import Empty
+                
             self._q = multiprocessing.Queue()
             p = multiprocessing.Process(target=self.run, args=args, kwargs=kwargs)
             p.start()

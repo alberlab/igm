@@ -1,7 +1,7 @@
 {
     "genome" : {
         "genome" : "hg19",
-        "segmentation" : "tmp/gm12878.TAD.bed"
+        "segmentation" : "gm12878.TAD.bed"
     },
     
     "population_size" : 10,
