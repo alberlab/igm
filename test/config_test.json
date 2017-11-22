@@ -1,10 +1,12 @@
 {
+    "population_size" : 100,
+    "structure_output" : "test_structures.hss",
+    
     "genome" : {
         "genome" : "hg19",
-        "segmentation" : "gm12878.TAD.bed"
+        "segmentation" : "gm12878.TAD.bed",
+        "ploidy" : "diploid",
     },
-    
-    "population_size" : 10,
     
     "model" : {
         "nucleus_shape" : "sphere",

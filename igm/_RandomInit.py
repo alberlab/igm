@@ -10,7 +10,9 @@ class RandomInit(Step):
     
     @staticmethod
     def task(struct_id, cfg):
-        
+        """
+        generate one random structure with territories
+        """
         index = cfg['runtime']['index']
         R = cfg['model']['nucleus_radius']
         crd = generate_territories(index, R)
@@ -18,7 +20,11 @@ class RandomInit(Step):
         numpy.save("%s/current_%s.npy"%(cfg['optimization']['tmp_files_dir'], struct_id), crd)
     #-
             
-    
+    def cleanup(self):
+        """
+        Collect all structure coordinates together to put hssFile
+        """
+        
         
 
 def uniform_sphere(R):

@@ -5,21 +5,13 @@ import numpy as np
 #===start pipeline with configure file
 cfg = igm.Config("config_test.json")
 
+#Preprocess genome, index and allocate disk space for genome structures
+igm.Preprocess(cfg)
 
 #===start engines
 controller = igm.parallel.Controller(cfg)
 
-#===prepare genome and index instances
-def PrepareGenomeIndex(cfg):
-    genome = Genome(cfg['genome']['genome'])
-    index = get_index_from_bed(cfg['genome']['segmentation'], genome, usecols=(0,1,2,3))
-    index = make_diploid(index)
-    
-    cfg['runtime']['genome'] = genome
-    cfg['runtime']['index'] = index
-                                   
 
-PrepareGenomeIndex(cfg)
 
 
 #===Run steps
