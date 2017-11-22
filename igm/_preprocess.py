@@ -9,7 +9,7 @@ def PrepareGenomeIndex(cfg):
     genome = Genome(cfg['genome']['genome'])
     index = get_index_from_bed(cfg['genome']['segmentation'], genome, usecols=(0,1,2,3))
     
-    if cfg['genome'] == 'diploid':
+    if cfg['genome']['ploidy'] == 'diploid':
         index = make_diploid(index)
     
     return genome, index
