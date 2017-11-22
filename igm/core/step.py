@@ -15,7 +15,7 @@ class Step(object):
         setup everything before run
         """
         
-        raise NotImplementedError()
+        pass
     
     @staticmethod
     def task(struct_id, cfg):
@@ -25,14 +25,23 @@ class Step(object):
         
         raise NotImplementedError()
     
+    def cleanup(self):
+        """
+        Do something after parallel jobs
+        """
+        
+        pass
+    
     def run(self):
         """
         
         
         """
+        self.setup()
         
         serial_function = partial(self.__class__.task, cfg = self.cfg)
         argument_list = list(range(self.cfg["population_size"]))
 
         self.controller.map(serial_function, argument_list)
-    
+        
+        self.cleanup()
