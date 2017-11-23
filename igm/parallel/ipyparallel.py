@@ -144,8 +144,8 @@ class AdvancedIppController(ParallelController):
         else:
             self.dbfile = dbfile
         if fresh_run:
-            if os.path.isfile(dbfile):
-                os.remove(dbfile)
+            if os.path.isfile(self.dbfile):
+                os.remove(self.dbfile)
 
     def get_status(self):
         return self._status

@@ -9,6 +9,6 @@ from .core import Config
 
 
 from ._RandomInit import RandomInit
-
+from ._RelaxInit import RelaxInit
 
 from ._preprocess import Preprocess 

@@ -1,5 +1,5 @@
 import numpy as np
-from ..model.particle import Particle
+from ..particle import Particle
 
 class BondType(object):
     '''

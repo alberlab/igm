@@ -18,7 +18,9 @@
     
     "parallel" : {
         "controller" : "ipyparallel",
-        "options" : {}    
+        "options" : {
+            "fresh_run" : true
+        }    
     },
     
     "restraints" : {

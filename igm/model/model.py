@@ -1,5 +1,5 @@
 from __future__ import division, absolute_import, print_function
-
+import numpy as np
 from .forces import Force
 from .particle import Particle
 try:
@@ -73,14 +73,14 @@ class Model(object):
         """
         Get all particles' Coordinates in numpy array form
         """
-        return np.array([p.pos for p in self.particles if p.t == Particle.NORMAL])
+        return np.array([p.pos for p in self.particles if p.ptype == Particle.NORMAL])
     
     
     def getRadii(self):
         """
         Get all particles' radii in numpy array vector form
         """
-        return np.array([[p.r for p in self.particles if p.t == Particle.NORMAL]]).T
+        return np.array([[p.r for p in self.particles if p.ptype == Particle.NORMAL]]).T
     #====
     
     
@@ -126,7 +126,7 @@ class Model(object):
         """
         
         if cfg["kernel"] == "lammps":
-            from ..kernel import lammps
+            from .kernel import lammps
             return lammps.optimize(self, cfg)
         #-
     #-

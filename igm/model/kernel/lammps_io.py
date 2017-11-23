@@ -1,7 +1,7 @@
 from __future__ import division, absolute_import, print_function
 import numpy as np
 
-from ..util import reverse_readline
+from .util import reverse_readline
 
 def get_info_from_log(output):
     ''' gets final energy, excluded volume energy and bond energy.

@@ -1,30 +1,46 @@
 from __future__ import division, print_function
-import numpy
-import numpy.random
-import time
+import numpy as np
 from math import acos, sin, cos, pi
 
 from .core import Step
 
+from alabtools.analysis import HssFile
+
 class RandomInit(Step):
     
+    def setup(self):
+        self.tmp_extensions.append(".npy")
+        self.argument_list = list(range(self.cfg["population_size"]))
+        
     @staticmethod
     def task(struct_id, cfg):
         """
         generate one random structure with territories
         """
-        index = cfg['runtime']['index']
-        R = cfg['model']['nucleus_radius']
-        crd = generate_territories(index, R)
+        hssfilename    = cfg["structure_output"]
+        nucleus_radius = cfg['model']['nucleus_radius']
         
-        numpy.save("%s/current_%s.npy"%(cfg['optimization']['tmp_files_dir'], struct_id), crd)
+        with HssFile(hssfilename,'r') as hss:
+            index = hss.index
+        
+        crd = generate_territories(index, nucleus_radius)
+        
+        np.save("%s/random_%s.npy"%(cfg['optimization']['tmp_files_dir'], struct_id), crd)
     #-
             
-    def cleanup(self):
+    def reduce(self):
         """
         Collect all structure coordinates together to put hssFile
         """
+        hssfilename = self.cfg["structure_output"]
+        hss = HssFile(hssfilename,'a')
         
+        #iterate all structure files and 
+        for i in range(hss.nstruct):
+            crd = np.load("%s/random_%s.npy"%(self.cfg['optimization']['tmp_files_dir'], i))
+            
+            hss.set_struct_crd(i, crd)
+        #-
         
 
 def uniform_sphere(R):
@@ -34,12 +50,12 @@ def uniform_sphere(R):
     Arguments:
         R (float): radius of the sphere
     Returns:
-        numpy.array:
+        np.array:
             triplet of coordinates x, y, z 
     '''
-    phi = numpy.random.uniform(0, 2 * pi)
-    costheta = numpy.random.uniform(-1, 1)
-    u = numpy.random.uniform(0, 1)
+    phi = np.random.uniform(0, 2 * pi)
+    costheta = np.random.uniform(-1, 1)
+    u = np.random.uniform(0, 1)
 
     theta = acos( costheta )
     r = R * ( u**(1./3.) )
@@ -48,7 +64,7 @@ def uniform_sphere(R):
     y = r * sin( theta) * sin( phi )
     z = r * cos( theta )
 
-    return numpy.array([x,y,z])
+    return np.array([x,y,z])
 
 
 
@@ -64,7 +80,7 @@ def generate_territories(index, R=5000.0):
             radius of the cell
     
     Returns:
-        numpy.array : structure coordinates
+        np.array : structure coordinates
     '''
     
     # chromosome ends are detected when
@@ -72,12 +88,12 @@ def generate_territories(index, R=5000.0):
     n_tot = len(index)
     n_chrom = len(index.chrom_sizes)
     
-    crds = numpy.empty((n_tot, 3))
+    crds = np.empty((n_tot, 3))
     # the radius of the chromosome is set as 75% of its
     # "volumetric sphere" one. This is totally arbitrary. 
     # Note: using float division of py3
     chr_radii = [0.75 * R * (float(nb)/n_tot)**(1./3) for nb in index.chrom_sizes]
-    crad = numpy.average(chr_radii)
+    crad = np.average(chr_radii)
     k = 0
     for i in range(n_chrom):    
         center = uniform_sphere(R - crad)

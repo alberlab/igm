@@ -13,7 +13,7 @@ install_requires = [
     'numpy>=1.9', 
     'scipy>=0.16', 
     'h5py>=2.5', 
-    'alabtoosl>=0.0.1',
+    'alabtools>=0.0.1',
 ]
 
 tests_require = [
