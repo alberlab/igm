@@ -74,12 +74,14 @@ class Step(object):
 class StructGenStep(Step):
     
     def __init__(self, cfg):
-        super(StructGenStep, self).__init__()
+        super(StructGenStep, self).__init__(cfg)
         
         self.argument_list = list(range(self.cfg["population_size"]))
         
         self.tmp_dir = "{}/{}".format(self.tmp_dir, 
-                                      self.cfg["optimization"]["tmp_files_dir"])
+                                      self.cfg["optimization"]["tmp_dir"])
+        self.cfg["optimization"]["tmp_files_dir"] = self.tmp_dir
+        
         if not os.path.exists(self.tmp_dir):
             os.makedirs(self.tmp_dir)
         

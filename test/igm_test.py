@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import igm
 import numpy as np
 
@@ -15,5 +17,13 @@ randomStep.run()
 
 relaxStep = igm.RelaxInit(cfg)
 relaxStep.run()
+
+cfg['restraints']['Hi-C']['sigma'] = 1.0
+
+actdistStep = igm.ActivationDistanceStep(cfg)
+actdistStep.run()
+
+modelStep = igm.ModelingStep(cfg)
+modelStep.run()
 
 

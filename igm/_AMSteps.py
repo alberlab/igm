@@ -1,13 +1,16 @@
 from __future__ import division, print_function
 import numpy as np
 import h5py
+import scipy.io
+import os
+
 from .core import Step, StructGenStep
 from .model import Model, Particle
 from .restraints import Polymer, Envelope, Steric, HiC
 
 
 from alabtools.analysis import HssFile
-from alabtoos import Contactmatrix
+
 try:
     zip = izip
 except:
@@ -48,7 +51,7 @@ class ActivationDistanceStep(Step):
         n_args_batches = len(ii) // batch_size
         
         
-        if len(ii) % args_batch_size != 0:
+        if len(ii) % batch_size != 0:
             n_args_batches += 1
         for b in range(n_args_batches):
             start = b * args_batch_size

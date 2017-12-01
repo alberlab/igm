@@ -27,6 +27,7 @@
     "restraints" : {
         "Hi-C" : {
             "data" : "tad.hcs",
+            "input_matrix" : "Rao_TAD.mtx",
             "contact_range" : 2.0,
             "sigma_list" : [1, 0.2, 0.1, 0.05]
         }
@@ -34,7 +35,7 @@
     
     "optimization" : {
         "kernel" : "lammps",
-        "tmp_files_dir" : "./opt/",
+        "tmp_dir" : "opt/",
         "run_name" : "test",
         "keep_temporary_files" : true,
         "lammps_executable" : "lmp_serial_mod",
