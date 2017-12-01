@@ -94,7 +94,7 @@ class ActivationDistanceDB(object):
     def _load_next_chunk(self):
         self._chk_row = self.h5f['row'][self._chk_end : self._chk_end + self.chunk_size]
         self._chk_col = self.h5f['col'][self._chk_end : self._chk_end + self.chunk_size]
-        self._chk_data = self.h5f['data'][self._chk_end : self._chk_end + self.chunk_size]
+        self._chk_data = self.h5f['dist'][self._chk_end : self._chk_end + self.chunk_size]
         self._chk_end += self.chunk_size
         self._chk_i = 0
         

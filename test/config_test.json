@@ -1,6 +1,7 @@
 {
     "population_size" : 100,
     "structure_output" : "test_structures.hss",
+    "tmp_dir" : "tmp",
     
     "genome" : {
         "genome" : "hg19",
@@ -24,12 +25,16 @@
     },
     
     "restraints" : {
-        
+        "Hi-C" : {
+            "data" : "tad.hcs",
+            "contact_range" : 2.0,
+            "sigma_list" : [1, 0.2, 0.1, 0.05]
+        }
     },
     
     "optimization" : {
         "kernel" : "lammps",
-        "tmp_files_dir" : "./tmp/",
+        "tmp_files_dir" : "./opt/",
         "run_name" : "test",
         "keep_temporary_files" : true,
         "lammps_executable" : "lmp_serial_mod",

@@ -1,19 +1,19 @@
 from __future__ import division, print_function
 import numpy as np
+import os
+
 from math import acos, sin, cos, pi
 
-from .core import Step
+from .core import StructGenStep
 
 from alabtools.analysis import HssFile
 
-class RandomInit(Step):
-    
+class RandomInit(StructGenStep):
     def setup(self):
-        self.tmp_extensions.append(".npy")
-        self.argument_list = list(range(self.cfg["population_size"]))
+        self.tmp_file_prefix = "random"
         
     @staticmethod
-    def task(struct_id, cfg):
+    def task(struct_id, cfg, tmp_dir):
         """
         generate one random structure with territories
         """
@@ -25,22 +25,8 @@ class RandomInit(Step):
         
         crd = generate_territories(index, nucleus_radius)
         
-        np.save("%s/random_%s.npy"%(cfg['optimization']['tmp_files_dir'], struct_id), crd)
+        np.save("{}/random_{}.npy".format(tmp_dir, struct_id), crd)
     #-
-            
-    def reduce(self):
-        """
-        Collect all structure coordinates together to put hssFile
-        """
-        hssfilename = self.cfg["structure_output"]
-        hss = HssFile(hssfilename,'a')
-        
-        #iterate all structure files and 
-        for i in range(hss.nstruct):
-            crd = np.load("%s/random_%s.npy"%(self.cfg['optimization']['tmp_files_dir'], i))
-            
-            hss.set_struct_crd(i, crd)
-        #-
         
 
 def uniform_sphere(R):

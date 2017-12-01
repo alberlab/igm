@@ -1,20 +1,20 @@
 from __future__ import division, print_function
 import numpy as np
 
-from .core import Step
+from .core import StructGenStep
 from .model import Model, Particle
 from .restraints import Polymer, Envelope, Steric 
 
 from alabtools.analysis import HssFile
 
-class RelaxInit(Step):
+class RelaxInit(StructGenStep):
     
     def setup(self):
         self.tmp_extensions = [".npy", ".data", ".lam", ".lammpstrj"]
-        self.argument_list = list(range(self.cfg["population_size"]))
+        self.tmp_file_prefix = "relax"
         
     @staticmethod
-    def task(struct_id, cfg):
+    def task(struct_id, cfg, tmp_dir):
         """
         relax one random structure chromosome structures
         """
@@ -60,19 +60,6 @@ class RelaxInit(Step):
         model.optimize(cfg['optimization'])
         
         
-        model.saveCoordinates("%s/relax_%s.npy"%(cfg['optimization']['tmp_files_dir'], struct_id))
+        model.saveCoordinates("{}/relax_{}.npy".format(tmp_dir, struct_id))
     #-
-            
-    def reduce(self):
-        """
-        Collect all structure coordinates together to put hssFile
-        """
-        hssfilename = self.cfg["structure_output"]
-        hss = HssFile(hssfilename,'a')
-        
-        #iterate all structure files and 
-        for i in range(hss.nstruct):
-            crd = np.load("%s/relax_%s.npy"%(self.cfg['optimization']['tmp_files_dir'], i))
-            
-            hss.set_struct_crd(i, crd)
-        #-
+

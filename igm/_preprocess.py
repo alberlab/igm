@@ -3,6 +3,7 @@ from __future__ import division, print_function
 from alabtools.utils import Genome, get_index_from_bed, make_diploid
 from alabtools.analysis import HssFile
 import numpy as np
+import os
 
 #===prepare genome and index instances
 def PrepareGenomeIndex(cfg):
@@ -42,6 +43,9 @@ def Preprocess(cfg):
     hss.set_coordinates(np.zeros((nbead,nstruct,3)))
     hss.close()
     
+    #prepare tmp file dir
+    if not os.path.exists(cfg['tmp_dir']):
+        os.makedirs(cfg['tmp_dir'])
     
     
     
