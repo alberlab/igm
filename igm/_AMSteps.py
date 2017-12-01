@@ -54,8 +54,8 @@ class ActivationDistanceStep(Step):
         if len(ii) % batch_size != 0:
             n_args_batches += 1
         for b in range(n_args_batches):
-            start = b * args_batch_size
-            end = min((b+1) * args_batch_size, len(ii))
+            start = b * batch_size
+            end = min((b+1) * batch_size, len(ii))
             params = np.array([(ii[k], jj[k], pwish[k], last_prob.get((ii[k], jj[k]), 0.))
                             for k in range(start, end)], dtype=np.float32)
             np.save('%s/%d.in.npy' % (self.tmp_dir, b), params)
