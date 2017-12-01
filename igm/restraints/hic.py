@@ -1,5 +1,7 @@
 from __future__ import division, print_function
 
+import numpy as np
+
 from .restraint import Restraint
 from ..model.forces import HarmonicUpperBound
 
@@ -11,22 +13,42 @@ class HiC(Restraint):
     
     Parameters
     ----------
-    actdist : object
+    actdist_file : activation distance file
         
     contactRange : int
         defining contact range between 2 particles as contactRange*(r1+r2)
     """
     
-    def __init__(self, actdist, contactRange=2, k=1.0):
+    def __init__(self, actdist_file, contactRange=2, k=1.0):
         
         self.contactRange = contactRange
         self.k = k
         self.forceID = []
-        self._load_actdist(actdist)
+        self._load_actdist(actdist_file)
     #-
     
     def _load_actdist(self,actdist):
         self.actdist = ActivationDistanceDB(actdist)
+    
+    def _apply(self, model):
+        
+        for (i, j, d) in self.actdist:
+            
+            # calculate particle distances for i, j
+            # if ||i-j|| <= d then assign a bond for i, j
+            if model.particles[i] - model.particles[j] <= d : 
+                
+                # harmonic mean distance
+                dij = self.contactRange*(model.particles[i].r + 
+                                         model.particles[j].r)
+                
+                f = model.addForce(HarmonicUpperBound((i, j), dij, self.k, 
+                                                      note=Restraint.HIC))
+                self.forceID.append(f)
+            #-
+        #-
+    #=
+    
     
 #==
 
