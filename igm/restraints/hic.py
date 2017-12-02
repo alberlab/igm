@@ -74,7 +74,7 @@ class ActivationDistanceDB(object):
     def __iter__(self):
         return self
     
-    def next(self):
+    def __next__(self):
         if self._i < self._n:
             self._i += 1
             self._chk_i += 1
@@ -90,6 +90,8 @@ class ActivationDistanceDB(object):
             self._chk_i = self.chunk_size
             self._chk_end = 0
             raise StopIteration()
+    def next(self):
+        return self.__next__()
     
     def _load_next_chunk(self):
         self._chk_row = self.h5f['row'][self._chk_end : self._chk_end + self.chunk_size]
@@ -97,5 +99,7 @@ class ActivationDistanceDB(object):
         self._chk_data = self.h5f['dist'][self._chk_end : self._chk_end + self.chunk_size]
         self._chk_end += self.chunk_size
         self._chk_i = 0
-        
+    
+    def __del__(self):
+        self.h5f.close()
         

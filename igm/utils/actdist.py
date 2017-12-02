@@ -36,6 +36,9 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2):
     '''
     import numpy as np
     
+    if (i==j):
+        return []
+    
     n_struct = hss.get_nstruct()
     copy_index = hss.get_index().copy_index
     ii = copy_index[i]

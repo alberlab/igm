@@ -7,7 +7,7 @@ import os
 from .core import Step, StructGenStep
 from .model import Model, Particle
 from .restraints import Polymer, Envelope, Steric, HiC
-
+from .utils import get_actdist
 
 from alabtools.analysis import HssFile
 
@@ -64,9 +64,9 @@ class ActivationDistanceStep(Step):
             
     @staticmethod
     def task(batch_id, cfg, tmp_dir):
-        from .utils.actdist import get_actdist
         
-        hss = HssFile(cfg["structure_output"])
+        dictHiC = cfg['restraints']['Hi-C']
+        hss     = HssFile(cfg["structure_output"])
         
         # read params
         params = np.load('%s/%d.in.npy' % (tmp_dir, batch_id))
@@ -163,7 +163,7 @@ class ModelingStep(StructGenStep):
             contact_range = dictHiC['contact_range'] if 'contact_range' in dictHiC else 2.0
             k = dictHiC['contact_kspring'] if 'contact_kspring' in dictHiC else 1.0
             
-            hic = HiC(actdist_file, contact_range, contact_kspring)
+            hic = HiC(actdist_file, contact_range, k)
             model.addRestraint(hic)
                     
         
