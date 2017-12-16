@@ -101,12 +101,19 @@ class Model(object):
         
         return self.forces[i]
     
-    def evalForce(self, i):
+    def evalForceScore(self, i):
         """
         get force score
         """
         
         return self.forces[i].getScore(self.particles)
+    
+    def evalForceViolationRatio(self, i):
+        """
+        get force violation ratio
+        """
+        
+        return self.forces[i].getViolationRatio(self.particles)
     #====
         
         

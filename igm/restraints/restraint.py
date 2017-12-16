@@ -52,15 +52,25 @@ class Restraint(object):
         violations = 0
         
         for fid in self.forceID:
-            s = self.model.evalForce(fid)
+            s = self.model.evalForceScore(fid)
             if s > 0:
                 violations += 1
             #-
             score += s
         
-        return (score, violations)
+        return (violations, score)
     
-            
+    def get_violations(self, tolerance):
+        violations = []
+        ratios = []
+        
+        for fid in self.forceID:
+            s = self.model.evalForceViolationRatio(fid)
+            if s > tolerance:
+                violations.append(repr(self.model.forces[fid]))
+                ratios.append(s)
+        
+        return (violations, ratios)
         
     
         

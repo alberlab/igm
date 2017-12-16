@@ -27,6 +27,9 @@ class Force(object):
     
     def getScore(self, particles):
         return 0
+    
+    def getViolationRatio(self, particles):
+        return 0
 
 class ExcludedVolume(Force):
     ftype = Force.EXCLUDED_VOLUME
@@ -102,6 +105,10 @@ class HarmonicUpperBound(Force):
         dist = particles[self.i] - particles[self.j]
         
         return 0 if dist <= self.d else self.k*(dist - self.d)
+    
+    def getViolationRatio(self, particles):
+        
+        return self.getScore(particles) / (self.k * self.d)
 #-
 
 class HarmonicLowerBound(Force):
@@ -144,4 +151,8 @@ class HarmonicLowerBound(Force):
         dist = particles[self.i] - particles[self.j]
         
         return 0 if dist >= self.d else self.k*(self.d - dist)
+    
+    def getViolationRatio(self, particles):
+        
+        return self.getScore(particles) / (self.k * self.d)
 #-
