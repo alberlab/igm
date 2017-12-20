@@ -58,6 +58,18 @@ class HmsFile(h5py.File):
             return self['coordinates'][:]
         return self['coordinates']
     
+    def get_total_restraints(self):
+        total = 0
+        for r in self._restraints_grp.keys():
+            total += self._restraints_grp[r].attrs["total"]
+        return total
+    
+    def get_total_violations(self):
+        total = 0
+        for r in self._restraints_grp.keys():
+            total += self._restraints_grp[r].attrs["nvios"]
+        return total
+    
     def set_nbead(self, n):
         self.attrs['nbead'] = self._nbead = n
     
@@ -68,7 +80,9 @@ class HmsFile(h5py.File):
         assert isinstance(model, Model), "Parameter has to be a Model instance"
         
         crd = model.getCoordinates()
+        self.saveCoordinates(struct_id, crd)
         
+    def saveCoordinates(self, struct_id, crd):
         if "coordinates" in self:
             self["coordinates"][...] = crd
         else:

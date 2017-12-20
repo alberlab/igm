@@ -4,6 +4,7 @@ import os
 import numpy as np
 
 from ..parallel import Controller
+from ..utils import HmsFile
 from alabtools.analysis import HssFile
 
 class Step(object):
@@ -85,7 +86,7 @@ class StructGenStep(Step):
         if not os.path.exists(self.tmp_dir):
             os.makedirs(self.tmp_dir)
         
-        self.tmp_extensions.append(".npy")
+        self.tmp_extensions.append(".hms")
         self.keep_temporary_files = self.cfg["optimization"]["keep_temporary_files"]
         self.tmp_file_prefix = "tmp"
         
@@ -101,8 +102,17 @@ class StructGenStep(Step):
         hss = HssFile(hssfilename,'a')
         
         #iterate all structure files and 
+        total_restraints = 0.0
+        total_violations = 0.0
         for i in range(hss.nstruct):
-            crd = np.load("{}/{}_{}.npy".format(self.tmp_dir, self.tmp_file_prefix, i))
+            hms = HmsFile("{}/{}_{}.hms".format(self.tmp_dir, self.tmp_file_prefix, i))
+            crd = hms.get_coordinates()
+            total_restraints += hms.get_total_restraints()
+            total_violations += hms.get_total_violations()
             
             hss.set_struct_crd(i, crd)
         #-
+        if (total_violations == 0) and (total_restraints == 0):
+            hss.set_violation(np.nan)
+        else:
+            hss.set_violation(total_violations / total_restraints)

@@ -5,7 +5,7 @@ import os
 from math import acos, sin, cos, pi
 
 from .core import StructGenStep
-
+from .utils import HmsFile
 from alabtools.analysis import HssFile
 
 class RandomInit(StructGenStep):
@@ -25,7 +25,8 @@ class RandomInit(StructGenStep):
         
         crd = generate_territories(index, nucleus_radius)
         
-        np.save("{}/random_{}.npy".format(tmp_dir, struct_id), crd)
+        hms = HmsFile("{}/random_{}.hms".format(tmp_dir, struct_id),'w')
+        hms.saveCoordinates(struct_id, crd)
     #-
         
 

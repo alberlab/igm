@@ -7,7 +7,7 @@ import os
 from .core import Step, StructGenStep
 from .model import Model, Particle
 from .restraints import Polymer, Envelope, Steric, HiC
-from .utils import get_actdist
+from .utils import get_actdist, HmsFile
 
 from alabtools.analysis import HssFile
 
@@ -112,7 +112,7 @@ class ActivationDistanceStep(Step):
 class ModelingStep(StructGenStep):
     
     def setup(self):
-        self.tmp_extensions = [".npy", ".data", ".lam", ".lammpstrj"]
+        self.tmp_extensions = [".hms", ".data", ".lam", ".lammpstrj"]
         self.tmp_file_prefix = "mstep"
         
     @staticmethod
@@ -172,7 +172,12 @@ class ModelingStep(StructGenStep):
         cfg['optimization']['run_name'] += '_' + str(struct_id)
         model.optimize(cfg['optimization'])
         
+        hms = HmsFile("{}/mstep_{}.hms".format(tmp_dir, struct_id),'w')
+        hms.saveModel(struct_id, model)
         
-        model.saveCoordinates("{}/mstep_{}.npy".format(tmp_dir, struct_id))
+        hms.saveViolations(pp)
+        
+        if "Hi-C" in cfg['restraints']:
+            hms.saveViolations(hic)
     #-
 #==

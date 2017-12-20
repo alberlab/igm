@@ -4,13 +4,13 @@ import numpy as np
 from .core import StructGenStep
 from .model import Model, Particle
 from .restraints import Polymer, Envelope, Steric 
-
+from .utils import HmsFile
 from alabtools.analysis import HssFile
 
 class RelaxInit(StructGenStep):
     
     def setup(self):
-        self.tmp_extensions = [".npy", ".data", ".lam", ".lammpstrj"]
+        self.tmp_extensions = [".hms", ".data", ".lam", ".lammpstrj"]
         self.tmp_file_prefix = "relax"
         
     @staticmethod
@@ -59,7 +59,9 @@ class RelaxInit(StructGenStep):
         cfg['optimization']['run_name'] += '_' + str(struct_id)
         model.optimize(cfg['optimization'])
         
+        hms = HmsFile("{}/relax_{}.hms".format(tmp_dir, struct_id),'w')
+        hms.saveModel(struct_id, model)
         
-        model.saveCoordinates("{}/relax_{}.npy".format(tmp_dir, struct_id))
+        hms.saveViolations(pp)
     #-
 
