@@ -99,12 +99,15 @@ class StructGenStep(Step):
         Collect all structure coordinates together to put hssFile
         """
         hssfilename = self.cfg["structure_output"]
-        hss = HssFile(hssfilename,'a')
+        hss = HssFile(hssfilename,'a',driver='core')
         
         #iterate all structure files and 
         total_restraints = 0.0
         total_violations = 0.0
+        print("REDUCE:Collecting hms >>",end='',flush=True)
         for i in range(hss.nstruct):
+            if (i+1) % (hss.nstruct//20) == 0:
+                print("=",end='',flush=True)
             hms = HmsFile("{}/{}_{}.hms".format(self.tmp_dir, self.tmp_file_prefix, i))
             crd = hms.get_coordinates()
             total_restraints += hms.get_total_restraints()
@@ -112,7 +115,11 @@ class StructGenStep(Step):
             
             hss.set_struct_crd(i, crd)
         #-
+        print("Done.\n")
         if (total_violations == 0) and (total_restraints == 0):
             hss.set_violation(np.nan)
         else:
             hss.set_violation(total_violations / total_restraints)
+        
+        hss.close()
+        

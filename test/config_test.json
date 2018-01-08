@@ -1,5 +1,5 @@
 {
-    "population_size" : 100,
+    "population_size" : 10000,
     "structure_output" : "test_structures.hss",
     "tmp_dir" : "tmp",
     
@@ -29,7 +29,7 @@
             "data" : "tad.hcs",
             "input_matrix" : "Rao_TAD.mtx",
             "contact_range" : 2.0,
-            "sigma_list" : [1, 0.2, 0.1, 0.05]
+            "sigma_list" : [1, 0.2, 0.1, 0.05, 0.02, 0.01, 0.007]
         }
     },
     

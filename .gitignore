@@ -1,6 +1,7 @@
 #user added
 #
 *.hss
+*.pdf
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
