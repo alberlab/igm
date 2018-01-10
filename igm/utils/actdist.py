@@ -1,6 +1,10 @@
 from __future__ import division, print_function
 
 import numpy as np
+try:
+    from itertools import izip as zip
+except ImportError: 
+    pass
 
 def cleanProbability(pij, pexist):
     if pexist < 1:
@@ -9,7 +13,7 @@ def cleanProbability(pij, pexist):
         pclean = pij
     return max(0, pclean)
 
-def get_actdist(i, j, pwish, plast, hss, contactRange=2):
+def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
     '''
     Serial function to compute the activation distances for a pair of loci 
     It expects some variables to be defined in its scope:
@@ -24,9 +28,12 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2):
             the last refined probability
         hss : alabtools.analysis.HssFile 
             file containing coordinates
-            
-        copy_index :dictionary int -> list
-            a dict specifying the indices of all the copies of each locus
+        contactRange : int
+            contact range of sum of radius of beads
+        option : int
+            calculation option:
+            (0) intra chromosome contacts are considered intra
+            (1) intra chromosome contacts are assigned intra/inter equally
     Returns
     -------
         i (int)
@@ -41,6 +48,8 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2):
     
     n_struct = hss.get_nstruct()
     copy_index = hss.get_index().copy_index
+    chrom = hss.get_index().chrom
+               
     ii = copy_index[i]
     jj = copy_index[j]
 
@@ -80,5 +89,9 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2):
         o = min(n_possible_contacts * n_struct - 1, 
                 int(round(n_possible_contacts * p * n_struct)))
         activation_distance = np.sqrt(sortdist_sq[o])
-        res = [(i, j, activation_distance, p) for i in ii for j in jj]
+        
+        if (chrom[i] == chrom[j]) and (option == 0):
+            res = [(i, j, activation_distance, p) for i,j in zip(ii,jj)]
+        else:
+            res = [(i, j, activation_distance, p) for i in ii for j in jj]
     return res

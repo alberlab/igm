@@ -12,8 +12,8 @@ from .utils import get_actdist, HmsFile
 from alabtools.analysis import HssFile
 
 try:
-    zip = izip
-except:
+    from itertools import izip as zip
+except ImportError: 
     pass
 
 actdist_shape = [('row', 'int32'), ('col', 'int32'), ('dist', 'float32'), ('prob', 'float32')]
