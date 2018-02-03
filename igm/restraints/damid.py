@@ -38,15 +38,14 @@ class Damid(Restraint):
 
         for (i, d) in self.damid_actdist:
             
-            # calculate particle distances for i, j
-            # if ||i-j|| <= d then assign a bond for i, j
+            # if particle is far enough from the center
+            # apply restraint
             if norm(model.particles[i].pos) >= d : 
                 
-                # harmonic mean distance
                 d0 = (self.nuclear_radius - 
                       self.contactRange*model.particles[i].r)
                 
-                f = model.addForce(HarmonicUpperBound((i, center), d0, self.k, 
+                f = model.addForce(HarmonicLowerBound((i, center), d0, self.k, 
                                                       note=Restraint.DAMID))
                 self.forceID.append(f)
             #-
@@ -60,7 +59,6 @@ class DamidActivationDistanceDB(object):
     """
     HDF5 activation distance iterator
     """
-    
     
     def __init__(self, damid_file, chunk_size = 10000):
         self.h5f = h5py.File(damid_file,'r')
