@@ -92,7 +92,7 @@ class HmsFile(h5py.File):
         self.set_nbead(len(crd))
         self.set_struct_id(struct_id)
         
-    def saveViolations(self, restraint, tolerance=0):
+    def saveViolations(self, restraint, tolerance=0.05):
         assert isinstance(restraint, Restraint), "Parameter has to be a Restraint instance"
         
         violations, ratios = restraint.get_violations(tolerance)
