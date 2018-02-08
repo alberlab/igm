@@ -49,9 +49,12 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
     n_struct = hss.get_nstruct()
     copy_index = hss.get_index().copy_index
     chrom = hss.get_index().chrom
-               
-    ii = copy_index[i]
-    jj = copy_index[j]
+    
+    try:           
+        ii = copy_index[i]
+        jj = copy_index[j]
+    except:
+	raise RuntimeError(repr(copy_index))
 
     n_combinations      = len(ii) * len(jj)
     n_possible_contacts = min(len(ii), len(jj))
