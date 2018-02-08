@@ -7,7 +7,7 @@ from functools import partial
 from alabtools.analysis import HssFile, COORD_DTYPE
 
 from ..model import Model, Particle
-from ..parallel.ipyparallel import BasicIppController, AdvancedIppController
+from ..parallel.ipyparallel_controller import BasicIppController, AdvancedIppController
 from ..parallel.parallel_controller import SerialController
 from ..core.config import Config
 from ..restraints import Polymer, Envelope, Steric 

@@ -66,7 +66,7 @@ class ActivationDistanceStep(Step):
     def task(batch_id, cfg, tmp_dir):
         
         dictHiC = cfg['restraints']['Hi-C']
-        hss     = HssFile(cfg["structure_output"])
+        hss     = HssFile(cfg["structure_output"], 'r')
         
         # read params
         params = np.load('%s/%d.in.npy' % (tmp_dir, batch_id))
@@ -80,6 +80,7 @@ class ActivationDistanceStep(Step):
                 results.append(r) #(i, j, actdist, p)
             #-
         #--
+	hss.close()
         with open("%s/%d.out.tmp" % (tmp_dir, batch_id), 'w') as f:
             f.write('\n'.join([actdist_fmt_str % x for x in results]))
         

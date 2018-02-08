@@ -2,7 +2,7 @@ from __future__ import division, print_function
 
 from .parallel_controller import SerialController
     
-from .ipyparallel import BasicIppController, AdvancedIppController
+from .ipyparallel_controller import BasicIppController, AdvancedIppController
 
 controller_class = {
     "serial" : SerialController,

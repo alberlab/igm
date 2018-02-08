@@ -1,5 +1,5 @@
 {
-    "population_size" : 10000,
+    "population_size" : 100,
     "structure_output" : "test_structures.hss",
     "tmp_dir" : "tmp",
     

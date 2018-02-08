@@ -1,6 +1,5 @@
 from __future__ import print_function, division 
 
-import ipyparallel 
 import logging
 logging.basicConfig()
 import threading
@@ -187,7 +186,9 @@ class AdvancedIppController(ParallelController):
 
     def _setup_ipp(self):
         # get client and view instances, and use cloudpickle
-        self._client = ipyparallel.Client(context=zmq.Context())
+	import ipyparallel
+	from ipyparallel import Client
+        self._client = Client(context=zmq.Context())
         self._ids = self._client.ids
         self._dview = self._client[self._ids]
         self._dview.use_cloudpickle()
