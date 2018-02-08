@@ -41,8 +41,10 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
         ad (float): the activation distance
         p (float): the corrected probability
     '''
+
+    # import here in case is executed on a remote machine
     import numpy as np
-    
+
     if (i==j):
         return []
     
@@ -61,7 +63,6 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
     #for diploid cell n_combinations = 2*2 =4
     #n_possible_contacts = 2
     
-    
     radii  = hss.get_radii()
     ri, rj = radii[ii[0]], radii[jj[0]]
     
@@ -79,7 +80,6 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
     rcutsq = np.square(contactRange * (ri + rj))
     d_sq.sort(axis=0)
 
-    
     contact_count = np.count_nonzero(d_sq[0:n_possible_contacts, :] <= rcutsq)
     pnow        = float(contact_count) / (n_possible_contacts * n_struct)
     sortdist_sq = np.sort(d_sq[0:n_possible_contacts, :].ravel())
@@ -94,7 +94,7 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
         activation_distance = np.sqrt(sortdist_sq[o])
         
         if (chrom[i] == chrom[j]) and (option == 0):
-            res = [(i, j, activation_distance, p) for i,j in zip(ii,jj)]
+            res = [(i0, i1, activation_distance, p) for i0,i1 in zip(ii,jj)]
         else:
-            res = [(i, j, activation_distance, p) for i in ii for j in jj]
+            res = [(i0, i1, activation_distance, p) for i0 in ii for i1 in jj]
     return res
