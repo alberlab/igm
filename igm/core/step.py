@@ -106,11 +106,11 @@ class StructGenStep(Step):
         total_restraints = 0.0
         total_violations = 0.0
         print("REDUCE:Collecting hms >>",end='')
-	sys.stdout.flush()
+        sys.stdout.flush()
         for i in range(hss.nstruct):
             if (i+1) % (hss.nstruct//20) == 0:
                 print("=", end='')
-		sys.stdout.flush()
+                sys.stdout.flush()
             hms = HmsFile("{}/{}_{}.hms".format(self.tmp_dir, self.tmp_file_prefix, i))
             crd = hms.get_coordinates()
             total_restraints += hms.get_total_restraints()

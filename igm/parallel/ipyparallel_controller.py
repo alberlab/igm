@@ -186,8 +186,7 @@ class AdvancedIppController(ParallelController):
 
     def _setup_ipp(self):
         # get client and view instances, and use cloudpickle
-	import ipyparallel
-	from ipyparallel import Client
+        from ipyparallel import Client
         self._client = Client(context=zmq.Context())
         self._ids = self._client.ids
         self._dview = self._client[self._ids]
