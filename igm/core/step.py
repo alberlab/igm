@@ -100,7 +100,7 @@ class StructGenStep(Step):
         Collect all structure coordinates together to put hssFile
         """
         hssfilename = self.cfg["structure_output"]
-        hss = HssFile(hssfilename,'a',driver='core')
+        hss = HssFile(hssfilename, 'a', driver='core')
         
         #iterate all structure files and 
         total_restraints = 0.0

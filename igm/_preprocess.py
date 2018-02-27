@@ -1,17 +1,44 @@
 from __future__ import division, print_function
 
-from alabtools.utils import Genome, get_index_from_bed, make_diploid
+from alabtools.utils import Genome, get_index_from_bed, make_diploid, make_multiploid
 from alabtools.analysis import HssFile
+from six import string_types
 import numpy as np
 import os
 
 #===prepare genome and index instances
 def PrepareGenomeIndex(cfg):
-    genome = Genome(cfg['genome']['genome'])
-    index = get_index_from_bed(cfg['genome']['segmentation'], genome, usecols=(0,1,2,3))
+
+    gcfg = cfg['genome']
+    if 'usechr' not in gcfg:
+        gcfg['usechr'] = ['#', 'X', 'Y']
+
+    genome = Genome(gcfg['genome'], usechr=gcfg['usechr'])
     
-    if cfg['genome']['ploidy'] == 'diploid':
+    if isinstance(gcfg['segmentation'], string_types):
+        index = get_index_from_bed(gcfg['segmentation'], genome, 
+                                    usecols=(0,1,2,3))
+    else:
+        index = genome.bininfo(gcfg['segmentation'])
+    
+    if gcfg['ploidy'] == 'diploid':
         index = make_diploid(index)
+    elif gcfg['ploidy'] == 'haploid':
+        pass
+    elif isinstance(gcfg['ploidy'], dict):
+        chrom_ids = []
+        chrom_mult = []
+        for c in sorted(gcfg['ploidy'].keys()):
+            if c == '#':
+                autosomes = [ i for i, x in enumerate(genome.chroms) 
+                              if x[-1].isdigit() ]
+                chrom_ids += autosomes
+                chrom_mult += [ gcfg['ploidy'][c] ] * len(autosomes)
+            else:
+                cn = genome.chroms.tolist().index('chr%s' % c)
+                chrom_ids += [ cn ]
+                chrom_mult += [ gcfg['ploidy'][c] ]         
+        index = make_multiploid(index, chrom_ids, chrom_mult)
     
     return genome, index
                                    

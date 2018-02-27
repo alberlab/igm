@@ -1,6 +1,5 @@
 from __future__ import division, print_function
 
-import numpy as np
 try:
     from itertools import izip as zip
 except ImportError: 
