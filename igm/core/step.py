@@ -127,8 +127,8 @@ class StructGenStep(Step):
         
         self.argument_list = list(range(self.cfg["population_size"]))
         
-        self.tmp_dir = "{}/{}".format(self.tmp_dir, 
-                                      self.cfg["optimization"]["tmp_dir"])
+        dname = os.path.join(self.tmp_dir, self.cfg["optimization"]["tmp_dir"])
+        self.tmp_dir = os.path.abspath(dname)
         self.cfg["optimization"]["tmp_files_dir"] = self.tmp_dir
         
         if not os.path.exists(self.tmp_dir):
@@ -158,7 +158,8 @@ class StructGenStep(Step):
             if (i+1) % (hss.nstruct//20) == 0:
                 print("=", end='')
                 sys.stdout.flush()
-            hms = HmsFile("{}/{}_{}.hms".format(self.tmp_dir, self.tmp_file_prefix, i))
+            fname = "{}_{}.hms".format(self.tmp_file_prefix, i)
+            hms = HmsFile( os.path.join( self.tmp_dir, fname ) )
             crd = hms.get_coordinates()
             total_restraints += hms.get_total_restraints()
             total_violations += hms.get_total_violations()

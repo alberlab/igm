@@ -30,6 +30,7 @@ class ActivationDistanceStep(Step):
         self.tmp_extensions = [".npy", ".tmp"]
         self.tmp_dir = "{}/{}".format(self.cfg["tmp_dir"],
                                       dictHiC["actdist_dir"] if "actdist_dir" in dictHiC else "actdist")
+        self.tmp_dir = os.path.abspath(self.tmp_dir)
         self.keep_temporary_files = False
         
         if not os.path.exists(self.tmp_dir):
@@ -59,7 +60,8 @@ class ActivationDistanceStep(Step):
             end = min((b+1) * batch_size, len(ii))
             params = np.array([(ii[k], jj[k], pwish[k], last_prob.get((ii[k], jj[k]), 0.))
                             for k in range(start, end)], dtype=np.float32)
-            np.save('%s/%d.in.npy' % (self.tmp_dir, b), params)
+            fname = os.path.join(self.tmp_dir, '%d.in.npy' % b)
+            np.save(fname, params)
         
         self.argument_list = range(n_args_batches)
             
@@ -86,7 +88,7 @@ class ActivationDistanceStep(Step):
             f.write('\n'.join([actdist_fmt_str % x for x in results]))
         
     def reduce(self):
-        actdist_file = "actdist.hdf5"
+        actdist_file = os.path.join(self.tmp_dir, "actdist.hdf5")
         
         row = []
         col = []
@@ -94,19 +96,20 @@ class ActivationDistanceStep(Step):
         prob = []
         
         for i in self.argument_list:
-            partial_actdist = np.genfromtxt("%s/%d.out.tmp" % (self.tmp_dir, i), dtype = actdist_shape)
+            fname = os.path.join(self.tmp_dir, '%d.in.npy' % i)
+            partial_actdist = np.array( np.load(fname), dtype=actdist_shape )
             row.append(partial_actdist['row'])
             col.append(partial_actdist['col'])
             dist.append(partial_actdist['dist'])
             prob.append(partial_actdist['prob'])
         
-        with h5py.File("{}/{}".format(self.tmp_dir, actdist_file),"w") as h5f:
+        with h5py.File(actdist_file, "w") as h5f:
             h5f.create_dataset("row", data=np.concatenate(row))
             h5f.create_dataset("col", data=np.concatenate(col))
             h5f.create_dataset("dist", data=np.concatenate(dist))
             h5f.create_dataset("prob", data=np.concatenate(prob))
         #-
-        self.cfg['restraints']['Hi-C']["actdist_file"] = "{}/{}".format(self.tmp_dir, actdist_file)
+        self.cfg['restraints']['Hi-C']["actdist_file"] = actdist_file
 #=
 
 
@@ -173,7 +176,8 @@ class ModelingStep(StructGenStep):
         cfg['optimization']['run_name'] += '_' + str(struct_id)
         model.optimize(cfg['optimization'])
         
-        hms = HmsFile("{}/mstep_{}.hms".format(tmp_dir, struct_id),'w')
+        ofname = os.path.join(tmp_dir, 'mstep_%d.hms' % struct_id)
+        hms = HmsFile(ofname, 'w')
         hms.saveModel(struct_id, model)
         
         hms.saveViolations(pp)

@@ -5,6 +5,7 @@ from .model import Model, Particle
 from .restraints import Polymer, Envelope, Steric 
 from .utils import HmsFile
 from alabtools.analysis import HssFile
+import os.path
 
 class RelaxInit(StructGenStep):
     
@@ -57,7 +58,8 @@ class RelaxInit(StructGenStep):
         cfg['optimization']['run_name'] += '_' + str(struct_id)
         model.optimize(cfg['optimization'])
         
-        hms = HmsFile("{}/relax_{}.hms".format(tmp_dir, struct_id),'w')
+        ofname = os.path.join(tmp_dir, 'relax_%d.hms' % struct_id)
+        hms = HmsFile(ofname, 'w')
         hms.saveModel(struct_id, model)
         
         hms.saveViolations(pp)
