@@ -1,6 +1,5 @@
 from __future__ import division, print_function
 
-import numpy as np
 try:
     from itertools import izip as zip
 except ImportError: 
@@ -51,12 +50,9 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
     n_struct = hss.get_nstruct()
     copy_index = hss.get_index().copy_index
     chrom = hss.get_index().chrom
-    
-    try:           
-        ii = copy_index[i]
-        jj = copy_index[j]
-    except:
-	raise RuntimeError(repr(copy_index))
+              
+    ii = copy_index[i]
+    jj = copy_index[j]
 
     n_combinations      = len(ii) * len(jj)
     n_possible_contacts = min(len(ii), len(jj))

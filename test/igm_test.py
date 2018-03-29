@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import igm
-import numpy as np
 from alabtools.analysis import HssFile
 
 def checkViolations(cfg):

@@ -1,8 +1,8 @@
 from __future__ import division, print_function
 
 import json
-import os
 import numpy as np
+import os, os.path
 from copy import deepcopy
 from six import string_types
     
@@ -61,8 +61,6 @@ class Config(dict):
         self['optimization'] = {}
         self['optimization']['optimizer_options'] = {}
         
-        
-        
         if cfg is not None:
             if isinstance(cfg, string_types):
                 with open(cfg) as f:
@@ -80,6 +78,27 @@ class Config(dict):
             
         self['optimization']['optimizer_options'] = validate_user_args(self['optimization']['optimizer_options'], OPT_DEFAULT)
         
+        # We use absolute paths because workers may be running on different
+        # directories.
+
+        # if a working directory is not specified, we set it to the 
+        # current directory.
+        if 'workdir' not in self:
+            self['workdir'] = os.getcwd()
+        else:
+            self['workdir'] = os.path.abspath(self['workdir'])
+        
+        # set the temporary directory to its absolute path
+        if 'tmp_dir' not in self:
+            self['tmp_dir'] = 'tmp'
+        if not os.path.isabs(self['tmp_dir']):
+            self['tmp_dir'] = os.path.join(self['workdir'], self['tmp'])
+
+        # set the output structure to its absolute path
+        if not os.path.isabs(self['structure_output']):
+            self['structure_output'] = os.path.join(self['workdir'], 
+                                                    self['structure_output'])
+
         #runtime should be including all generated parameters
         self['runtime'] = {}
     #-
