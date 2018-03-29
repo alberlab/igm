@@ -57,9 +57,9 @@ class Config(dict):
         
         #put static config into config object
         #dynamic config like genome object can be other members
-        self['model'] = {}
-        self['optimization'] = {}
-        self['optimization']['optimizer_options'] = {}
+        self['model'] = dict()
+        self['optimization'] = dict()
+        self['optimization']['optimizer_options'] = dict()
         
         if cfg is not None:
             if isinstance(cfg, string_types):
@@ -92,7 +92,7 @@ class Config(dict):
         if 'tmp_dir' not in self:
             self['tmp_dir'] = 'tmp'
         if not os.path.isabs(self['tmp_dir']):
-            self['tmp_dir'] = os.path.join(self['workdir'], self['tmp'])
+            self['tmp_dir'] = os.path.join(self['workdir'], self['tmp_dir'])
 
         # set the output structure to its absolute path
         if not os.path.isabs(self['structure_output']):
@@ -100,12 +100,12 @@ class Config(dict):
                                                     self['structure_output'])
 
         #runtime should be including all generated parameters
-        self['runtime'] = {}
+        self['runtime'] = dict()
     #-
 
     def save(self, fname):
         with open(fname, 'w') as f:
-            json.dump(self, f)
+            json.dump(self, f, indent=4)
     
     
 #==

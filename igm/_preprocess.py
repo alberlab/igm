@@ -21,6 +21,13 @@ def PrepareGenomeIndex(cfg):
     else:
         index = genome.bininfo(gcfg['segmentation'])
     
+    if gcfg['ploidy'] == 'male': 
+        gcfg['ploidy'] = {
+            '#': 2,
+            'X': 1,
+            'Y': 1
+        }
+
     if gcfg['ploidy'] == 'diploid':
         index = make_diploid(index)
     elif gcfg['ploidy'] == 'haploid':

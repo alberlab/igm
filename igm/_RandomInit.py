@@ -1,5 +1,6 @@
 from __future__ import division, print_function
 import numpy as np
+import os, os.path
 
 from math import acos, sin, cos, pi
 
@@ -24,7 +25,8 @@ class RandomInit(StructGenStep):
         
         crd = generate_territories(index, nucleus_radius)
         
-        hms = HmsFile("{}/random_{}.hms".format(tmp_dir, struct_id), 'w')
+        ofname = os.path.join(tmp_dir, 'random_%d.hms' % struct_id)
+        hms = HmsFile(ofname, 'w')
         hms.saveCoordinates(struct_id, crd)
     #-
         

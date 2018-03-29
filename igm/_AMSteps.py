@@ -3,6 +3,7 @@ import numpy as np
 import h5py
 import scipy.io
 import os
+import os.path
 
 from .core import Step, StructGenStep
 from .model import Model, Particle
@@ -123,7 +124,6 @@ class ModelingStep(StructGenStep):
         """
         #extract structure information
         hssfilename    = cfg["structure_output"]
-        nucleus_radius = cfg['model']['nucleus_radius']
         
         #read index, radii, coordinates
         with HssFile(hssfilename,'r') as hss:

@@ -16,14 +16,16 @@ from .parallel_controller import ParallelController
 log_fmt = '[%(name)s] %(asctime)s (%(levelname)s) %(message)s'
 default_log_formatter = logging.Formatter(log_fmt, '%d %b %Y %H:%M:%S')
 
-class BasicIppController(ParallelController):
-    def setup(self):
-        from ipyparallel import Client
-        self.client = Client()
-        self.lbv = self.client.load_balanced_view()
+class BasicIppController(ParallelController): 
 
     def map(self, parallel_task, args):
-        return self.lbv.map_sync(parallel_task, args)
+        from ipyparallel import Client
+        client = Client()
+        client[:].use_cloudpickle()
+        lbv = client.load_balanced_view()
+        r = lbv.map_sync(parallel_task, args)
+        client.close()
+        return r
 
 class BasicAsyncIppController(BasicIppController):
     def map(self, parallel_task, args):

@@ -3,6 +3,12 @@ from functools import partial
 import os
 import sys
 import numpy as np
+from uuid import uuid4
+import sqlite3
+import json
+import time
+import traceback
+import os, os.path
 
 from ..parallel import Controller
 from ..utils import HmsFile
@@ -19,10 +25,22 @@ class Step(object):
         self.tmp_extensions = []
 
         self.tmp_dir = self.cfg["tmp_dir"] if "tmp_dir" in self.cfg["tmp_dir"] else "./tmp/"
+        self.tmp_dir = os.path.abspath(self.tmp_dir)
         self.keep_temporary_files = True
         if not os.path.exists(self.tmp_dir):
             os.makedirs(self.tmp_dir)
-            
+
+        # Keep track of step execution in a database
+        # set a unique id for the step
+        self.uid = str( uuid4() )
+        # set a default name 
+        if 'current_iteration_name' not in cfg['runtime']:
+            cfg['runtime']['current_iteration_name'] = 'iteration'
+
+        self.name = cfg['runtime']['current_iteration_name']
+
+        self.db = cfg.get('step_db', None)
+
     def setup(self):
         """
         setup everything before run
@@ -61,16 +79,45 @@ class Step(object):
         
         
         """
-        self.setup()
+        try:
         
-        serial_function = partial(self.__class__.task, cfg = self.cfg, tmp_dir = self.tmp_dir)
+            self.updatedb('started')
+
+            self.setup()
+            
+            serial_function = partial(self.__class__.task, cfg = self.cfg, tmp_dir = self.tmp_dir)
+
+            self.controller.map(serial_function, self.argument_list)
+
+            self.updatedb('mapped')
+            
+            self.reduce()
+
+            self.updatedb('reduced')
+
+            self.cleanup()
+
+            self.updatedb('completed')
+ 
+        except:
+
+            self.updatedb('failed', traceback.format_exc())
+            raise
         
 
-        self.controller.map(serial_function, self.argument_list)
-        
-        self.reduce()
-        
-        self.cleanup()
+    def updatedb(self, status, data=None):
+
+        if self.db is None:
+            return
+
+        with sqlite3.connect(self.db) as conn:
+            conn.execute(
+                'INSERT INTO steps (uid, name, cfg, time, status, data) ' + 
+                ' VALUES (?,?,?,?,?,?)',
+                (self.uid, self.name, json.dumps(self.cfg),
+                 time.time(), status, json.dumps(data) )
+            )
+
 #==
 
 class StructGenStep(Step):
