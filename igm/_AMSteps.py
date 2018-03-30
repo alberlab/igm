@@ -28,17 +28,26 @@ class ActivationDistanceStep(Step):
         input_matrix = dictHiC["input_matrix"]
         
         self.tmp_extensions = [".npy", ".tmp"]
-        self.tmp_dir = "{}/{}".format(self.cfg["tmp_dir"],
-                                      dictHiC["actdist_dir"] if "actdist_dir" in dictHiC else "actdist")
-        self.tmp_dir = os.path.abspath(self.tmp_dir)
-        self.keep_temporary_files = False
+        
+        hic_tmp_dir = dictHiC["actdist_dir"] if "actdist_dir" in dictHiC else "actdist"
+        if os.path.isabs(hic_tmp_dir):
+            self.tmp_dir = hic_tmp_dir
+        else:    
+            self.tmp_dir = os.path.join( self.cfg["tmp_dir"], hic_tmp_dir )
+            self.tmp_dir = os.path.abspath(self.tmp_dir)
+
+        self.keep_temporary_files = ("keep_temporary_files" in dictHiC and 
+                                     dictHiC["keep_temporary_files"] is True)
         
         if not os.path.exists(self.tmp_dir):
             os.makedirs(self.tmp_dir)
         #---
         
         probmat = scipy.io.mmread(input_matrix)
-        mask    = probmat.data >= sigma
+        mask    = np.logical_and( 
+            probmat.data >= sigma,
+            np.abs( probmat.row - probmat.col ) > 1
+        )
         ii      = probmat.row[mask]
         jj      = probmat.col[mask]
         pwish   = probmat.data[mask]
@@ -72,7 +81,8 @@ class ActivationDistanceStep(Step):
         hss     = HssFile(cfg["structure_output"], 'r+')
         
         # read params
-        params = np.load('%s/%d.in.npy' % (tmp_dir, batch_id))
+        fname = os.path.join(tmp_dir, '%d.in.npy' % batch_id)
+        params = np.load(fname)
         
         results = []
         for i, j, pwish, plast in params:
@@ -84,7 +94,8 @@ class ActivationDistanceStep(Step):
             #-
         #--
         hss.close()
-        with open("%s/%d.out.tmp" % (tmp_dir, batch_id), 'w') as f:
+        fname = os.path.join(tmp_dir, '%d.out.tmp' % batch_id)
+        with open(fname, 'w') as f:
             f.write('\n'.join([actdist_fmt_str % x for x in results]))
         
     def reduce(self):
@@ -96,8 +107,8 @@ class ActivationDistanceStep(Step):
         prob = []
         
         for i in self.argument_list:
-            fname = os.path.join(self.tmp_dir, '%d.in.npy' % i)
-            partial_actdist = np.array( np.load(fname), dtype=actdist_shape )
+            fname = os.path.join(self.tmp_dir, '%d.out.tmp' % i)
+            partial_actdist = np.genfromtxt( fname, dtype=actdist_shape )
             row.append(partial_actdist['row'])
             col.append(partial_actdist['col'])
             dist.append(partial_actdist['dist'])
