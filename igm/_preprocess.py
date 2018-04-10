@@ -5,6 +5,7 @@ from alabtools.analysis import HssFile
 from six import string_types
 import numpy as np
 import os
+import sqlite3
 
 #===prepare genome and index instances
 def PrepareGenomeIndex(cfg):
@@ -48,7 +49,7 @@ def PrepareGenomeIndex(cfg):
         index = make_multiploid(index, chrom_ids, chrom_mult)
     
     return genome, index
-                                   
+
 
 def Preprocess(cfg):
     

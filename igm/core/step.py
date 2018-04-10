@@ -3,16 +3,15 @@ from functools import partial
 import os
 import sys
 import numpy as np
-from uuid import uuid4
-import sqlite3
 import json
-import time
+import hashlib
 import traceback
-import os, os.path
+import os.path
 
 from ..parallel import Controller
 from ..utils import HmsFile
 from alabtools.analysis import HssFile
+from .job_tracking import StepDB
 
 class Step(object):
     def __init__(self, cfg):
@@ -32,14 +31,15 @@ class Step(object):
 
         # Keep track of step execution in a database
         # set a unique id for the step
-        self.uid = str( uuid4() )
         # set a default name 
         if 'current_iteration_name' not in cfg['runtime']:
             cfg['runtime']['current_iteration_name'] = 'iteration'
 
         self.name = cfg['runtime']['current_iteration_name']
 
-        self.db = cfg.get('step_db', None)
+        self.db = StepDB( cfg )
+
+        self.uid = hashlib.md5(json.dumps(self.cfg)).hexdigest()
 
     def setup(self):
         """
@@ -79,44 +79,59 @@ class Step(object):
         
         
         """
-        try:
-        
-            self.updatedb('started')
+        dbdata = {
+            'uid': self.uid,
+            'name': self.name,
+            'cfg': self.cfg,
+        }
 
-            self.setup()
-            
-            serial_function = partial(self.__class__.task, cfg = self.cfg, tmp_dir = self.tmp_dir)
-
-            self.controller.map(serial_function, self.argument_list)
-
-            self.updatedb('mapped')
-            
-            self.reduce()
-
-            self.updatedb('reduced')
-
-            self.cleanup()
-
-            self.updatedb('completed')
- 
-        except:
-
-            self.updatedb('failed', traceback.format_exc())
-            raise
-        
-
-    def updatedb(self, status, data=None):
-
-        if self.db is None:
+        past_history = self.db.get_history(self.uid)
+        past_substeps = { x['status'] for x in past_history }
+        if 'completed' in past_substeps:
             return
 
-        with sqlite3.connect(self.db) as conn:
-            conn.execute(
-                'INSERT INTO steps (uid, name, cfg, time, status, data) ' + 
-                ' VALUES (?,?,?,?,?,?)',
-                (self.uid, self.name, json.dumps(self.cfg),
-                 time.time(), status, json.dumps(data) )
-            )
+        try:
+
+            dbdata['status'] = 'entry'
+            self.db.record(**dbdata)
+        
+            self.setup()
+            serial_function = partial(self.__class__.task, 
+                                      cfg=self.cfg, 
+                                      tmp_dir=self.tmp_dir)
+
+            dbdata['status'] = 'setup'
+            self.db.record(**dbdata)
+
+            if 'mapped' not in past_substeps:
+                dbdata['status'] = 'map'
+                self.db.record(**dbdata)
+
+                self.controller.map(serial_function, self.argument_list)
+
+                dbdata['status'] = 'mapped'
+                self.db.record(**dbdata)
+
+            if 'reduced' not in past_substeps:                
+                self.reduce()
+                dbdata['status'] = 'reduced'
+                self.db.record(**dbdata)
+
+            if 'cleanup' not in past_substeps:
+                self.cleanup()
+                dbdata['status'] = 'cleanup'
+                self.db.record(**dbdata)
+
+            dbdata['status'] = 'completed'
+            self.db.record(**dbdata)
+     
+        except:
+
+            dbdata['status'] = 'failed'
+            dbdata['data'] = { 'exception' : traceback.format_exc() }
+            self.db.record(**dbdata)
+            raise
+        
 
 #==
 

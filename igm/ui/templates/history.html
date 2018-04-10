@@ -1,0 +1,61 @@
+<html>
+
+<head>
+  <title>Step history</title>
+</head>
+
+<body>
+
+  <h1>
+    Job history
+  </h1>
+  <p> 
+    Directory: <strong>{{ directory }}</strong><br/>
+    Configuration file: <strong>{{ cfg_fname }}</strong> 
+  </p>
+  <table>
+    <thead>
+      <th>
+        Step
+      </th>
+      <th>
+        Name
+      </th>
+      <th>
+        Time
+      </th>
+      <th>
+        Elapsed( hours )
+      </th>
+      <th>
+        Status
+      </th>
+    </thead>
+  
+    <tbody>
+      {% for h in history %}
+        <tr>
+          <td>
+            {{ h['step_no'] }}
+          </td>
+          <td>
+            {{ h['name'] }}
+          </td>
+          <td>
+            {{ h['strtime'] }}
+          </td>
+          <td>
+            {{ h['elapsed'] }}
+          </td>
+          <td>
+            {{ h['status'] }}
+          </td>
+        </tr>
+      {% end %}
+    </tbody>
+  
+  </table>
+
+</body>
+
+</html>
