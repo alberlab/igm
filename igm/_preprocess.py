@@ -5,7 +5,7 @@ from alabtools.analysis import HssFile
 from six import string_types
 import numpy as np
 import os
-import sqlite3
+from shutil import copyfile
 
 #===prepare genome and index instances
 def PrepareGenomeIndex(cfg):
@@ -77,6 +77,9 @@ def Preprocess(cfg):
     hss.set_radii(radii)
     hss.set_coordinates(np.zeros((nbead,nstruct,3)))
     hss.close()
+
+    # now create a temporary file for runtime use
+    copyfile( cfg['structure_output'], cfg['structure_output'] + '.tmp' )
     
     #prepare tmp file dir
     if not os.path.exists(cfg['tmp_dir']):

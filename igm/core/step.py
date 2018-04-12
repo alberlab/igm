@@ -8,10 +8,13 @@ import hashlib
 import traceback
 import os.path
 
+from shutil import copyfile
+
 from ..parallel import Controller
 from ..utils import HmsFile
 from alabtools.analysis import HssFile
 from .job_tracking import StepDB
+from ..utils.log import print_progress, logger
 
 class Step(object):
     def __init__(self, cfg):
@@ -33,13 +36,15 @@ class Step(object):
         # set a unique id for the step
         # set a default name 
         if 'current_iteration_name' not in cfg['runtime']:
-            cfg['runtime']['current_iteration_name'] = 'iteration'
+            cfg['runtime']['current_iteration_name'] = self.name()
 
-        self.name = cfg['runtime']['current_iteration_name']
+        if cfg['runtime'].get('step_no') is None:
+            cfg['runtime']['step_no'] = -1
+
 
         self.db = StepDB( cfg )
 
-        self.uid = hashlib.md5(json.dumps(self.cfg)).hexdigest()
+        self.uid = hashlib.md5(json.dumps(self.cfg).encode()).hexdigest()
 
     def setup(self):
         """
@@ -79,19 +84,23 @@ class Step(object):
         
         
         """
+        
         dbdata = {
             'uid': self.uid,
-            'name': self.name,
+            'name': self.name(),
             'cfg': self.cfg,
         }
 
         past_history = self.db.get_history(self.uid)
         past_substeps = { x['status'] for x in past_history }
         if 'completed' in past_substeps:
+            logger.info('step %s already completed, skipping.' % self.name())
+            self.skip()
             return
 
         try:
-
+            logger.info('%s - starting' % self.name())
+            
             dbdata['status'] = 'entry'
             self.db.record(**dbdata)
         
@@ -104,6 +113,8 @@ class Step(object):
             self.db.record(**dbdata)
 
             if 'mapped' not in past_substeps:
+
+                logger.info('%s - mapping' % self.name())
                 dbdata['status'] = 'map'
                 self.db.record(**dbdata)
 
@@ -112,16 +123,23 @@ class Step(object):
                 dbdata['status'] = 'mapped'
                 self.db.record(**dbdata)
 
-            if 'reduced' not in past_substeps:                
+            if 'reduced' not in past_substeps:           
+
+                logger.info('%s - reducing' % self.name())
+                 
                 self.reduce()
                 dbdata['status'] = 'reduced'
                 self.db.record(**dbdata)
 
             if 'cleanup' not in past_substeps:
+
+                logger.debug('%s - cleaning up' % self.name())
+                
                 self.cleanup()
                 dbdata['status'] = 'cleanup'
                 self.db.record(**dbdata)
 
+            logger.info('%s - completed' % self.name())
             dbdata['status'] = 'completed'
             self.db.record(**dbdata)
      
@@ -130,7 +148,14 @@ class Step(object):
             dbdata['status'] = 'failed'
             dbdata['data'] = { 'exception' : traceback.format_exc() }
             self.db.record(**dbdata)
+            logger.critical( '%s\n%s - failed' % ( self.name(), traceback.format_exc() ) )
             raise
+
+    def name(self):
+        return self.__class__.__name__
+
+    def skip(self):
+        return None
         
 
 #==
@@ -151,6 +176,7 @@ class StructGenStep(Step):
         
         self.tmp_extensions.append(".hms")
         self.keep_temporary_files = self.cfg["optimization"]["keep_temporary_files"]
+        self.keep_intermediate_structures = self.cfg["keep_intermediate_structures"]
         self.tmp_file_prefix = "tmp"
         
     def setup(self):
@@ -159,20 +185,18 @@ class StructGenStep(Step):
         
     def reduce(self):
         """
-        Collect all structure coordinates together to put hssFile
+        Collect all structure coordinates together to assemble a hssFile
         """
-        hssfilename = self.cfg["structure_output"]
+
+        # create a temporary file if does not exist.
+        hssfilename = self.cfg["structure_output"] + '.tmp'
         hss = HssFile(hssfilename, 'a', driver='core')
         
         #iterate all structure files and 
         total_restraints = 0.0
         total_violations = 0.0
-        print("REDUCE:Collecting hms >>",end='')
-        sys.stdout.flush()
-        for i in range(hss.nstruct):
-            if (i+1) % (hss.nstruct//20) == 0:
-                print("=", end='')
-                sys.stdout.flush()
+
+        for i in print_progress(range(hss.nstruct), timeout=1, every=None, fd=sys.stderr):
             fname = "{}_{}.hms".format(self.tmp_file_prefix, i)
             hms = HmsFile( os.path.join( self.tmp_dir, fname ) )
             crd = hms.get_coordinates()
@@ -181,7 +205,6 @@ class StructGenStep(Step):
             
             hss.set_struct_crd(i, crd)
         #-
-        print("Done.\n")
         if (total_violations == 0) and (total_restraints == 0):
             hss.set_violation(np.nan)
         else:
@@ -189,3 +212,16 @@ class StructGenStep(Step):
         
         hss.close()
         
+        # swap files
+        os.rename(hssfilename, hssfilename + '.swap')
+        os.rename(self.cfg["structure_output"], hssfilename)
+        os.rename(hssfilename + '.swap', self.cfg["structure_output"])
+
+        if self.keep_intermediate_structures:
+            copyfile(
+                self.cfg["structure_output"],
+                self.intermediate_name()
+            )
+
+    def intermediate_name(self):
+        return self.cfg["structure_output"] + '.' + self.uid

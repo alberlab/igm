@@ -1,7 +1,5 @@
 from __future__ import print_function, division 
 
-import logging
-logging.basicConfig()
 import threading
 import multiprocessing
 import traceback
@@ -11,41 +9,15 @@ import zmq
 import sqlite3
 import time
 from .parallel_controller import ParallelController 
+from ..utils.log import print_progress, logger
 
 #from .globals import default_log_formatter
-log_fmt = '[%(name)s] %(asctime)s (%(levelname)s) %(message)s'
-default_log_formatter = logging.Formatter(log_fmt, '%d %b %Y %H:%M:%S')
-
-class BasicIppController(ParallelController): 
-
-    def map(self, parallel_task, args):
-        from ipyparallel import Client
-        client = Client()
-        client[:].use_cloudpickle()
-        lbv = client.load_balanced_view()
-        r = lbv.map_sync(parallel_task, args)
-        client.close()
-        return r
-
-class BasicAsyncIppController(BasicIppController):
-    def map(self, parallel_task, args):
-        return self.lbv.map_async(parallel_task, args)
-
-def pretty_tdelta(seconds):
-    '''
-    Prints the *seconds* in the format h mm ss
-    '''
-    seconds = int(seconds)
-    m, s = divmod(seconds, 60)
-    h, m = divmod(m, 60)
-    return "%dh %02dm %02ds" % (h, m, s)
-
-#TODO: execution time
+#log_fmt = '[%(name)s] %(asctime)s (%(levelname)s) %(message)s'
+#default_log_formatter = logging.Formatter(log_fmt, '%d %b %Y %H:%M:%S')
 
 class IppFunctionWrapper(object):
-    def __init__(self, inner, const_vars, timeout=None):
-        from functools import partial
-        self.inner = partial(inner, **const_vars)
+    def __init__(self, inner, timeout=None):
+        self.inner = inner
         self.timeout = timeout
 
     def run(self, *args, **kwargs):
@@ -83,6 +55,48 @@ class IppFunctionWrapper(object):
         return rval
 
 
+
+class BasicIppController(ParallelController): 
+    def __init__(self, timeout=None):
+        self.timeout=timeout
+
+    def map(self, parallel_task, args):
+        from ipyparallel import Client
+        client = Client()
+        client[:].use_cloudpickle()
+        lbv = client.load_balanced_view()
+        ar = lbv.map_async(
+            IppFunctionWrapper(parallel_task, self.timeout), 
+            args
+        )
+        r = [] 
+        for z in print_progress(ar, timeout=1, every=None, fd=sys.stderr):
+            if z[0] == -1:
+                logger.error(z[1])
+                client.close()
+                raise RuntimeError('remote failure')
+            elif z[0] == 0:
+                r.append(z[1])
+        client.close()
+        return r
+
+class BasicAsyncIppController(BasicIppController):
+    def map(self, parallel_task, args):
+        return self.lbv.map_async(parallel_task, args)
+
+def pretty_tdelta(seconds):
+    '''
+    Prints the *seconds* in the format h mm ss
+    '''
+    seconds = int(seconds)
+    m, s = divmod(seconds, 60)
+    h, m = divmod(m, 60)
+    return "%dh %02dm %02ds" % (h, m, s)
+
+#TODO: execution time
+
+
+
 class AdvancedIppController(ParallelController):
     '''
     A wrapper class to deal with monitoring and logging
@@ -103,7 +117,7 @@ class AdvancedIppController(ParallelController):
                  const_vars=None, 
                  chunksize=1,
                  logfile=None, 
-                 loglevel=logging.DEBUG,
+                 loglevel=None,
                  poll_interval=60,
                  max_batch=None,
                  max_exec_time=None,

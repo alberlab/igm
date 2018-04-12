@@ -1,14 +1,15 @@
 from __future__ import division, print_function
 
-from .core import StructGenStep
-from .model import Model, Particle
-from .restraints import Polymer, Envelope, Steric 
-from .utils import HmsFile
-from alabtools.analysis import HssFile
 import os.path
+from alabtools.analysis import HssFile
+
+from ..core import StructGenStep
+from ..model import Model, Particle
+from ..restraints import Polymer, Envelope, Steric 
+from ..utils import HmsFile
 
 class RelaxInit(StructGenStep):
-    
+
     def setup(self):
         self.tmp_extensions = [".hms", ".data", ".lam", ".lammpstrj"]
         self.tmp_file_prefix = "relax"
@@ -38,7 +39,7 @@ class RelaxInit(StructGenStep):
         
         #========Add restraint
         #add excluded volume restraint
-        ex = Steric(cfg['model']['evfactor'])
+        ex = Steric(cfg['model']['evfactor']*0.05)
         model.addRestraint(ex)
         
         #add nucleus envelop restraint
@@ -63,5 +64,11 @@ class RelaxInit(StructGenStep):
         hms.saveModel(struct_id, model)
         
         hms.saveViolations(pp)
+
+    def intermediate_name(self):
+        return '.'.join([
+            self.cfg["structure_output"], 
+            'relaxInit'  
+        ]) 
     #-
 

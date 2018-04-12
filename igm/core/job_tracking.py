@@ -2,7 +2,8 @@ import os
 import sqlite3
 import time
 import json
-from uuid import uuid4
+
+from ..utils.log import logger
 
 class StepDB(object):
 
@@ -27,7 +28,7 @@ class StepDB(object):
         self.db = cfg.get('step_db', None)
         if self.db:
             if os.path.isfile(self.db):
-                print ('db file found')
+                logger.debug('db file found')
                 # check db follows the schema
                 try:
                     with sqlite3.connect(self.db) as conn:

@@ -8,8 +8,5 @@ from . import parallel
 from .core import Config
 
 
-from ._RandomInit import RandomInit
-from ._RelaxInit import RelaxInit
-from ._AMSteps import ActivationDistanceStep, ModelingStep
-
+from .steps import *
 from ._preprocess import Preprocess 

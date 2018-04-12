@@ -1,5 +1,26 @@
 from time import time, strftime, localtime
 import sys
+import logging
+import os.path
+
+# clear root logger handler
+FORMAT = '(%(name)s) %(asctime)-15s [%(levelname)s] %(message)s'
+logging.basicConfig(format=FORMAT, level=logging.INFO)
+logger = logging.getLogger('IGM')
+
+def set_log(fname, loglevel=logging.INFO):
+
+    fname = os.path.abspath(fname)
+    
+    # ensure the file is not double added
+    hs = [h.baseFilename for h in logger.handlers if isinstance(h, logging.FileHandler)]
+    if fname in hs:
+        return
+    
+    fh = logging.FileHandler(fname)
+    fh.setFormatter(logging.Formatter(FORMAT))
+    logger.addHandler(fh)
+
 
 def pretty_time(seconds):
     '''
@@ -15,7 +36,7 @@ def print_progress(iterable,
                    every=1, 
                    timeout=None, 
                    size=20, 
-                   fmt='{percent:6.2f}%',
+                   fmt='{percent:6.2f}% ({completed}/{total}) | {elapsed:12s} | ETA: {remaining:12s}',
                    timefmt='%c',
                    fd=sys.stdout ):
     

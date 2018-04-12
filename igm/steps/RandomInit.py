@@ -4,11 +4,12 @@ import os, os.path
 
 from math import acos, sin, cos, pi
 
-from .core import StructGenStep
-from .utils import HmsFile
+from ..core import StructGenStep
+from ..utils import HmsFile
 from alabtools.analysis import HssFile
 
 class RandomInit(StructGenStep):
+    
     def setup(self):
         self.tmp_file_prefix = "random"
         
@@ -28,6 +29,12 @@ class RandomInit(StructGenStep):
         ofname = os.path.join(tmp_dir, 'random_%d.hms' % struct_id)
         hms = HmsFile(ofname, 'w')
         hms.saveCoordinates(struct_id, crd)
+
+    def intermediate_name(self):
+        return '.'.join([
+            self.cfg["structure_output"], 
+            'randomInit'  
+        ]) 
     #-
         
 

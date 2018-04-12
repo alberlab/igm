@@ -305,9 +305,9 @@ def optimize(model, cfg):
             output, error = proc.communicate()
 
         if proc.returncode != 0:
-            raise RuntimeError('LAMMPS exited with non-zero exit code: %d\nStandard Error:\n%s\n', 
+            raise RuntimeError('LAMMPS exited with non-zero exit code: %d\nStandard Error:\n%s\n' % ( 
                                proc.returncode, 
-                               error)
+                               error) )
 
         # get results
         info = get_info_from_log(StringIO(unicode(output)))

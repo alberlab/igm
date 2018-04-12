@@ -5,23 +5,35 @@ import scipy.io
 import os
 import os.path
 
-from .core import Step, StructGenStep
-from .model import Model, Particle
-from .restraints import Polymer, Envelope, Steric, HiC
-from .utils import get_actdist, HmsFile
-
 from alabtools.analysis import HssFile
 
+from ..core import Step
+
 try:
+    # python 2 izip
     from itertools import izip as zip
 except ImportError: 
     pass
 
-actdist_shape = [('row', 'int32'), ('col', 'int32'), ('dist', 'float32'), ('prob', 'float32')]
+
+actdist_shape = [
+    ('row', 'int32'), 
+    ('col', 'int32'), 
+    ('dist', 'float32'), 
+    ('prob', 'float32')
+]
 actdist_fmt_str = "%6d %6d %10.2f %.5f"
 
+
 class ActivationDistanceStep(Step):
-    
+
+    def name(self):
+        s = 'ActivationDistanceStep (sigma={:.2f}%, iter={:s})' 
+        return s.format(
+            self.cfg['restraints']['Hi-C']['sigma'] * 100.0,
+            str( self.cfg['runtime'].get('opt_iter', 'N/A') )
+        )
+
     def setup(self):
         dictHiC = self.cfg['restraints']['Hi-C']
         sigma = dictHiC["sigma"]
@@ -29,12 +41,7 @@ class ActivationDistanceStep(Step):
         
         self.tmp_extensions = [".npy", ".tmp"]
         
-        hic_tmp_dir = dictHiC["actdist_dir"] if "actdist_dir" in dictHiC else "actdist"
-        if os.path.isabs(hic_tmp_dir):
-            self.tmp_dir = hic_tmp_dir
-        else:    
-            self.tmp_dir = os.path.join( self.cfg["tmp_dir"], hic_tmp_dir )
-            self.tmp_dir = os.path.abspath(self.tmp_dir)
+        self.set_tmp_path()
 
         self.keep_temporary_files = ("keep_temporary_files" in dictHiC and 
                                      dictHiC["keep_temporary_files"] is True)
@@ -121,79 +128,113 @@ class ActivationDistanceStep(Step):
             h5f.create_dataset("prob", data=np.concatenate(prob))
         #-
         self.cfg['restraints']['Hi-C']["actdist_file"] = actdist_file
-#=
+
+    def skip(self):
+        '''
+        Fix the dictionary values when already completed
+        '''
+        self.set_tmp_path()
+        actdist_file = os.path.join(self.tmp_dir, "actdist.hdf5")
+        self.cfg['restraints']['Hi-C']["actdist_file"] = actdist_file
+#=  
+    def set_tmp_path(self):
+        dictHiC = self.cfg['restraints']['Hi-C']
+        hic_tmp_dir = dictHiC["actdist_dir"] if "actdist_dir" in dictHiC else "actdist"
+        
+        if os.path.isabs(hic_tmp_dir):
+            self.tmp_dir = hic_tmp_dir
+        else:    
+            self.tmp_dir = os.path.join( self.cfg["tmp_dir"], hic_tmp_dir )
+            self.tmp_dir = os.path.abspath(self.tmp_dir)
 
 
+def cleanProbability(pij, pexist):
+    if pexist < 1:
+        pclean = (pij - pexist) / (1.0 - pexist)
+    else:
+        pclean = pij
+    return max(0, pclean)
 
-class ModelingStep(StructGenStep):
+def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
+    '''
+    Serial function to compute the activation distance for a pair of loci.
+        
+    Parameters
+    ----------
+        i, j : int
+            index of the first, second locus
+        pwish : float
+            target contact probability
+        plast : float
+            the last refined probability
+        hss : alabtools.analysis.HssFile 
+            file containing coordinates
+        contactRange : int
+            contact range of sum of radius of beads
+        option : int
+            calculation option:
+            (0) intra chromosome contacts are considered intra
+            (1) intra chromosome contacts are assigned intra/inter equally
+    Returns
+    -------
+        i (int)
+        j (int)
+        ad (float): the activation distance
+        p (float): the corrected probability
+    '''
+
+    # import here in case is executed on a remote machine
+    import numpy as np
+
+    if (i==j):
+        return []
     
-    def setup(self):
-        self.tmp_extensions = [".hms", ".data", ".lam", ".lammpstrj"]
-        self.tmp_file_prefix = "mstep"
+    n_struct = hss.get_nstruct()
+    copy_index = hss.get_index().copy_index
+    chrom = hss.get_index().chrom
+              
+    ii = copy_index[i]
+    jj = copy_index[j]
+
+    n_combinations      = len(ii) * len(jj)
+    n_possible_contacts = min(len(ii), len(jj))
+    #for diploid cell n_combinations = 2*2 =4
+    #n_possible_contacts = 2
+    
+    radii  = hss.get_radii()
+    ri, rj = radii[ii[0]], radii[jj[0]]
+    
+    d_sq = np.empty((n_combinations, n_struct))  
+    
+    it = 0  
+    for k in ii:
+        for m in jj:
+            x = hss.get_bead_crd(k)
+            y = hss.get_bead_crd(m) 
+            d_sq[it] = np.sum(np.square(x - y), axis=1)
+            it += 1
+    #=
+    
+    rcutsq = np.square(contactRange * (ri + rj))
+    d_sq.sort(axis=0)
+
+    contact_count = np.count_nonzero(d_sq[0:n_possible_contacts, :] <= rcutsq)
+    pnow        = float(contact_count) / (n_possible_contacts * n_struct)
+    sortdist_sq = np.sort(d_sq[0:n_possible_contacts, :].ravel())
+
+    t = cleanProbability(pnow, plast)
+    p = cleanProbability(pwish, t)
+
+    res = []
+    if p>0:
+        o = min(n_possible_contacts * n_struct - 1, 
+                int(round(n_possible_contacts * p * n_struct)))
+        activation_distance = np.sqrt(sortdist_sq[o])
         
-    @staticmethod
-    def task(struct_id, cfg, tmp_dir):
-        """
-        Do single structure modeling with bond assignment from A-step
-        """
-        #extract structure information
-        hssfilename    = cfg["structure_output"]
-        
-        #read index, radii, coordinates
-        with HssFile(hssfilename,'r') as hss:
-            index = hss.index
-            radii = hss.radii
-            crd = hss.get_struct_crd(struct_id)
-        
-        #init Model 
-        model = Model()
-        
-        #add particles into model
-        n_particles = len(crd)
-        for i in range(n_particles):
-            model.addParticle(crd[i], radii[i], Particle.NORMAL)
-        
-        #========Add restraint
-        #add excluded volume restraint
-        ex = Steric(cfg['model']['evfactor'])
-        model.addRestraint(ex)
-        
-        #add nucleus envelop restraint
-        ev = Envelope(cfg['model']['nucleus_shape'], 
-                      cfg['model']['nucleus_radius'], 
-                      cfg['model']['contact_kspring'])
-        model.addRestraint(ev)
-        
-        #add consecutive polymer restraint
-        pp = Polymer(index,
-                     cfg['model']['contact_range'],
-                     cfg['model']['contact_kspring'])
-        model.addRestraint(pp)
-        
-        
-        #add Hi-C restraint
-        if "Hi-C" in cfg['restraints']:
-            dictHiC = cfg['restraints']['Hi-C']
-            actdist_file = dictHiC['actdist_file']
-            contact_range = dictHiC['contact_range'] if 'contact_range' in dictHiC else 2.0
-            k = dictHiC['contact_kspring'] if 'contact_kspring' in dictHiC else 1.0
-            
-            hic = HiC(actdist_file, contact_range, k)
-            model.addRestraint(hic)
-                    
-        
-        #========Optimization
-        #optimize model
-        cfg['optimization']['run_name'] += '_' + str(struct_id)
-        model.optimize(cfg['optimization'])
-        
-        ofname = os.path.join(tmp_dir, 'mstep_%d.hms' % struct_id)
-        hms = HmsFile(ofname, 'w')
-        hms.saveModel(struct_id, model)
-        
-        hms.saveViolations(pp)
-        
-        if "Hi-C" in cfg['restraints']:
-            hms.saveViolations(hic)
-    #-
-#==
+        if (chrom[i] == chrom[j]) and (option == 0):
+            res = [(i0, i1, activation_distance, p) for i0,i1 in zip(ii,jj)]
+        else:
+            res = [(i0, i1, activation_distance, p) for i0 in ii for i1 in jj]
+    return res
+
+

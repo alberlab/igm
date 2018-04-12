@@ -1,11 +1,8 @@
-<html>
+{% extends "base.html" %}
 
-<head>
-  <title>Step history</title>
-</head>
+{% block title %}Generation status{% end %}
 
-<body>
-
+{% block body %}
   <h1>
     Job history
   </h1>
@@ -13,8 +10,8 @@
     Directory: <strong>{{ directory }}</strong><br/>
     Configuration file: <strong>{{ cfg_fname }}</strong> 
   </p>
-  <table>
-    <thead>
+  <table class="table table-sm">
+    <thead class="thead-dark">
       <th>
         Step
       </th>
@@ -22,10 +19,13 @@
         Name
       </th>
       <th>
-        Time
+        Time started
       </th>
       <th>
-        Elapsed( hours )
+        Time consumed
+      </th>
+      <th>
+        Total time
       </th>
       <th>
         Status
@@ -34,7 +34,8 @@
   
     <tbody>
       {% for h in history %}
-        <tr>
+        <tr {% if h['status'] == 'completed' %}class="table-success"{% end %}
+        {% if h['status'] == 'failed' %}class="table-danger"{% end %}>
           <td>
             {{ h['step_no'] }}
           </td>
@@ -45,7 +46,10 @@
             {{ h['strtime'] }}
           </td>
           <td>
-            {{ h['elapsed'] }}
+            {{ h['consumed'] }}
+          </td>
+          <td>
+            +{{ h['elapsed'] }}
           </td>
           <td>
             {{ h['status'] }}
@@ -56,6 +60,4 @@
   
   </table>
 
-</body>
-
-</html>
+{% end %}
