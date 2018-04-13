@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% block head %}<meta http-equiv="refresh" content="10">{% end %}
+
 {% block title %}Generation status{% end %}
 
 {% block body %}
@@ -9,6 +11,12 @@
   <p> 
     Directory: <strong>{{ directory }}</strong><br/>
     Configuration file: <strong>{{ cfg_fname }}</strong> 
+  </p>
+  <h3>
+    Cluster status:
+  </h3>
+  <p>
+    workers: {{ cstatus[0] }}, ({{ cstatus[2] }} active, {{ cstatus[3] }} idle). queued jobs: {{ cstatus[1] }} 
   </p>
   <table class="table table-sm">
     <thead class="thead-dark">

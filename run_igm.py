@@ -61,7 +61,7 @@ while True:
     # check the violations
     hss = HssFile(cfg["structure_output"])
     vio = hss.get_violation()
-    logger.info('Violation score:', vio)
+    logger.info('Violation score: %f' % vio)
     if vio < 0.01:
         # no violations, go to next step or finish
         opt_iter = 0
@@ -79,6 +79,6 @@ while True:
             if opt_iter >= max_iter:
                 logger.critical('Maximum number of iterations reached (%d)' % max_iter)
                 break
-        logger.info('iteration #', opt_iter)
+        logger.info('iteration # %d' % opt_iter)
 
 

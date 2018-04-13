@@ -1,4 +1,4 @@
-
+from ipyparallel import Client
 import os, os.path
 from tornado import template
 from ..core.config import Config
@@ -13,7 +13,21 @@ def render(template, data):
     return loader.load(template).generate(**data)
 
 
+def cluster_status():
+    try:
+        rcl = Client()
+        nworkers = len(rcl[:])
+        qstat = rcl.queue_status()
+        queued = qstat[u'unassigned']
+        working = sum([ qstat[w][u'tasks'] for w in rcl.ids ])
+        idle = nworkers - working 
+        rcl.close()
+    except:
+        nworkers, queued, working, idle = 0, 0, 0, 0
+    return nworkers, queued, working, idle
+
 def history(cfgf):
+
     cfgf = os.path.abspath(cfgf)
     cfg = Config(cfgf)
     db = StepDB(cfg)
@@ -27,5 +41,6 @@ def history(cfgf):
     return render( 'history.html', { 
         'history': h,
         'directory': os.path.dirname(cfgf),
-        'cfg_fname': os.path.basename(cfgf) 
+        'cfg_fname': os.path.basename(cfgf),
+        'cstatus': cluster_status(), 
     })

@@ -59,27 +59,35 @@ def Preprocess(cfg):
     nstruct = cfg['population_size']
     nbead = len(index)
     
-    hss = HssFile(cfg['structure_output'], 'a')
-    
-    
-    #Generate model radius
     occupancy = cfg['model']['occupancy']
     nucleus_radius = cfg['model']['nucleus_radius']
     
     rho = occupancy * nucleus_radius**3 / (sum(index.end - index.start))
     radii = np.array([(rho * (idx['end'] - idx['start'])) ** (1.0/3.0) for idx in index])
     
-    #put everything into hssFile
-    hss.set_nbead(nbead)
-    hss.set_nstruct(nstruct)
-    hss.set_genome(genome)
-    hss.set_index(index)
-    hss.set_radii(radii)
-    hss.set_coordinates(np.zeros((nbead,nstruct,3)))
-    hss.close()
+    if not os.path.isfile(cfg['structure_output']):
+        hss = HssFile(cfg['structure_output'], 'a')
+        
+        
+        #Generate model radius
+        occupancy = cfg['model']['occupancy']
+        nucleus_radius = cfg['model']['nucleus_radius']
+        
+        rho = occupancy * nucleus_radius**3 / (sum(index.end - index.start))
+        radii = np.array([(rho * (idx['end'] - idx['start'])) ** (1.0/3.0) for idx in index])
+        
+        #put everything into hssFile
+        hss.set_nbead(nbead)
+        hss.set_nstruct(nstruct)
+        hss.set_genome(genome)
+        hss.set_index(index)
+        hss.set_radii(radii)
+        hss.set_coordinates(np.zeros((nbead,nstruct,3)))
+        hss.close()
 
     # now create a temporary file for runtime use
-    copyfile( cfg['structure_output'], cfg['structure_output'] + '.tmp' )
+    if not os.path.isfile(cfg['structure_output'] + '.tmp'):
+        copyfile( cfg['structure_output'], cfg['structure_output'] + '.tmp' )
     
     #prepare tmp file dir
     if not os.path.exists(cfg['tmp_dir']):

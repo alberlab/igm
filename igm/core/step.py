@@ -126,7 +126,6 @@ class Step(object):
             if 'reduced' not in past_substeps:           
 
                 logger.info('%s - reducing' % self.name())
-                 
                 self.reduce()
                 dbdata['status'] = 'reduced'
                 self.db.record(**dbdata)
@@ -134,7 +133,6 @@ class Step(object):
             if 'cleanup' not in past_substeps:
 
                 logger.debug('%s - cleaning up' % self.name())
-                
                 self.cleanup()
                 dbdata['status'] = 'cleanup'
                 self.db.record(**dbdata)
@@ -148,7 +146,7 @@ class Step(object):
             dbdata['status'] = 'failed'
             dbdata['data'] = { 'exception' : traceback.format_exc() }
             self.db.record(**dbdata)
-            logger.critical( '%s\n%s - failed' % ( self.name(), traceback.format_exc() ) )
+            logger.error( '%s\n%s - failed' % ( self.name(), traceback.format_exc() ) )
             raise
 
     def name(self):

@@ -36,7 +36,7 @@ def print_progress(iterable,
                    every=1, 
                    timeout=None, 
                    size=20, 
-                   fmt='{percent:6.2f}% ({completed}/{total}) | {elapsed:12s} | ETA: {remaining:12s}',
+                   fmt='(IGM) {bar} {percent:6.2f}% ({completed}/{total}) | {elapsed:12s} | ETA: {remaining:12s}',
                    timefmt='%c',
                    fd=sys.stdout ):
     
@@ -91,7 +91,8 @@ def print_progress(iterable,
                     if pos >= size:
                         pos = 2*size - pos - 2 
                     pb = '[' + ' ' * (pos) + '=' + ' ' * (size-pos-1) + '] '
-                fd.write( '\r' + pb + fmt.format(**vals) )
+                vals['bar'] = pb
+                fd.write( '\r' + fmt.format(**vals) )
                 fd.flush()
         else:
             if length:
