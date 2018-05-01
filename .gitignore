@@ -107,3 +107,6 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+
+igm/cython_compiled/sprite.cpp

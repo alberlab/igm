@@ -34,7 +34,6 @@ from __future__ import print_function, division
 import os
 import os.path
 import math
-import numpy as np
 from io import StringIO
 from itertools import groupby
 
@@ -118,11 +117,26 @@ def create_lammps_data(model, user_args):
                     #sigma = dc / 1.1224 #(2**(1.0/6.0))
                     #print(i+1, user_args['evfactor'], sigma, dc, file=f)
                     
-                    print(id1, id2, A*model.evfactor, dc, file=f)
+                    print(id1, id2, A*user_args['ev_factor'], dc, file=f)
                 else:
                     print(id1, id2, 0.0, 0.0, file=f)
+
+        # User data
+        print('\nUser\n', file=f)
+        for i, atom in enumerate(model.atoms):
+            if hasattr(atom.atom_type, 'radius'):
+                r = atom.atom_type.radius
+            else:
+                r = 0
+            print(i+1, atom.mol_id, r, file=f)
         
 def create_lammps_script(model, user_args):
+
+    # get a seed, different for each minimization and run but deterministic
+    seed = ( ( user_args.get('seed', 9007991) * model.id ) % 9190037 ) + 1
+
+
+
     maxrad = max([at.radius for at in model.atom_types if 
                   at.atom_category == AtomType.BEAD])
 
@@ -138,7 +152,9 @@ def create_lammps_script(model, user_args):
         # Needed to avoid calculation of 3 neighs and 4 neighs
         print('special_bonds lj/coul 1.0 1.0 1.0', file=f)
 
-
+        # add radii and chromosome id
+        print('fix userprop all property/atom i_chainid d_radius', file=f)
+        
         # excluded volume
         if user_args['use_gpu']:
             pair_style = 'soft/gpu'
@@ -146,7 +162,7 @@ def create_lammps_script(model, user_args):
             pair_style = 'soft'
         print('pair_style', pair_style, 2.0 * maxrad, file=f)  # global cutoff
 
-        print('read_data', user_args['data'], file=f)
+        print('read_data', user_args['data'], 'fix userprop NULL User', file=f)
         print('mass * 1.0', file=f)
 
         # groups atom types by atom_category
@@ -184,7 +200,7 @@ def create_lammps_script(model, user_args):
         print('fix 2 nonfixed nve/limit', user_args['max_velocity'], file=f)
         # Impose a thermostat - Tstart Tstop tau_decorr seed
         print('fix 3 nonfixed langevin', user_args['tstart'], user_args['tstop'],
-              user_args['damp'], user_args['seed'], file=f)
+              user_args['damp'], seed, file=f)
         print('timestep', user_args['timestep'], file=f)
 
         # Region
@@ -305,9 +321,10 @@ def optimize(model, cfg):
             output, error = proc.communicate()
 
         if proc.returncode != 0:
-            raise RuntimeError('LAMMPS exited with non-zero exit code: %d\nStandard Error:\n%s\n' % ( 
+            raise RuntimeError('LAMMPS exited with non-zero exit code: %d (modelid: %d)\nOutput:\n%s\n' % ( 
                                proc.returncode, 
-                               error) )
+                               model.id,
+                               output) )
 
         # get results
         info = get_info_from_log(StringIO(unicode(output)))

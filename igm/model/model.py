@@ -1,6 +1,5 @@
 from __future__ import division, absolute_import, print_function
 import numpy as np
-from .forces import Force
 from .particle import Particle
 try:
     from itertools import izip as zip
@@ -18,18 +17,19 @@ class Model(object):
     harmonic forces.
     
     """
-    def __init__(self):
+    def __init__(self, uid=0):
         self.particles = []
         self.forces = []
+        self.id = uid
     
     
     #====Particle methods
-    def addParticle(self, pos, r, t):
+    def addParticle(self, pos, r, t, **kwargs):
         """
         Add particle to system
         """
         
-        self.particles.append(Particle(pos, r, t))
+        self.particles.append(Particle(pos, r, t, **kwargs))
         
         return len(self.particles)-1
         

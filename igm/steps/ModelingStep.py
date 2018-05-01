@@ -2,13 +2,19 @@ from __future__ import division, print_function
 
 import os
 import os.path
+import numpy as np
+import sys
+
+from shutil import copyfile
 
 from alabtools.analysis import HssFile
 
 from ..core import StructGenStep
 from ..model import Model, Particle
-from ..restraints import Polymer, Envelope, Steric, HiC
+from ..restraints import Polymer, Envelope, Steric, HiC, Sprite
 from ..utils import HmsFile
+from ..parallel.async_file_operations import FileLock, FutureFilePoller
+from ..utils.log import print_progress
 
 
 class ModelingStep(StructGenStep):
@@ -30,20 +36,61 @@ class ModelingStep(StructGenStep):
             )
 
         if len(additional_data):
-            s += ' (' + ' ,'.join(additional_data) + ')' 
+            s += ' (' + ', '.join(additional_data) + ')' 
         return s
     
     def setup(self):
-        self.tmp_extensions = [".hms", ".data", ".lam", ".lammpstrj"]
+        self.tmp_extensions = [".hms", ".data", ".lam", ".lammpstrj", ".ready"]
         self.tmp_file_prefix = "mstep"
+        self.argument_list = range(self.cfg["population_size"])
+
+        self.out_data = {
+            'restraints': 0.0,
+            'violations': 0.0
+        }
+
+        self.hssfilename = self.cfg["structure_output"] + '.tmp'
+        self.hss = HssFile(self.hssfilename, 'a', driver='core')
+        self.file_poller = None
         
+    def _run_poller(self):
+        self.lockfiles = [
+            os.path.join(self.tmp_dir, '%s.%d.ready' % (self.cfg.md5_hash(), struct_id) )
+            for struct_id in self.argument_list
+        ]
+        self.file_poller = FutureFilePoller(
+            self.lockfiles, 
+            callback=self.set_structure, 
+            args=[[self.hss, i, self.out_data] for i in self.argument_list],
+        )
+        self.file_poller.watch_async()
+
+    def before_map(self):
+        '''
+        This runs only if map step is not skipped
+        '''
+        self._run_poller()
+        
+
+    def before_reduce(self):
+        '''
+        This runs only if reduce step is not skipped
+        '''
+        # if we don't have a poller, set it up
+        if self.file_poller is None:
+            self._run_poller()
+
+
     @staticmethod
     def task(struct_id, cfg, tmp_dir):
         """
         Do single structure modeling with bond assignment from A-step
         """
         #extract structure information
+        step_id = cfg.md5_hash()
+
         hssfilename    = cfg["structure_output"]
+
         
         #read index, radii, coordinates
         with HssFile(hssfilename,'r') as hss:
@@ -52,12 +99,15 @@ class ModelingStep(StructGenStep):
             crd = hss.get_struct_crd(struct_id)
         
         #init Model 
-        model = Model()
+        model = Model(uid=struct_id)
+
+        # get the chain ids
+        chain_ids = np.concatenate( [ [i]*s for i, s in enumerate(index.chrom_sizes) ] )
         
         #add particles into model
         n_particles = len(crd)
         for i in range(n_particles):
-            model.addParticle(crd[i], radii[i], Particle.NORMAL)
+            model.addParticle(crd[i], radii[i], Particle.NORMAL, chainID=chain_ids[i])
         
         #========Add restraint
         #add excluded volume restraint
@@ -86,22 +136,97 @@ class ModelingStep(StructGenStep):
             
             hic = HiC(actdist_file, contact_range, k)
             model.addRestraint(hic)
-                    
+
+        if "sprite" in cfg['restraints']:
+            sprite_opt = cfg['restraints']['sprite']
+            sprite = Sprite(
+                sprite_opt['assignment_file'],
+                sprite_opt['volume_fraction'], 
+                struct_id, 
+                sprite_opt['kspring']
+            )
+            model.addRestraint(sprite)        
+
         
         #========Optimization
         #optimize model
         cfg['optimization']['run_name'] += '_' + str(struct_id)
         model.optimize(cfg['optimization'])
         
-        ofname = os.path.join(tmp_dir, 'mstep_%d.hms' % struct_id)
-        hms = HmsFile(ofname, 'w')
-        hms.saveModel(struct_id, model)
-        
-        hms.saveViolations(pp)
-        
-        if "Hi-C" in cfg['restraints']:
-            hms.saveViolations(hic)
+        lockfile = os.path.join(tmp_dir, '%s.%d.ready' % (step_id, struct_id) )
+        with FileLock(lockfile):
+            open(lockfile, 'w').close()
+            ofname = os.path.join(tmp_dir, 'mstep_%d.hms' % struct_id)
+            with HmsFile(ofname, 'w') as hms:
+                hms.saveModel(struct_id, model)
+                
+                hms.saveViolations(pp)
+                
+                if "Hi-C" in cfg['restraints']:
+                    hms.saveViolations(hic)
+
+            # double check it has been written correctly
+            with HmsFile(ofname, 'r') as hms:
+                if np.all( hms.get_coordinates() == model.getCoordinates() ):
+                    raise RuntimeError('error writing the file %s' % ofname)
+
+
     #-
+
+    def set_structure(self, hss, i, data):
+        fname = "{}_{}.hms".format(self.tmp_file_prefix, i)
+        # dammit, some times the nfs is not in sync, no matter the poller
+        hms = HmsFile( os.path.join( self.tmp_dir, fname ), 'r' )
+        crd = hms.get_coordinates()
+        hss.set_struct_crd(i, crd)
+        data['restraints'] += hms.get_total_restraints()
+        data['violations'] += hms.get_total_violations()
+        
+
+    def reduce(self):
+        """
+        Collect all structure coordinates together to assemble a hssFile
+        """
+
+        # create a temporary file if does not exist.
+        # hssfilename = self.cfg["structure_output"] + '.tmp'
+        # hss = HssFile(hssfilename, 'a', driver='core')
+        
+        # #iterate all structure files and 
+
+        
+        # for i in print_progress(range(hss.nstruct), timeout=1, every=None, fd=sys.stderr):
+        #     fname = "{}_{}.hms".format(self.tmp_file_prefix, i)
+        #     hms = HmsFile( os.path.join( self.tmp_dir, fname ) )
+        #     crd = hms.get_coordinates()
+        #     total_restraints += hms.get_total_restraints()
+        #     total_violations += hms.get_total_violations()
+            
+        #     hss.set_struct_crd(i, crd)
+        # #-
+        
+        for i in print_progress(self.file_poller.enumerate(), timeout=1, every=None, fd=sys.stderr):
+            pass
+        
+        total_violations, total_restraints = self.out_data['violations'], self.out_data['restraints'] 
+        
+        if (total_violations == 0) and (total_restraints == 0):
+            self.hss.set_violation(np.nan)
+        else:
+            self.hss.set_violation(total_violations / total_restraints)
+        
+        self.hss.close()
+        
+        # swap files
+        os.rename(self.hssfilename, self.hssfilename + '.swap')
+        os.rename(self.cfg["structure_output"], self.hssfilename)
+        os.rename(self.hssfilename + '.swap', self.cfg["structure_output"])
+
+        if self.keep_intermediate_structures:
+            copyfile(
+                self.cfg["structure_output"],
+                self.intermediate_name()
+            )
 
     def intermediate_name(self):
 

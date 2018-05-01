@@ -1,15 +1,6 @@
 from __future__ import division, print_function
 
 class Restraint(object):
-    OTHER = -1
-    CONSECUTIVE = 0
-    HIC = 1
-    DAMID = 2
-    FISH_RADIAL = 3
-    FISH_PAIR = 4
-    BARCODED_CLUSTER = 5
-    ENVELOPE = 6
-    EXCLUDED_VOLUME = 7
     """
     
     Restraint object, takes care of data and translate to forces in model.
@@ -17,6 +8,17 @@ class Restraint(object):
     Also keep track of forces added and can evaluate
     
     """
+    
+    OTHER = -1
+    CONSECUTIVE = 0
+    HIC = 1
+    DAMID = 2
+    FISH_RADIAL = 3
+    FISH_PAIR = 4
+    SPRITE = 5
+    ENVELOPE = 6
+    EXCLUDED_VOLUME = 7
+
     
     def __init__(self, data, args):
         self.forceID = []        

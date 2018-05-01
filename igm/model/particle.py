@@ -10,10 +10,12 @@ class Particle(object):
     
     PTYPES = ["NORMAL","DUMMY_STATIC","DUMMY_DYNAMIC"]
     
-    def __init__(self, pos, r, t):
+    def __init__(self, pos, r, t, **kwargs):
         self.pos = np.array(pos).astype(POSDTYPE)
         self.r = POSDTYPE(r)
         self.ptype = t
+        for k in kwargs:
+            setattr(self, k, kwargs[k])
     
     def __str__(self):
         return "({} {} {}, {}):{}".format(self.pos[0], self.pos[1], self.pos[2],

@@ -113,3 +113,9 @@ class HmsFile(h5py.File):
             subgrp.attrs.create("nvios", len(ratios), dtype='int32')
         #-
         return len(ratios)
+
+def make_absolute_path(path, basedir='.'):
+    import os.path
+    if os.path.isabs(path):
+        return path
+    return os.path.abspath( os.path.join(basedir, path) )

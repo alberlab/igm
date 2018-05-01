@@ -15,6 +15,8 @@ from ..utils import HmsFile
 from alabtools.analysis import HssFile
 from .job_tracking import StepDB
 from ..utils.log import print_progress, logger
+from ..parallel.async_file_operations import FutureFilePoller
+
 
 class Step(object):
     def __init__(self, cfg):
@@ -111,8 +113,10 @@ class Step(object):
 
             dbdata['status'] = 'setup'
             self.db.record(**dbdata)
-
+            
             if 'mapped' not in past_substeps:
+
+                self.before_map()
 
                 logger.info('%s - mapping' % self.name())
                 dbdata['status'] = 'map'
@@ -125,6 +129,8 @@ class Step(object):
 
             if 'reduced' not in past_substeps:           
 
+                self.before_reduce()
+                
                 logger.info('%s - reducing' % self.name())
                 self.reduce()
                 dbdata['status'] = 'reduced'
@@ -155,6 +161,11 @@ class Step(object):
     def skip(self):
         return None
         
+    def before_map(self):
+        return
+
+    def before_reduce(self):
+        return
 
 #==
 

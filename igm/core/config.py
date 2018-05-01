@@ -1,12 +1,15 @@
 from __future__ import division, print_function
 
 import json
+import hashlib
 import numpy as np
 import os, os.path
 from copy import deepcopy
 from six import string_types
+from ..utils.files import make_absolute_path
     
 MOD_DEFAULT = [
+
     ('nucleus_radius', 5000.0, float, 'default nucleus radius'),
     ('nucleus_shape', 'sphere', str, 'default nucleus shape'),
     ('nucleus_axes', (5000.0, 5000.0, 5000.0), tuple, 'default nucleus axes'),
@@ -16,7 +19,9 @@ MOD_DEFAULT = [
     ('evfactor', 1.0, float, 'Scale excluded volume by this factor'),
     
 ]
+
 OPT_DEFAULT = [
+
     ('nucleus_radius', 5000.0, float, 'default nucleus radius'),
     
     ('out', 'out.lammpstrj', str, 'Temporary lammps trajectory file name'),
@@ -39,12 +44,31 @@ OPT_DEFAULT = [
     ('etol', 1e-4, float, 'Conjugate Gradient energy tolerance'),
     ('ftol', 1e-6, float, 'Conjugate Gradient force tolerance'),
     ('soft_min', 0, int, 'perform a soft minimization of lenght <> timesteps'),
+    ('ev_factor', 1.0, float, 'static excluded volume factor'),
     ('ev_start', 0.0, float, 'initial excluded volume factor'),
     ('ev_stop', 0.0, float, 'final excluded volume factor'),
     ('ev_step', 0, int, 'If larger than zero, performs <n> rounds scaling '
                         'excluded volume factors from ev_start to ev_stop'),
     ('use_gpu', 0, int, 'use gpu options for pair potential'),
+
 ]
+
+SPRITE_DEFAULT = [
+
+    ('volume_fraction', 0.05, float, 'volume fraction in sprite clusters'),
+    ('tmp_dir', 'sprite', str, 'temporary directory'),
+    ('assignment_file', 'testassign.h5', str, 'assignment file'),
+    ('clusters', 'clusters.h5', str, 'input clusters file'),
+    ('batch_size', 100, int, 'batch size for parallel job'),
+    ('keep_best', 50, int, 'keep n best candidates for assignment'),
+    ('max_chrom_in_cluster', 6, int, 'do not consider cluster with more than n chromosomes'),
+    ('radius_kt', 100.0, float, 'the difference in radius of gyration which result in one unit penalization'),
+    ('kspring', 100.0, float, 'strength of contacts'),
+    ('keep_temporary_files', False, bool, 'whether it keeps temporary files'),
+    
+]
+
+
 
 class Config(dict):
     """
@@ -58,6 +82,7 @@ class Config(dict):
         #put static config into config object
         #dynamic config like genome object can be other members
         self['model'] = dict()
+        self['model']['restraints'] = dict()
         self['optimization'] = dict()
         self['optimization']['optimizer_options'] = dict()
         
@@ -71,58 +96,71 @@ class Config(dict):
                 raise ValueError()
         
         self['model'] = validate_user_args(self['model'], MOD_DEFAULT)
-        if self['model']['nucleus_shape'] == 'sphere':
-            self['optimization']['optimizer_options']['nucleus_radius'] = self['model']['nucleus_radius']
-        elif self['model']['nucleus_shape'] == 'ellipsoid':
-            self['optimization']['optimizer_options']['nucleus_radius'] = max(self['model']['nucleus_axes'])
-            
-        self['optimization']['optimizer_options'] = validate_user_args(self['optimization']['optimizer_options'], OPT_DEFAULT)
+        
+        # if a working directory is not specified, we set it to the 
+        # current directory.
+        self['workdir'] = make_absolute_path( self.get('workdir', os.getcwd()) )
         
         # We use absolute paths because workers may be running on different
         # directories.
+        self['tmp_dir'] = make_absolute_path( self.get('tmp_dir', 'tmp'), self['workdir'] )
+        self['structure_output'] = make_absolute_path( self['structure_output'], self['workdir'])
 
-        # if a working directory is not specified, we set it to the 
-        # current directory.
-        if 'workdir' not in self:
-            self['workdir'] = os.getcwd()
-        else:
-            self['workdir'] = os.path.abspath(self['workdir'])
-        
-        # set the temporary directory to its absolute path
-        if 'tmp_dir' not in self:
-            self['tmp_dir'] = 'tmp'
-        if not os.path.isabs(self['tmp_dir']):
-            self['tmp_dir'] = os.path.join(self['workdir'], self['tmp_dir'])
+        # fix optimizer arguments
+        self.preprocess_optimization_arguments()
 
-        # set the output structure to its absolute path
-        if not os.path.isabs(self['structure_output']):
-            self['structure_output'] = os.path.join(self['workdir'], 
-                                                    self['structure_output'])
+        # fix sprite arguments
+        self.preprocess_sprite_arguments()
 
         #runtime should be including all generated parameters
         self['runtime'] = dict()
     #-
 
+    def preprocess_optimization_arguments(self):
+
+        if self['model']['nucleus_shape'] == 'sphere':
+            self['optimization']['optimizer_options']['nucleus_radius'] = self['model']['nucleus_radius']
+        elif self['model']['nucleus_shape'] == 'ellipsoid':
+            self['optimization']['optimizer_options']['nucleus_radius'] = max(self['model']['nucleus_axes'])
+        
+        if 'ev_factor' not in self['optimization']['optimizer_options']:
+            self['optimization']['optimizer_options']['ev_factor'] = self['model']['evfactor']
+        
+        self['optimization']['optimizer_options'] = validate_user_args(self['optimization']['optimizer_options'], OPT_DEFAULT)
+        opt = self['optimization']['optimizer_options']
+        try:
+            if opt['write'] == -1:
+                opt['write'] = opt['mdsteps']  # write only final step
+        except:
+            pass
+
+    def preprocess_sprite_arguments(self):
+        if 'sprite' not in self['restraints']:
+            return
+        self['restraints']['sprite'] = validate_user_args(self['restraints']['sprite'], SPRITE_DEFAULT)
+        opt = self['restraints']['sprite']
+        opt['tmp_dir'] = make_absolute_path(opt['tmp_dir'], self['tmp_dir'])
+        opt['assignment_file'] = make_absolute_path(opt['assignment_file'], opt['tmp_dir'])
+        opt['clusters'] = make_absolute_path(opt['clusters'], self['workdir']) 
+
+    def md5_hash(self):
+        return hashlib.md5(json.dumps(self).encode()).hexdigest()
+
     def save(self, fname):
         with open(fname, 'w') as f:
             json.dump(self, f, indent=4)
     
-    
-#==
-    
-def validate_user_args(inargs, defaults):
+#==    
+
+def validate_user_args(inargs, defaults, strict=True):
     args = {k: v for k, v, _, _ in defaults}
     atypes = {k: t for k, _, t, _ in defaults}
     for k, v in inargs.items():
-        if k not in args:
+        if k not in args and strict is True:
             raise ValueError('Keywords argument \'%s\' not recognized.' % k)
         if v is not None:
             args[k] = atypes[k](v)
-    try:
-        if args['write'] == -1:
-            args['write'] = args['mdsteps']  # write only final step
-    except:
-        pass
+    
     return args
         
         

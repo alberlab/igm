@@ -30,7 +30,7 @@ class RelaxInit(StructGenStep):
             crd = hss.get_struct_crd(struct_id)
         
         #init Model 
-        model = Model()
+        model = Model(uid=struct_id)
         
         #add particles into model
         n_particles = len(crd)

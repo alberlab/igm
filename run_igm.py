@@ -45,7 +45,7 @@ while True:
         iter_steps.append(igm.ActivationDistanceStep)
     if 'FISH' in cfg['restraints']:
         iter_steps.append(igm.FishAssignmentStep)
-    if 'SPRITE' in cfg['restraints']:
+    if 'sprite' in cfg['restraints']:
         iter_steps.append(igm.SpriteAssignmentStep)
     if 'DamID' in cfg['restraints']:
         iter_steps.append(igm.DamidActivationDistanceStep)

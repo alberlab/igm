@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 from distutils.core import setup, Extension
+from Cython.Build import cythonize
+import numpy
 #from setuptools import setup, find_packages
 import re, os
 def find_packages(path='.'):
@@ -26,7 +28,13 @@ extras_require = {
         'Sphinx>=1.1', 
     ]
 }
-    
+
+extensions = [
+    Extension("igm.cython_compiled.sprite", ["igm/cython_compiled/sprite.pyx", "igm/cython_compiled/cpp_sprite_assignment.cpp"]),
+]
+
+extensions = cythonize(extensions)
+
 setup(
         name = 'igm', 
         version = '0.0.1', 
@@ -39,4 +47,6 @@ setup(
         install_requires=install_requires,
         tests_require=tests_require,
         extras_require=extras_require,
+        ext_modules=extensions,
+        include_dirs=[numpy.get_include()],
 )

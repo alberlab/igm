@@ -4,3 +4,4 @@ from .envelope import Envelope
 from .polymer import Polymer
 from .steric import Steric
 from .hic import HiC
+from .sprite import Sprite

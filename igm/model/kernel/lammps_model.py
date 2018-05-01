@@ -229,23 +229,37 @@ class Atom(object):
 
 
 class LammpsModel(object):
+    '''
+    A class to organize data to generate lammps input files.
 
-    def __init__(self, model=None):
+    Parameters
+    ----------
+    model : igm.model.Model, optional
+        tranfer data from a igm.Model to a LammpsModel
+    '''
+
+    def __init__(self, model=None, uid=0):
         self.atoms = []
         self.atom_types = {}
         self.bonds = []
         self.bond_types = {}
         self.nmol = 1
+        self.id = uid
         if model is not None:
             self.imap = []
             self.from_model(model)
 
     def from_model(self, model):
+        self.id = model.id
         centroid_type = ClusterCentroid()
         for p in model.particles:
             if p.ptype == Particle.NORMAL:
                 att = DNABead(p.r)
-                atom = self.add_atom(att, p.pos)
+                if hasattr(p, 'chainID'):
+                    mol_id = p.chainID + 1
+                else:
+                    mol_id = 0
+                atom = self.add_atom(att, p.pos, mol_id=mol_id)
             elif p.ptype == Particle.DUMMY_STATIC:
                 atom = self.get_next_dummy(p.pos)
             elif p.ptype == Particle.DUMMY_DYNAMIC:
