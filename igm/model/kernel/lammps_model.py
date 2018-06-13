@@ -28,13 +28,13 @@ class BondType(object):
 
     def get_energy(self):
         raise NotImplementedError('This is an abstract base class')
-    
+
 
 class HarmonicUpperBound(BondType):
     '''
     Harmonic upper bound restraint. Force is computed as
     F = -k * (r-r0)     if r > r0
-    F = 0               otherwise 
+    F = 0               otherwise
     '''
     style_str = 'harmonic_upper_bound'
     style_id = BondType.HARMONIC_UPPER_BOUND
@@ -69,7 +69,7 @@ class HarmonicLowerBound(BondType):
     '''
     Harmonic lower bound restraint. Force is computed as
     F = -k * (r0 - r)     if r < r0
-    F = 0               otherwise 
+    F = 0               otherwise
     '''
     style_str = 'harmonic_lower_bound'
     style_id = BondType.HARMONIC_LOWER_BOUND
@@ -129,7 +129,7 @@ class Bond(object):
                                     self.i.id + 1,
                                     self.j.id + 1)
 
-    def __eq__(self, other): 
+    def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
     def length(self, crds):
@@ -202,7 +202,7 @@ class ClusterCentroid(AtomType):
 
     def __str__(self):
         return str(self.id + 1)
-        
+
     def __hash__(self):
         return hash(self.__class__.atom_category)
 
@@ -220,9 +220,9 @@ class Atom(object):
         self.nbonds = 0
 
     def __str__(self):
-        return '{} {} {} {} {} {}'.format(self.id + 1, 
-                                          self.mol_id + 1, 
-                                          self.atom_type.id + 1, 
+        return '{} {} {} {} {} {}'.format(self.id + 1,
+                                          self.mol_id + 1,
+                                          self.atom_type.id + 1,
                                           self.xyz[0],
                                           self.xyz[1],
                                           self.xyz[2])
@@ -245,6 +245,7 @@ class LammpsModel(object):
         self.bond_types = {}
         self.nmol = 1
         self.id = uid
+        self.envelope = None
         if model is not None:
             self.imap = []
             self.from_model(model)
@@ -269,26 +270,28 @@ class LammpsModel(object):
             self.imap.append(atom.id)
 
         for f in model.forces:
-            
-            if f.ftype == f.EXCLUDED_VOLUME:
+            if f.ftype == f.ENVELOPE:
+                self.envelope = f
+            elif f.ftype == f.EXCLUDED_VOLUME:
                 self.evfactor = f.k
-                continue
-            pi, pj = self.atoms[self.imap[f.i]], self.atoms[self.imap[f.j]]
-            
-            # dummies creation depend on the number of bonds, so we may need to
-            # create new atoms if we add bonds
-            if pi.atom_type == Atom.FIXED_DUMMY:
-                pi = self.get_next_dummy()
-            if pj.atom_type == Atom.FIXED_DUMMY:
-                pj = self.get_next_dummy()
-            
-            
-            if f.ftype == f.HARMONIC_UPPER_BOUND:
-                bond_type = HarmonicUpperBound(r0=f.d, k=f.k)
-                self.add_bond(pi.id, pj.id, bond_type)
-            elif f.ftype == f.HARMONIC_LOWER_BOUND:
-                bond_type = HarmonicLowerBound(r0=f.d, k=f.k)
-                self.add_bond(pi.id, pj.id, bond_type)
+
+            else:
+                pi, pj = self.atoms[self.imap[f.i]], self.atoms[self.imap[f.j]]
+
+                # dummies creation depend on the number of bonds, so we may need to
+                # create new atoms if we add bonds
+                if pi.atom_type == Atom.FIXED_DUMMY:
+                    pi = self.get_next_dummy()
+                if pj.atom_type == Atom.FIXED_DUMMY:
+                    pj = self.get_next_dummy()
+
+
+                if f.ftype == f.HARMONIC_UPPER_BOUND:
+                    bond_type = HarmonicUpperBound(r0=f.d, k=f.k)
+                    self.add_bond(pi.id, pj.id, bond_type)
+                elif f.ftype == f.HARMONIC_LOWER_BOUND:
+                    bond_type = HarmonicLowerBound(r0=f.d, k=f.k)
+                    self.add_bond(pi.id, pj.id, bond_type)
 
     def get_next_dummy(self, pos=np.array([0., 0., 0.])):
         if (self.atoms[-1].atom_type == Atom.FIXED_DUMMY and
@@ -318,11 +321,11 @@ class LammpsModel(object):
         j.nbonds += 1
         return bond
 
-    def add_atom(self, atom_type, 
+    def add_atom(self, atom_type,
                  xyz=np.array([0., 0., 0.]),
                  mol_id=0 # molecules are not used anyway
                  ):
-        
+
         atom_id = len(self.atoms)
         atype = self.atom_types.get(atom_type, None)
         if atype is None:
@@ -332,4 +335,4 @@ class LammpsModel(object):
         self.atoms.append(atom)
         self.nmol = max(mol_id, self.nmol)
         return atom
-        
+

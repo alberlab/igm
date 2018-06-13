@@ -3,19 +3,19 @@
 
 # Copyright (C) 2016 University of Southern California and
 #                        Guido Polles
-# 
+#
 # Authors: Guido Polles
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -33,6 +33,7 @@ in the wrappers module.
 from __future__ import print_function, division
 import os
 import os.path
+import errno
 import math
 from io import StringIO
 from itertools import groupby
@@ -56,11 +57,16 @@ __email__   = "polles@usc.edu"
 INFO_KEYS = ['final-energy', 'pair-energy', 'bond-energy', 'md-time', 'n_restr', 'n_hic_restr']
 
 def create_lammps_data(model, user_args):
-    
+
     n_atom_types = len(model.atom_types)
     n_bonds = len(model.bonds)
     n_bondtypes = len(model.bond_types)
     n_atoms = len(model.atoms)
+
+    boxdim = 0
+    for atom in model.atoms:
+        boxdim = max( boxdim, np.max(np.abs(atom.xyz)) )
+    boxdim *= 1.05
 
     with open(user_args['data'], 'w') as f:
 
@@ -71,8 +77,6 @@ def create_lammps_data(model, user_args):
         print(n_bondtypes, 'bond types\n', file=f)
         print(n_bonds, 'bonds\n', file=f)
 
-        # keeping some free space to be sure
-        boxdim = user_args['nucleus_radius']*1.2
         print('-{} {} xlo xhi\n'.format(boxdim, boxdim),
               '-{} {} ylo yhi\n'.format(boxdim, boxdim),
               '-{} {} zlo zhi'.format(boxdim, boxdim), file=f)
@@ -81,7 +85,7 @@ def create_lammps_data(model, user_args):
         # index, molecule, atom type, x y z.
         for atom in model.atoms:
             print(atom, file=f)
-        
+
         # bonds
         # Harmonic Upper Bond Coefficients are one for each bond type
         # and coded as:
@@ -116,7 +120,7 @@ def create_lammps_data(model, user_args):
                     A = (dc/math.pi)**2
                     #sigma = dc / 1.1224 #(2**(1.0/6.0))
                     #print(i+1, user_args['evfactor'], sigma, dc, file=f)
-                    
+
                     print(id1, id2, A*user_args['ev_factor'], dc, file=f)
                 else:
                     print(id1, id2, 0.0, 0.0, file=f)
@@ -129,15 +133,16 @@ def create_lammps_data(model, user_args):
             else:
                 r = 0
             print(i+1, atom.mol_id, r, file=f)
-        
+
 def create_lammps_script(model, user_args):
 
     # get a seed, different for each minimization and run but deterministic
     seed = ( ( user_args.get('seed', 9007991) * model.id ) % 9190037 ) + 1
+    if model.envelope.shape == 'sphere' or model.envelope.shape == 'ellipsoid':
+        boxdim = np.max(model.envelope.semiaxes)*1.5
 
 
-
-    maxrad = max([at.radius for at in model.atom_types if 
+    maxrad = max([at.radius for at in model.atom_types if
                   at.atom_category == AtomType.BEAD])
 
 
@@ -147,14 +152,14 @@ def create_lammps_script(model, user_args):
         print('bond_style  hybrid',
               'harmonic_upper_bound',
               'harmonic_lower_bound', file=f)
-        print('boundary              f f f', file=f)
+        print('boundary              s s s', file=f) # non-periodic and adapts
 
         # Needed to avoid calculation of 3 neighs and 4 neighs
         print('special_bonds lj/coul 1.0 1.0 1.0', file=f)
 
         # add radii and chromosome id
         print('fix userprop all property/atom i_chainid d_radius', file=f)
-        
+
         # excluded volume
         if user_args['use_gpu']:
             pair_style = 'soft/gpu'
@@ -167,7 +172,7 @@ def create_lammps_script(model, user_args):
 
         # groups atom types by atom_category
         sortedlist = list(sorted(model.atom_types, key=lambda x: x.atom_category))
-        groupedlist = {k: list(v) for k, v in groupby(sortedlist, 
+        groupedlist = {k: list(v) for k, v in groupby(sortedlist,
                                                 key=lambda x: x.atom_category)}
 
         bead_types = [str(x) for x in groupedlist[AtomType.BEAD]]
@@ -190,7 +195,7 @@ def create_lammps_script(model, user_args):
         print('neigh_modify one', user_args['max_neigh'],
               'page', 20 * user_args['max_neigh'], file=f)
 
-        
+
         # Freeze dummy atom
         if dummy_types:
             print('fix 1 dummy setforce 0.0 0.0 0.0', file=f)
@@ -201,6 +206,23 @@ def create_lammps_script(model, user_args):
         # Impose a thermostat - Tstart Tstop tau_decorr seed
         print('fix 3 nonfixed langevin', user_args['tstart'], user_args['tstop'],
               user_args['damp'], seed, file=f)
+
+        if model.envelope is not None:
+            if model.envelope.shape == 'ellipsoid':
+                # print(
+                #     'group envelope type',
+                #     ' '.join([str(x) for x in model.envelope.particle_ids ]),
+                #     file=f
+                # )
+                print(
+                    'fix 4 beads ellipsoidalenvelope',
+                    ' '.join([str(x) for x in model.envelope.semiaxes]),
+                    model.envelope.k,
+                    file=f
+                )
+            else:
+                raise NotImplementedError('Envelope (%s) not implemented' % model.envelope.shape)
+
         print('timestep', user_args['timestep'], file=f)
 
         # Region
@@ -248,22 +270,22 @@ def create_lammps_script(model, user_args):
 def optimize(model, cfg):
     '''
     Lammps interface for minimization.
-    
+
     It first creates input and data files for lammps, then
     runs the lammps executable in a process (using subprocess.Popen).
 
-    When the program returns, it parses the output and returns the 
+    When the program returns, it parses the output and returns the
     new coordinates, along informations on the run and on violations.
 
-    The files created are 
+    The files created are
     - input file: `tmp_files_dir`/`run_name`.lam
     - data file: `tmp_files_dir`/`run_name`.input
     - trajectory file: `tmp_files_dir`/`run_name`.lammpstrj
 
-    The function tries to remove the temporary files after the run, both in 
-    case of failure and success (unless `keep_temporary_files` is set to 
-    `False`). If the interpreter is killed without being able to catch 
-    exceptions (for example because of a walltime limit) some files could be 
+    The function tries to remove the temporary files after the run, both in
+    case of failure and success (unless `keep_temporary_files` is set to
+    `False`). If the interpreter is killed without being able to catch
+    exceptions (for example because of a walltime limit) some files could be
     left behind.
 
     Parameters
@@ -275,27 +297,35 @@ def optimize(model, cfg):
 
     Returns
     -------
-    new_crd : numpy ndarray 
+    new_crd : numpy ndarray
         Coordinates after minimization.
-    info : dict 
-        Dictionary with summarized info for the run, as returned 
+    info : dict
+        Dictionary with summarized info for the run, as returned
         by `lammps.get_info_from_log`.
     violations : list
-        List of violations. If the `check_violations` parameter is set 
+        List of violations. If the `check_violations` parameter is set
         to `False`, returns an empty list.
 
     Raises
     ------
-    RuntimeError 
-        If the lammps executable return code is different from 0, it raises 
+    RuntimeError
+        If the lammps executable return code is different from 0, it raises
         a RuntimeError with the contents of the standard error.
     '''
 
-    tmp_files_dir = cfg['tmp_files_dir']
-    run_name = cfg['run_name']
-    keep_temporary_files = cfg['keep_temporary_files'] 
-    lammps_executable = cfg['lammps_executable']
-    run_opts = cfg['optimizer_options']
+    tmp_files_dir = cfg['optimization']['tmp_dir']
+    if not os.path.isabs(cfg['optimization']['tmp_dir']):
+        tmp_files_dir = os.path.join(cfg['tmp_dir'], tmp_files_dir)
+    try:
+        os.makedirs(tmp_files_dir)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            pass
+
+    run_name = cfg['runtime']['run_name']
+    keep_temporary_files = cfg['optimization']['keep_temporary_files']
+    lammps_executable = cfg['optimization']['lammps_executable']
+    run_opts = cfg['optimization']['optimizer_options']
 
     data_fname = os.path.join(tmp_files_dir, run_name + '.data')
     script_fname = os.path.join(tmp_files_dir, run_name + '.lam')
@@ -321,14 +351,14 @@ def optimize(model, cfg):
             output, error = proc.communicate()
 
         if proc.returncode != 0:
-            raise RuntimeError('LAMMPS exited with non-zero exit code: %d (modelid: %d)\nOutput:\n%s\n' % ( 
-                               proc.returncode, 
+            raise RuntimeError('LAMMPS exited with non-zero exit code: %d (modelid: %d)\nOutput:\n%s\n' % (
+                               proc.returncode,
                                model.id,
                                output) )
 
         # get results
         info = get_info_from_log(StringIO(unicode(output)))
-        
+
         with open(traj_fname, 'r') as fd:
             new_crd = get_last_frame(fd)
 
@@ -355,4 +385,5 @@ def optimize(model, cfg):
 
 
     return info
+
 

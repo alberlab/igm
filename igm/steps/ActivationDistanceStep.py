@@ -8,6 +8,7 @@ import os.path
 from alabtools.analysis import HssFile
 
 from ..core import Step
+from ..utils.files import make_absolute_path
 
 try:
     # python 2 izip
@@ -30,21 +31,24 @@ class ActivationDistanceStep(Step):
     def name(self):
         s = 'ActivationDistanceStep (sigma={:.2f}%, iter={:s})' 
         return s.format(
-            self.cfg['restraints']['Hi-C']['sigma'] * 100.0,
+            self.cfg['runtime']['Hi-C']['sigma'] * 100.0,
             str( self.cfg['runtime'].get('opt_iter', 'N/A') )
         )
 
     def setup(self):
         dictHiC = self.cfg['restraints']['Hi-C']
-        sigma = dictHiC["sigma"]
+        sigma = self.cfg['runtime']['Hi-C']["sigma"]
         input_matrix = dictHiC["input_matrix"]
+        last_actdist_file = self.cfg['runtime']['Hi-C'].get("last_actdist_file", None)
         
         self.tmp_extensions = [".npy", ".tmp"]
         
-        self.set_tmp_path()
+        self.tmp_dir = make_absolute_path(
+            self.cfg['restraints']['Hi-C'].get('actdist_dir', 'actdist'),
+            self.cfg['tmp_dir']
+        )
 
-        self.keep_temporary_files = ("keep_temporary_files" in dictHiC and 
-                                     dictHiC["keep_temporary_files"] is True)
+        self.keep_temporary_files = dictHiC.get("keep_temporary_files", False)
         
         if not os.path.exists(self.tmp_dir):
             os.makedirs(self.tmp_dir)
@@ -59,8 +63,8 @@ class ActivationDistanceStep(Step):
         jj      = probmat.col[mask]
         pwish   = probmat.data[mask]
         
-        if "actdist_file" in dictHiC:
-            with h5py.File(dictHiC["actdist_file"]) as h5f:
+        if last_actdist_file is not None:
+            with h5py.File(last_actdist_file) as h5f:
                 last_prob = {(i, j) : p for i, j, p in zip(h5f["row"], h5f["col"], h5f["prob"])}
         else:
             last_prob = {}
@@ -93,8 +97,10 @@ class ActivationDistanceStep(Step):
         
         results = []
         for i, j, pwish, plast in params:
-            res = get_actdist(int(i), int(j), pwish, plast, hss, 
-                              contactRange = dictHiC['contact_range'] if 'contact_range' in dictHiC else 2.0)
+            res = get_actdist(
+                int(i), int(j), pwish, plast, hss, 
+                contactRange = dictHiC.get('contact_range', 2.0) 
+            )
             
             for r in res:
                 results.append(r) #(i, j, actdist, p)
@@ -127,25 +133,20 @@ class ActivationDistanceStep(Step):
             h5f.create_dataset("dist", data=np.concatenate(dist))
             h5f.create_dataset("prob", data=np.concatenate(prob))
         #-
-        self.cfg['restraints']['Hi-C']["actdist_file"] = actdist_file
+        self.cfg['runtime']['Hi-C']["actdist_file"] = actdist_file
 
     def skip(self):
         '''
         Fix the dictionary values when already completed
         '''
-        self.set_tmp_path()
-        actdist_file = os.path.join(self.tmp_dir, "actdist.hdf5")
-        self.cfg['restraints']['Hi-C']["actdist_file"] = actdist_file
+        self.tmp_dir = make_absolute_path(
+            self.cfg['restraints']['Hi-C'].get('actdist_dir', 'actdist'),
+            self.cfg['tmp_dir']
+        )
+        self.actdist_file = os.path.join(self.tmp_dir, "actdist.hdf5")
+        self.cfg['runtime']['Hi-C']["actdist_file"] = self.actdist_file
 #=  
-    def set_tmp_path(self):
-        dictHiC = self.cfg['restraints']['Hi-C']
-        hic_tmp_dir = dictHiC["actdist_dir"] if "actdist_dir" in dictHiC else "actdist"
-        
-        if os.path.isabs(hic_tmp_dir):
-            self.tmp_dir = hic_tmp_dir
-        else:    
-            self.tmp_dir = os.path.join( self.cfg["tmp_dir"], hic_tmp_dir )
-            self.tmp_dir = os.path.abspath(self.tmp_dir)
+    
 
 
 def cleanProbability(pij, pexist):

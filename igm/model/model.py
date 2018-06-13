@@ -132,7 +132,7 @@ class Model(object):
         optimize the model by selected kernel
         """
         
-        if cfg["kernel"] == "lammps":
+        if cfg['optimization']["kernel"] == "lammps":
             from .kernel import lammps
             return lammps.optimize(self, cfg)
         #-

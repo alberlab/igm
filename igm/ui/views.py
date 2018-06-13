@@ -2,8 +2,10 @@ from ipyparallel import Client
 import os, os.path
 from tornado import template
 from ..core.config import Config
+from ..core.defaults.defaults import igm_options
 from ..core.job_tracking import StepDB
 from ..utils.log import pretty_time
+from .utils import generate_form, parse_post_config
 import time
 
 template_dir = os.path.join( os.path.dirname( os.path.abspath(__file__) ),  'templates' ) 
@@ -44,3 +46,19 @@ def history(cfgf):
         'cfg_fname': os.path.basename(cfgf),
         'cstatus': cluster_status(), 
     })
+
+def config_form():
+    form_data = generate_form(igm_options)
+    return render( 'cfg_form.html', {
+        'form_data': form_data
+    })
+
+import traceback
+def config_form_process(post):
+    try:
+        out = parse_post_config(igm_options, post, 'igm')
+    except:
+        out = '<pre>' + traceback.format_exc()
+        out += str(post)
+        out += '</pre>'
+    return out

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style type="text/css">
+    .igm-opt-group {
+        padding-left: 2em;
+    }
+
+</style>
+
+<script type="text/javascript">
+$(document).ready( function() {
+
+    $.each( $('.igm-opt-input'), function(i, item){
+        $(item).addClass('form-group');
+    });
+
+    $.each( $('input:not(:checkbox), select'), function(i, item){
+        $(item).addClass('form-control');
+    });
+
+    $.each( $('.cbclass > input'), function(i, item){
+        $(item).addClass('form-check-input');
+    });
+    $.each( $('.cbclass > label'), function(i, item){
+        $(item).addClass('form-check-label');
+    });
+
+
+    $.each( $('.toggler'), function(i, item){
+        $(item).click( function (){
+
+            $('#' + $(item).attr('data-toggle')).toggle('fast');
+            var visible = $('#' + $(item).attr('data-toggle')).is(':visible');
+            var prefix = '\u25BC';
+            if (!visible) {
+                prefix = "\u25BA";
+            }
+            $(item).text(prefix + ' ' + $(item).attr('data-cleantxt'))
+
+        }); 
+        var txt = $(item).text();
+        txt = txt.substring(txt.lastIndexOf('__')).replace('__', '');
+        $(item).attr('data-cleantxt', txt);
+        var visible = $('#' + $(item).attr('data-toggle')).is(':visible');
+        var prefix = '\u25BC';
+        if (!visible) {
+            prefix = "\u25BA";
+        }
+        $(item).text(prefix + ' ' + $(item).attr('data-cleantxt'))
+    });
+
+    $('button').addClass('btn btn-primary')
+
+});
+</script>
+
+{% end %}
+
+{% block title %}Generation status{% end %}
+
+{% block body %}
+  <h1>
+    IGM run configuration
+  </h1>
+  
+  <form class="form" id="cfg-form" method="POST" action="/configure/">
+    {% raw form_data %}
+    <button type="submit" name="submit">Submit</button>
+  </form>
+{% end %}

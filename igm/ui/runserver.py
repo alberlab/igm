@@ -1,9 +1,13 @@
 import tornado.ioloop
 import tornado.web
 import sys
-from igm.ui.views import history
+import json
+from igm.ui.views import history, config_form, config_form_process
 
-cfg = sys.argv[1]
+if len(sys.argv) > 1:
+    cfg = sys.argv[1]
+else:
+    cfg = None
 
 if len(sys.argv)>2:
     port = int(sys.argv[2])
@@ -12,11 +16,23 @@ else:
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        self.write(history(cfg))
+        if cfg:
+            self.write(history(cfg))
+
+class CfgFormHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.write(config_form())
+
+    def post(self):
+        self.set_header("Content-Type", "text/plain")
+        postdata = { k: self.get_argument(k) for k in self.request.arguments }
+        cfg = config_form_process(postdata)
+        self.write( json.dumps(cfg, indent=4) )
 
 if __name__ == "__main__":
     application = tornado.web.Application([
         (r"/", MainHandler),
+        (r"/configure/", CfgFormHandler)
     ])
     application.listen(port)
     tornado.ioloop.IOLoop.current().start()

@@ -1,36 +1,47 @@
 {
+
     "genome" : {
-        "genome" : "hg19",
-        "segmentation" : "tad.bed"
+        "genome" : "hg38",
+        "segmentation" : "tad.bed",
+        "ploidy" : "diploid"
     },
-    
+
     "model" : {
         "nucleus_shape" : "sphere",
         "nucleus_radius" : 5000.0,
         "occupancy" : 0.2,
         "contact_range" : 2.0,
-        "evfactor" : 1.0
+        "evfactor" : 0.05
     },
-    
+
     "restraints" : {
-        
+
     },
-    
+
     "optimization" : {
         "kernel" : "lammps",
-        "tmp_files_dir" : ".",
+        "tmp_dir" : "opt",
         "run_name" : "test",
         "keep_temporary_files" : true,
         "lammps_executable" : "lmp_serial_mod",
         "optimizer_options" : {
             "mdsteps" : 20000,
             "timestep" : 0.25,
-            "tstart" : 20.0,
-            "tstop" : 1.0,
-            "damp" : 50.0
+            "tstart" : 250.0,
+            "tstop" : 0.5,
+            "damp" : 50.0,
+            "max_velocity": 100,
+            "ev_factor": 0.05
         }
-            
-    }
-    
+
+    },
+
+    "step_db" : "stepdb.sqlite",
+    "max_iterations" : 10,
+    "log" : "log.txt",
+    "log_level" : "debug",
+    "keep_intermediate_structures" : true,
+    "violation_tolerance" : 0.01
+
 }
 

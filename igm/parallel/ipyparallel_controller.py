@@ -63,21 +63,29 @@ class BasicIppController(ParallelController):
     def map(self, parallel_task, args):
         from ipyparallel import Client
         client = Client()
-        client[:].use_cloudpickle()
-        lbv = client.load_balanced_view()
-        ar = lbv.map_async(
-            IppFunctionWrapper(parallel_task, self.timeout), 
-            args
-        )
-        r = [] 
-        for z in print_progress(ar, timeout=1, every=None, fd=sys.stderr):
-            if z[0] == -1:
-                logger.error(z[1])
-                client.close()
-                raise RuntimeError('remote failure')
-            elif z[0] == 0:
-                r.append(z[1])
-        client.close()
+        try:
+            client[:].use_cloudpickle()
+            lbv = client.load_balanced_view()
+            ar = lbv.map_async(
+                IppFunctionWrapper(parallel_task, self.timeout), 
+                args
+            )
+            try:   
+                r = [] 
+                for z in print_progress(ar, timeout=1, every=None, fd=sys.stderr):
+                    if z[0] == -1:
+                        logger.error(z[1])
+                        client.abort(ar)
+                        client.close()
+                        raise RuntimeError('remote failure')
+                    elif z[0] == 0:
+                        r.append(z[1])
+            except KeyboardInterrupt:
+                client.abort(ar)
+                raise
+        finally:
+            # always close the client to release resources
+            client.close()
         return r
 
 class BasicAsyncIppController(BasicIppController):

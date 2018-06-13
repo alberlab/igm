@@ -11,12 +11,12 @@ logger = logging.getLogger('IGM')
 def set_log(fname, loglevel=logging.INFO):
 
     fname = os.path.abspath(fname)
-    
+
     # ensure the file is not double added
     hs = [h.baseFilename for h in logger.handlers if isinstance(h, logging.FileHandler)]
     if fname in hs:
         return
-    
+
     fh = logging.FileHandler(fname)
     fh.setFormatter(logging.Formatter(FORMAT))
     logger.addHandler(fh)
@@ -31,15 +31,15 @@ def pretty_time(seconds):
     h, m = divmod(m, 60)
     return "%dh %02dm %02ds" % (h, m, s)
 
-def print_progress(iterable, 
-                   length=None, 
-                   every=1, 
-                   timeout=None, 
-                   size=20, 
+def print_progress(iterable,
+                   length=None,
+                   every=1,
+                   timeout=None,
+                   size=12,
                    fmt='(IGM) {bar} {percent:6.2f}% ({completed}/{total}) | {elapsed:12s} | ETA: {remaining:12s}',
                    timefmt='%c',
                    fd=sys.stdout ):
-    
+
     if hasattr(iterable, '__len__') and length is None:
         length = len(iterable)
 
@@ -68,7 +68,7 @@ def print_progress(iterable,
                 if length is not None:
                     vals['percent'] = (i + 1) * 100.0 / length
                     fill = int(size * float(i+1) / length)
-                else: 
+                else:
                     vals['percent'] = 0.0
                     fill += 1
 
@@ -89,7 +89,7 @@ def print_progress(iterable,
                 else:
                     pos = fill % (2*(size-1))
                     if pos >= size:
-                        pos = 2*size - pos - 2 
+                        pos = 2*size - pos - 2
                     pb = '[' + ' ' * (pos) + '=' + ' ' * (size-pos-1) + '] '
                 vals['bar'] = pb
                 fd.write( '\r' + fmt.format(**vals) )
@@ -100,7 +100,7 @@ def print_progress(iterable,
                 if fill > lastfill:
                     lastfill = fill
                     fd.write('=')
-                        
+
         yield v
 
     if not fd.isatty():
