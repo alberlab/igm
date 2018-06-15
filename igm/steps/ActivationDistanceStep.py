@@ -9,6 +9,7 @@ from alabtools.analysis import HssFile
 
 from ..core import Step
 from ..utils.files import make_absolute_path
+from ..parallel.utils import batch
 
 try:
     # python 2 izip
@@ -39,7 +40,7 @@ class ActivationDistanceStep(Step):
         dictHiC = self.cfg['restraints']['Hi-C']
         sigma = self.cfg['runtime']['Hi-C']["sigma"]
         input_matrix = dictHiC["input_matrix"]
-        last_actdist_file = self.cfg['runtime']['Hi-C'].get("last_actdist_file", None)
+        last_actdist_file = self.cfg['runtime']['Hi-C'].get("actdist_file", None)
         
         self.tmp_extensions = [".npy", ".tmp"]
         
@@ -65,7 +66,7 @@ class ActivationDistanceStep(Step):
         
         if last_actdist_file is not None:
             with h5py.File(last_actdist_file) as h5f:
-                last_prob = {(i, j) : p for i, j, p in zip(h5f["row"], h5f["col"], h5f["prob"])}
+                last_prob = {(i, j) : p for i, j, p in zip(h5f["row"][()], h5f["col"][()], h5f["prob"][()])}
         else:
             last_prob = {}
         
@@ -147,7 +148,13 @@ class ActivationDistanceStep(Step):
         self.cfg['runtime']['Hi-C']["actdist_file"] = self.actdist_file
 #=  
     
-
+def newton_prob(p_wish, x_now, x_last, p_now, p_last):
+    # value of the functions
+    f_now = p_now - p_wish
+    f_last = p_last - p_wish
+    derivative = ( f_now - f_last ) / ( x_now - x_last )
+    x_new = x_now - f_now / derivative
+    return x_new
 
 def cleanProbability(pij, pexist):
     if pexist < 1:

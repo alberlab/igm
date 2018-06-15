@@ -215,11 +215,12 @@ def create_lammps_script(model, user_args):
                 #     file=f
                 # )
                 print(
-                    'fix 4 beads ellipsoidalenvelope',
+                    'fix envelope beads ellipsoidalenvelope',
                     ' '.join([str(x) for x in model.envelope.semiaxes]),
                     model.envelope.k,
                     file=f
                 )
+                print('fix_modify envelope energy yes', file=f)
             else:
                 raise NotImplementedError('Envelope (%s) not implemented' % model.envelope.shape)
 
@@ -240,7 +241,7 @@ def create_lammps_script(model, user_args):
               'id type x y z fx fy fz', file=f)
 
         # Thermodynamic info style for output
-        print('thermo_style custom step temp epair ebond', file=f)
+        print('thermo_style custom step temp epair ebond f_envelope', file=f)
         print('thermo_modify norm no', file=f)
         print('thermo', user_args['thermo'], file=f)
 
