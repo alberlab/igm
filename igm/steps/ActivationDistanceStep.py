@@ -2,14 +2,16 @@ from __future__ import division, print_function
 import numpy as np
 import h5py
 import scipy.io
+import scipy.sparse
 import os
 import os.path
 
+from alabtools import Contactmatrix
 from alabtools.analysis import HssFile
 
 from ..core import Step
 from ..utils.files import make_absolute_path
-from ..parallel.utils import batch
+#from ..parallel.utils import batch
 
 try:
     # python 2 izip
@@ -39,8 +41,10 @@ class ActivationDistanceStep(Step):
     def setup(self):
         dictHiC = self.cfg['restraints']['Hi-C']
         sigma = self.cfg['runtime']['Hi-C']["sigma"]
-        input_matrix = dictHiC["input_matrix"]
+        input_matrix = Contactmatrix(dictHiC["data"]).matrix
+        n = input_matrix.shape[0]
         last_actdist_file = self.cfg['runtime']['Hi-C'].get("actdist_file", None)
+        batch_size = dictHiC.get('batch_size', 100)
         
         self.tmp_extensions = [".npy", ".tmp"]
         
@@ -55,34 +59,40 @@ class ActivationDistanceStep(Step):
             os.makedirs(self.tmp_dir)
         #---
         
-        probmat = scipy.io.mmread(input_matrix)
-        mask    = np.logical_and( 
-            probmat.data >= sigma,
-            np.abs( probmat.row - probmat.col ) > 1
-        )
-        ii      = probmat.row[mask]
-        jj      = probmat.col[mask]
-        pwish   = probmat.data[mask]
-        
+        # get the last iteration corrected probabilities. 
+        # TODO: find a way not to read all to memory? 
         if last_actdist_file is not None:
             with h5py.File(last_actdist_file) as h5f:
-                last_prob = {(i, j) : p for i, j, p in zip(h5f["row"][()], h5f["col"][()], h5f["prob"][()])}
+                row = h5f["row"][()]
+                col = h5f["col"][()]
+                ii = np.logical_and( row < n, col < n )
+                row = row[ii]
+                col = col[ii]
+                data = h5f["prob"][ii][()] 
+
+                plast = scipy.sparse.coo_matrix(
+                    ( data, ( row, col ) ),
+                    shape=input_matrix.shape
+                ).tolil()
         else:
-            last_prob = {}
-        
-        batch_size = 100
-        n_args_batches = len(ii) // batch_size
-        
-        
-        if len(ii) % batch_size != 0:
-            n_args_batches += 1
-        for b in range(n_args_batches):
-            start = b * batch_size
-            end = min((b+1) * batch_size, len(ii))
-            params = np.array([(ii[k], jj[k], pwish[k], last_prob.get((ii[k], jj[k]), 0.))
-                            for k in range(start, end)], dtype=np.float32)
-            fname = os.path.join(self.tmp_dir, '%d.in.npy' % b)
-            np.save(fname, params)
+            plast = scipy.sparse.lil_matrix(input_matrix.shape)
+
+        # write parameters to process to files, split in batches
+        n_args_batches = 0
+        k = 0
+        curr_batch = []
+        for i, j, pwish in input_matrix.coo_generator():
+            if pwish >= sigma:
+                curr_batch.append( ( i, j, pwish, plast[i, j] ) )
+                k += 1
+            if k == batch_size:
+                fname = os.path.join(self.tmp_dir, '%d.in.npy' % n_args_batches)
+                np.save(fname, curr_batch)
+                k = 0
+                n_args_batches += 1
+                curr_batch = []
+        fname = os.path.join(self.tmp_dir, '%d.in.npy' % n_args_batches)
+        np.save(fname, curr_batch)
         
         self.argument_list = range(n_args_batches)
             
