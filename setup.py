@@ -40,7 +40,7 @@ setup(
         version = '0.0.1', 
         author = 'Guido Polles, Nan Hua', 
         author_email = 'polles@usc.edu nhua@usc.edu', 
-        url = 'https://github.com/alberlab/gim', 
+        url = 'https://github.com/alberlab/igm', 
         description = 'Integrated Genome Modeling',
         packages=find_packages(),
         package_data={'igm' : ['core/defaults/*']},
@@ -49,4 +49,5 @@ setup(
         extras_require=extras_require,
         ext_modules=extensions,
         include_dirs=[numpy.get_include()],
+        scripts=['bin/igm-run',],
 )
