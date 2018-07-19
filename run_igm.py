@@ -2,8 +2,7 @@ import igm
 import sys
 import os.path
 from igm.utils.log import set_log, logger
-from alabtools.analysis import HssFile
-
+from shutil import copyfile
 
 #===start pipeline with configure file
 cfgfile = os.path.abspath(sys.argv[1])
@@ -20,11 +19,17 @@ igm.Preprocess(cfg)
 
 # Generate random initial configuration
 
-randomStep = igm.RandomInit(cfg)
-randomStep.run()
+starting_coordinates = cfg.get('starting_coordinates', None) 
+if starting_coordinates is not None:
+    logger.info('Initial coordinates from: ' + starting_coordinates)
+    copyfile(starting_coordinates, cfg['structure_output']) 
+else:
+    logger.info('Generating random initial coordinates.')
+    randomStep = igm.RandomInit(cfg)
+    randomStep.run()
 
-relaxStep = igm.RelaxInit(cfg)
-relaxStep.run()
+    relaxStep = igm.RelaxInit(cfg)
+    relaxStep.run()
 
 # optimization iteration
 opt_iter = 0

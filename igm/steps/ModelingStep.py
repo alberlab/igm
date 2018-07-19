@@ -131,9 +131,11 @@ class ModelingStep(StructGenStep):
         model.addRestraint(ev)
 
         #add consecutive polymer restraint
+        contact_probabilities = cfg['runtime'].get('consecutive_contact_probabilities', None)
         pp = Polymer(index,
                      cfg['model']['contact_range'],
-                     cfg['model']['contact_kspring'])
+                     cfg['model']['contact_kspring'],
+                     contact_probabilities=contact_probabilities)
         model.addRestraint(pp)
         monitored_restraints.append(pp)
 

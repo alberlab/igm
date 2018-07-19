@@ -2,6 +2,7 @@ from __future__ import division, print_function
 
 from alabtools.utils import Genome, get_index_from_bed, make_diploid, make_multiploid
 from alabtools.analysis import HssFile
+from alabtools import Contactmatrix
 from six import string_types
 import numpy as np
 import os
@@ -74,7 +75,7 @@ def Preprocess(cfg):
             "Cannot compute volume for shape %s" % cfg['model']['nucleus_shape']
         )
 
-    #Generate model radius
+    # compute model radius
     occupancy = cfg['model']['occupancy']
 
     # compute volume per basepair
@@ -83,6 +84,7 @@ def Preprocess(cfg):
     sphere_volumes = [rho * s for s in bp_sizes]
     radii = ( np.array(sphere_volumes) / _43pi )**(1./3)
 
+    # prepare Hss
     if not os.path.isfile(cfg['structure_output']):
         hss = HssFile(cfg['structure_output'], 'a')
 
@@ -99,9 +101,27 @@ def Preprocess(cfg):
     if not os.path.isfile(cfg['structure_output'] + '.tmp'):
         copyfile( cfg['structure_output'], cfg['structure_output'] + '.tmp' )
 
-    #prepare tmp file dir
+    # prepare tmp file dir
     if not os.path.exists(cfg['tmp_dir']):
         os.makedirs(cfg['tmp_dir'])
+
+    # if we have a Hi-C probability matrix, use it to determine the consecutive
+    # beads distances
+    pbs = cfg.get('polymer_bonds_style', 'simple')
+    if pbs == 'hic':
+        if "Hi-C" not in cfg['restraints']:
+            raise RuntimeError('Hi-C restraints specifications are missing in the cfg, but "polymer_bond_style" is set to "hic"')
+        # read the HiC matrix and get the first diagonal.
+        m = Contactmatrix(cfg['restraints']['Hi-C']['data']).matrix
+        cps = np.zeros(len(index) - 1)
+        for i in range(m.shape[0] - 1):
+            f = m[i][i+1]
+            for j in index.copy_index[i]:
+                cps[j] = f
+        cpfname = os.path.join(cfg['tmp_dir'], 'consecutive_contacts.npy')
+        np.save(cpfname, cps)
+        cfg['runtime']['consecutive_contact_probabilities'] = cpfname
+
 
 
 
