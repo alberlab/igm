@@ -100,7 +100,7 @@ class ActivationDistanceStep(Step):
     def task(batch_id, cfg, tmp_dir):
         
         dictHiC = cfg['restraints']['Hi-C']
-        hss     = HssFile(cfg["structure_output"], 'r+')
+        hss     = HssFile(cfg["structure_output"], 'r')
         
         # read params
         fname = os.path.join(tmp_dir, '%d.in.npy' % batch_id)

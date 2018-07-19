@@ -26,7 +26,7 @@ class Polymer(Restraint):
         self.contactRange = contactRange
         self.k = k
         self.forceID = []
-        self.cp = np.load(contact_probabilities)
+        self.cp = np.load(contact_probabilities) if (contact_probabilities is not None) else None
         
     def _apply(self, model):
                
