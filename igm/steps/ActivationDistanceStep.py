@@ -9,6 +9,8 @@ import os.path
 from alabtools import Contactmatrix
 from alabtools.analysis import HssFile
 
+from tqdm import tqdm
+
 from ..core import Step
 from ..utils.files import make_absolute_path
 #from ..parallel.utils import batch
@@ -100,7 +102,7 @@ class ActivationDistanceStep(Step):
     def task(batch_id, cfg, tmp_dir):
         
         dictHiC = cfg['restraints']['Hi-C']
-        hss     = HssFile(cfg["structure_output"], 'r+')
+        hss     = HssFile(cfg["structure_output"], 'r')
         
         # read params
         fname = os.path.join(tmp_dir, '%d.in.npy' % batch_id)
@@ -130,7 +132,7 @@ class ActivationDistanceStep(Step):
         dist = []
         prob = []
         
-        for i in self.argument_list:
+        for i in tqdm(self.argument_list, desc='(REDUCE)'):
             fname = os.path.join(self.tmp_dir, '%d.out.tmp' % i)
             partial_actdist = np.genfromtxt( fname, dtype=actdist_shape )
             row.append(partial_actdist['row'])
@@ -215,7 +217,8 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
     jj = copy_index[j]
 
     n_combinations      = len(ii) * len(jj)
-    n_possible_contacts = min(len(ii), len(jj))
+    n_possible_contacts = np.max(hss.index.copy) + 1
+    # n_possible_contacts = min(len(ii), len(jj))
     #for diploid cell n_combinations = 2*2 =4
     #n_possible_contacts = 2
     

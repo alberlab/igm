@@ -123,3 +123,70 @@ class FutureFilePoller(object):
     def enumerate(self):
         return GeneratorLen(self._enumerate(), len(self.futures))
 
+class SimpleFilePoller(object):
+    def __init__(self, files, callback, args=None, kwargs=None, remove_after_callback=False):
+        self.files = files
+        self.args = args 
+        if args is None:
+            self.args = [ list() ] * len(files)
+        
+        self.kwargs = kwargs
+        if kwargs is None:
+            self.kwargs = [ dict() ] * len(files)
+
+        self.callback = callback
+        self.to_poll = {i: None for i in range(len(files))}
+        
+        self.running = False
+        self.th = None
+        
+        self.remove_flag = remove_after_callback
+        self.completed = []
+
+    def watch(self, timeout=None, interval=poll_interval):
+        start = time.time()
+        self.running = True
+        while True:
+            last_poll = time.time()
+            for i in list(self.to_poll):
+                if os.path.isfile(self.files[i]):
+                    self.callback(*self.args[i], **self.kwargs[i])
+                    if self.remove_flag:
+                        os.remove(self.files[i])
+                    del self.to_poll[i]
+                    self.completed.append(i)
+                
+            if len(self.to_poll) == 0:
+                self.running = False
+                return
+
+            now = time.time()
+            if timeout is not None:
+                if now - start > timeout:
+                    raise RuntimeError('Timeout expired (%f seconds)' % (timeout,) )
+            
+            delta = now - last_poll
+            if delta < interval:
+                time.sleep(interval - delta)
+
+    def watch_async(self, timeout=None, interval=poll_interval):
+        self.th = threading.Thread(target=self.watch, args=(timeout, poll_interval), daemon=True)
+        self.th.start()
+
+    def wait(self, timeout=None):
+        self.th.join(timeout)
+
+    def _enumerate(self):
+        lastc = 0
+        while True:
+            if lastc == len(self.files):
+                break
+            if len(self.completed) > lastc:
+                lastc += 1
+                yield self.completed[lastc-1]
+            else:
+                time.sleep(poll_interval)
+
+    def enumerate(self):
+        return GeneratorLen(self._enumerate(), len(self.files))
+

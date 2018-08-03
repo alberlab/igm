@@ -69,7 +69,19 @@ SPRITE_DEFAULT = [
 
 ]
 
-
+def walk_schema(n, w, group_callback, post_group_callback,
+                item_callback):
+    if isinstance(w, dict):
+        if w.get("role") is not None and "group" in w["role"]:
+                group_callback(n, w)
+                for x in w:
+                    walk_tree(n + '/' + x, w[x],
+                              group_callback, post_group_callback,
+                              item_callback)
+                exit_group_callback(n, w)
+                return
+        if w.get("dtype") is not None:
+            item_callback(n, w)
 
 class Config(dict):
     """
@@ -83,7 +95,7 @@ class Config(dict):
         #put static config into config object
         #dynamic config like genome object can be other members
         self['model'] = dict()
-        self['model']['restraints'] = dict()
+        self['restraints'] = dict()
         self['optimization'] = dict()
         self['optimization']['optimizer_options'] = dict()
 

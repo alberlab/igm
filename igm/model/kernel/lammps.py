@@ -37,6 +37,7 @@ import errno
 import math
 from io import StringIO
 from itertools import groupby
+from copy import deepcopy
 
 from subprocess import Popen, PIPE
 
@@ -325,8 +326,8 @@ def optimize(model, cfg):
 
     run_name = cfg['runtime']['run_name']
     keep_temporary_files = cfg['optimization']['keep_temporary_files']
-    lammps_executable = cfg['optimization']['lammps_executable']
-    run_opts = cfg['optimization']['optimizer_options']
+    lammps_executable = cfg['optimization']['kernel_opts']['lammps']['lammps_executable']
+    run_opts = deepcopy(cfg['optimization']['optimizer_options'])
 
     data_fname = os.path.join(tmp_files_dir, run_name + '.data')
     script_fname = os.path.join(tmp_files_dir, run_name + '.lam')
@@ -337,7 +338,7 @@ def optimize(model, cfg):
         # prepare input
         io_opts = {'out': traj_fname, 'data': data_fname, 'lmp': script_fname}
         run_opts.update(io_opts)
-
+        run_opts.update(cfg['optimization']['kernel_opts']['lammps'])
         m = LammpsModel(model)
 
         create_lammps_data(m, run_opts)
@@ -363,6 +364,7 @@ def optimize(model, cfg):
         with open(traj_fname, 'r') as fd:
             new_crd = get_last_frame(fd)
 
+        # updates the input model coordinates
         for i, p in enumerate(model.particles):
             p.pos = new_crd[m.imap[i]]
 

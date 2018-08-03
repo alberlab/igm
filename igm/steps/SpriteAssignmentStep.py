@@ -11,6 +11,8 @@ from ..cython_compiled.sprite import compute_gyration_radius
 from ..utils.log import print_progress
 from ..core import Step
 
+from tqdm import tqdm
+
 try:
     # python 2 izip
     from itertools import izip as zip
@@ -147,7 +149,7 @@ class SpriteAssignmentStep(Step):
         if not 'indptr' in assignment_file:
             assignment_file.create_dataset('indptr', data=indptr)
 
-        for batch_id in print_progress(random_order, timeout=1, every=None, fd=sys.stderr):
+        for batch_id in tqdm(random_order, desc='(REDUCE)'):
             idx_file = os.path.join(self.tmp_dir, 'tmp.%d.idx.npy' % batch_id )
             val_file = os.path.join(self.tmp_dir, 'tmp.%d.values.npy' % batch_id )
             sel_file = os.path.join(self.tmp_dir, 'tmp.%d.selected.npz' % batch_id )

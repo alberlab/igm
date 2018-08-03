@@ -9,6 +9,7 @@ import traceback
 import os.path
 
 from shutil import copyfile
+from tqdm import tqdm
 
 from ..parallel import Controller
 from ..utils import HmsFile
@@ -343,7 +344,7 @@ class StructGenStep(Step):
         total_restraints = 0.0
         total_violations = 0.0
 
-        for i in print_progress(range(hss.nstruct), timeout=1, every=None, fd=sys.stderr):
+        for i in tqdm(range(hss.nstruct), desc='(PACK HSS)'):
             fname = "{}_{}.hms".format(self.tmp_file_prefix, i)
             hms = HmsFile( os.path.join( self.tmp_dir, fname ) )
             crd = hms.get_coordinates()

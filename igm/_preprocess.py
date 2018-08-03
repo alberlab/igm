@@ -1,9 +1,11 @@
 from __future__ import division, print_function
 
-from alabtools.utils import Genome, get_index_from_bed, make_diploid, make_multiploid
+from alabtools.utils import Genome, Index, make_diploid, make_multiploid
 from alabtools.analysis import HssFile
 from alabtools import Contactmatrix
-from six import string_types
+import os.path
+import json
+from six import string_types, raise_from
 import numpy as np
 import os
 from shutil import copyfile
@@ -15,26 +17,38 @@ def PrepareGenomeIndex(cfg):
     if 'usechr' not in gcfg:
         gcfg['usechr'] = ['#', 'X', 'Y']
 
-    genome = Genome(gcfg['genome'], usechr=gcfg['usechr'])
+    genome = Genome(gcfg['assembly'], usechr=gcfg['usechr'])
 
     if isinstance(gcfg['segmentation'], string_types):
-        index = get_index_from_bed(gcfg['segmentation'], genome,
-                                    usecols=(0,1,2,3))
-    else:
+        if os.path.isfile(gcfg['segmentation']):
+            index = Index(gcfg['segmentation'], genome=genome)
+        else:
+            try:
+                gcfg['segmentation'] = int(gcfg['segmentation'])
+            except ValueError:
+                raise_from(ValueError('Invalid segmentation value (either the file is not found or it is not an integer)'), None)
+
+    if isinstance(gcfg['segmentation'], int):
         index = genome.bininfo(gcfg['segmentation'])
 
-    if gcfg['ploidy'] == 'male':
-        gcfg['ploidy'] = {
-            '#': 2,
-            'X': 1,
-            'Y': 1
-        }
+    if (not isinstance(gcfg['ploidy'], string_types)) and (not isinstance(gcfg['ploidy'], dict)):
+        raise ValueError('Invalid ploidy value')
 
-    if gcfg['ploidy'] == 'diploid':
-        index = make_diploid(index)
-    elif gcfg['ploidy'] == 'haploid':
-        pass
-    elif isinstance(gcfg['ploidy'], dict):
+    if isinstance(gcfg['ploidy'], string_types):
+        if gcfg['ploidy'] == 'diploid':
+            index = make_diploid(index)
+        elif gcfg['ploidy'] == 'haploid':
+            pass
+        elif gcfg['ploidy'] == 'male':
+            gcfg['ploidy'] = {
+                '#': 2,
+                'X': 1,
+                'Y': 1
+            }
+        else:
+            gcfg['ploidy'] = json.parse(gcfg['ploidy'])
+
+    if isinstance(gcfg['ploidy'], dict):
         chrom_ids = []
         chrom_mult = []
         for c in sorted(gcfg['ploidy'].keys()):
@@ -44,7 +58,12 @@ def PrepareGenomeIndex(cfg):
                 chrom_ids += autosomes
                 chrom_mult += [ gcfg['ploidy'][c] ] * len(autosomes)
             else:
-                cn = genome.chroms.tolist().index('chr%s' % c)
+                if isinstance(c, string_types):
+                    cn = genome.chroms.tolist().index('chr%s' % c)
+                elif isinstance(c, int):
+                    cn = c
+                else:
+                    raise ValueError('Invalid chromosome ID in ploidy: %s' % repr(cn))
                 chrom_ids += [ cn ]
                 chrom_mult += [ gcfg['ploidy'][c] ]
         index = make_multiploid(index, chrom_ids, chrom_mult)

@@ -1,0 +1,62 @@
+#fb_u_loading {
+    background: white;
+    z-index:85;
+    position:absolute;
+    top:0px;
+    left:0px;
+    width:100%;
+    height:100%;
+    opacity:.3;
+}
+
+.fb_c_dir, .fb_c_file {
+    line-height: 2.5em;
+    position:relative;
+    display: block;
+}
+
+.fb_l_dir, .fb_l_file {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.fb_c_dir:hover, .fb_c_file:hover {
+    background-color: #eeeeee;
+}
+
+.fb_c_dir:before {
+    content: "\F07B";
+    font-family: FontAwesome;
+    left:-25px;
+    position:absolute;
+    top:0;
+}
+
+.fb_c_file:before {
+    content: "\F15B";
+    font-family: FontAwesome;
+    left:-25px;
+    position:absolute;
+    top:0;
+    color: 'darkgreen';
+}
+
+
+.fb_l_dir {
+    color: black;
+    text-decoration: none;
+}
+
+.fb_l_dir:hover{
+    color: darkblue;
+    text-decoration: none;
+}
+
+.fb_l_file {
+    color: 'darkgreen';
+} 
+
+#fb_u_dirs, #fb_u_files {
+    list-style: none;
+}
