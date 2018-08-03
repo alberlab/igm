@@ -42,30 +42,20 @@
 
       <!-- HOME -->
       <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
-        <div class="row">
-          <div class="col col-md-4">
-            <div id="files-div">
-            </div>
+        
+        <div id="main-div">
+          Working directory: {% raw root_directory %}
+
+          <div id="config-status">
           </div>
-        </div>
 
-        <div class="row">
-          <div class="col col-md-8">
-            <div id="main-div">
-              Working directory: {% raw root_directory %}
+          <div id="running-status">
+          </div>
 
-              <div id="config-status">
-              </div>
+          <div id="step-history">
+          </div>
 
-              <div id="running-status">
-              </div>
-
-              <div id="step-history">
-              </div>
-
-              <div id="data-analysis">
-              </div>
-            </div>
+          <div id="data-analysis">
           </div>
         </div>
 

@@ -5,6 +5,7 @@ from numpy.linalg import norm
 
 from .restraint import Restraint
 from ..model.forces import HarmonicLowerBound
+from ..model import Particle
 
 import h5py
 
@@ -20,7 +21,7 @@ class Damid(Restraint):
         defining contact range between 2 particles as contactRange*(r1+r2)
     """
     
-    def __init__(self, damid_file, contactRange=2, nuclear_radius, k=1.0):
+    def __init__(self, damid_file, contactRange=2, nuclear_radius=5000.0, k=1.0):
         
         self.contactRange = contactRange
         self.nuclear_radius = nuclear_radius
