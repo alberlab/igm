@@ -44,7 +44,7 @@ class ActivationDistanceStep(Step):
         input_matrix = Contactmatrix(dictHiC["data"]).matrix
         n = input_matrix.shape[0]
         last_actdist_file = self.cfg['runtime']['Hi-C'].get("actdist_file", None)
-        batch_size = dictHiC.get('batch_size', 100)
+        batch_size = dictHiC.get('batch_size', 1000)
         
         self.tmp_extensions = [".npy", ".tmp"]
         
@@ -124,7 +124,7 @@ class ActivationDistanceStep(Step):
         
     def reduce(self):
         actdist_file = os.path.join(self.tmp_dir, "actdist.hdf5")
-        
+        last_actdist_file = self.cfg['runtime']['Hi-C'].get("actdist_file", None)
         row = []
         col = []
         dist = []
@@ -138,12 +138,32 @@ class ActivationDistanceStep(Step):
             dist.append(partial_actdist['dist'])
             prob.append(partial_actdist['prob'])
         
-        with h5py.File(actdist_file, "w") as h5f:
+        additional_data = []
+        if "Hi-C" in self.cfg['runtime']:
+            additional_data .append(
+                'sigma_{:.4f}'.format(
+                    self.cfg['runtime']['Hi-C'].get('sigma', -1.0)
+                )
+            )
+        if 'opt_iter' in self.cfg['runtime']:
+            additional_data.append(
+                'iter_{}'.format(
+                    self.cfg['runtime']['opt_iter']
+                )
+            )
+        
+        tmp_actdist_file = actdist_file+'.tmp'
+        
+        with h5py.File(tmp_actdist_file, "w") as h5f:
             h5f.create_dataset("row", data=np.concatenate(row))
             h5f.create_dataset("col", data=np.concatenate(col))
             h5f.create_dataset("dist", data=np.concatenate(dist))
             h5f.create_dataset("prob", data=np.concatenate(prob))
         #-
+        swapfile = '.'.join( [actdist_file,] + additional_data )
+        if last_actdist_file is not None:
+            os.rename(last_actdist_file, swapfile)
+        os.rename(tmp_actdist_file, actdist_file)
         self.cfg['runtime']['Hi-C']["actdist_file"] = actdist_file
 
     def skip(self):
