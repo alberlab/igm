@@ -25,21 +25,15 @@ OPT_DEFAULT = [
 
     ('nucleus_radius', 5000.0, float, 'default nucleus radius'),
 
-    ('out', 'out.lammpstrj', str, 'Temporary lammps trajectory file name'),
-    ('data', 'input.data', str, 'Temporary lammmps input data file name'),
-    ('lmp', 'minimize.lam', str, 'Temporary lammps script file name'),
-
     ('mdsteps', 20000, int, 'Number of MD steps per round'),
     ('timestep', 0.25, float, 'MD timestep'),
     ('tstart', 20.0, float, 'MD initial temperature'),
     ('tstop', 1.0, float, 'MD final temperature'),
     ('damp', 50.0, float, 'MD damp parameter'),
-    ('seed', np.random.randint(100000000), int, 'RNG seed'),
     ('write', -1, int, 'Dump coordinates every <write> MD timesteps'),
     ('thermo', 1000, int, 'Output thermodynamic info every <thermo>'
                           ' MD timesteps'),
     ('max_velocity', 5.0, float, 'Cap particle velocity'),
-    ('max_neigh', 2000, int, 'Maximum numbers of neighbors per particle'),
     ('max_cg_iter', 500, int, 'Maximum # of Conjugate Gradient steps'),
     ('max_cg_eval', 500, int, 'Maximum # of Conjugate Gradient evaluations'),
     ('etol', 1e-4, float, 'Conjugate Gradient energy tolerance'),

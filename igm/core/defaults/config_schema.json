@@ -234,7 +234,7 @@
                 "seed" : {
                     "label" : "Random seed",
                     "dtype" : "int",
-                    "blank" : true,
+                    "default" : "_random",
                     "description" : "Random seed for optimization, specify to have binary repetible MD runs"
                 },
 

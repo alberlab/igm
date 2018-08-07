@@ -30,6 +30,10 @@ function namesToPaths(data, path, obj) {
 
 }
 
+function randomInt(max) {
+  return Math.floor(Math.random() * Math.floor(max));
+}
+
 function ConfigUI(root_element, schema) {
 
   self = this;
@@ -159,12 +163,19 @@ function ConfigUI(root_element, schema) {
       else if ( item.dtype == 'int' ) {
 
         input = $(`<input type="number" step="1" name="${curr_path}"></input>`);
+        var defval = item.default;
+        if (item.default === '_random') {
+          defval = randomInt(100000);
+          rollel = $('<a href="javascript:void(0);"> [roll] </a>');
+          rollel.click(() => { $(`[name=${curr_path}]`).val(randomInt(100000)); })
+          label.append(rollel);
+        }
         if ( item.min !== undefined )
           input.attr('min', item.min);
         if ( item.max !== undefined )
           input.attr('max', item.max);
         if ( item.default !== undefined )
-          input.attr('value', item.default)
+          input.attr('value', defval)
 
       }
 

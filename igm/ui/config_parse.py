@@ -77,7 +77,7 @@ def save_cfg(data):
             sitem = get_item(schema, split_path(path))
         except KeyError:
             set_item(cfg, split_path(path), value)
-            warnings.append('key "%s" not in schema' % path)
+            warnings.append('key "%s" not in schema' % path.replace('__', ' > '))
             continue
 
         if sitem.get('blank', False):
@@ -100,7 +100,7 @@ def save_cfg(data):
                 pass
         if sval is None:
             errors.append('%s: invalid data "%s". Valid data type are "%s" ' % (
-                path, value, dtypes))
+                path.replace('__', ' > '), value, dtypes))
             continue
 
         if dtype in ['path', 'path-dir', 'str'] and not sitem.get('required', False):
@@ -109,12 +109,12 @@ def save_cfg(data):
 
         if dtype == 'path' and sitem.get('role', '') == 'input':
             if not os.path.isfile(sval):
-                warnings.append('%s: cannot find input file "%s"' % (path, sval))
+                warnings.append('%s: cannot find input file "%s"' % (path.replace('__', ' > '), sval))
 
         if sitem.get('allowed_values') is not None:
             if sval not in sitem['allowed_values']:
                 errors.append('%s: invalid value "%s". Valid values are "%s" ' % (
-                    path, value, sitem['allowed_values']))
+                    path.replace('__', ' > '), value, sitem['allowed_values']))
                 continue
 
         set_item(cfg, split_path(path), sval)
