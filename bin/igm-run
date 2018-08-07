@@ -49,6 +49,9 @@ else:
 
 # optimization iteration
 opt_iter = 0
+# min optimization iterations before proceeding to next theta
+# skipped if iter 0 is successful
+min_iter = cfg.get('min_iterations', 5)
 # max unsuccessful optimization iterations before stopping
 max_iter = cfg.get('max_iterations', None)
 
@@ -84,7 +87,7 @@ while True:
         step.run()
 
     # check the violations
-    if cfg['runtime']['violation_score'] < cfg.get('max_violations', 0.01):
+    if ((opt_iter == 0) or (opt_iter >= min_iter)) and (cfg['runtime']['violation_score'] < cfg.get('max_violations', 0.001)):
         # no violations, go to next step or finish
         opt_iter = 0
         if 'Hi-C' in cfg['restraints'] and len( cfg["runtime"]["Hi-C"]["sigma_list"] ) != 0:

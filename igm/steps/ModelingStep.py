@@ -251,7 +251,7 @@ class ModelingStep(StructGenStep):
 
         # finally set the violation score in the runtime
         self.cfg['runtime']['violation_score'] = violation_score
-        logger.info('Violation score: %f' % violation_score)
+        logger.info('Violation score: %d / %d = %f' % (total_violations, total_restraints, violation_score))
 
 
     def intermediate_name(self):
