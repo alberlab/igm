@@ -16,6 +16,7 @@ install_requires = [
     'scipy>=0.16', 
     'h5py>=2.5', 
     'alabtools>=0.0.1',
+    'tqdm'
 ]
 
 tests_require = [
@@ -37,17 +38,19 @@ extensions = cythonize(extensions)
 
 setup(
         name = 'igm', 
-        version = '0.0.1', 
+        version = '1.0.0', 
         author = 'Guido Polles, Nan Hua', 
         author_email = 'polles@usc.edu nhua@usc.edu', 
         url = 'https://github.com/alberlab/igm', 
         description = 'Integrated Genome Modeling',
+        
         packages=find_packages('./igm/'),
-        package_data={'igm' : ['core/defaults/*']},
-        #install_requires=install_requires,
-        #tests_require=tests_require,
-        #extras_require=extras_require,
+        package_data={'igm' : ['core/defaults/*', 'ui/static/*', 'ui/templates/*']},
+        install_requires=install_requires,
+        tests_require=tests_require,
+        extras_require=extras_require,
+        
         ext_modules=extensions,
         include_dirs=[numpy.get_include()],
-        scripts=['bin/igm-run',],
+        scripts=['bin/igm-run', 'bin/igm-server',],
 )

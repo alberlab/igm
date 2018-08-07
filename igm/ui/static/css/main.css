@@ -1,0 +1,31 @@
+#help-wrapper {
+    background-color: #eeeeee;
+    position: fixed;
+    width: 100%;
+    height: 30%;
+    bottom: 0px;
+    left:0px;
+}
+
+#bottom-spacer {
+    width: 100%;
+}
+
+
+#help-content {
+    padding:2em;
+}
+
+#dragbar{
+   background-color: #bbbbbb;
+   width: :100%;
+   height: 4px;
+   cursor: row-resize;
+}
+
+#log-ta {
+    font-family: Inconsolata, Consolas, Monaco, monospace;
+    font-weight: bold;
+    color: #eeeeee;
+    background-color: black;
+}

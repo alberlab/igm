@@ -1,0 +1,204 @@
+#!/usr/bin/env python
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+import tornado.ioloop
+import tornado.web
+import tornado.log
+import os.path
+import json
+import uuid
+import subprocess
+import traceback
+import argparse
+import logging
+from tornado import template
+
+import igm.ui
+from igm.ui.config_parse import save_cfg, schema
+from igm.ui.communication import history, igm_is_running, kill_igm, readlog
+from igm.ui.navigation import list_directory
+
+template_dir = os.path.join( os.path.dirname( os.path.abspath(igm.ui.__file__) ),  'templates' )
+loader = template.Loader(template_dir)
+
+cwd = None
+
+def render(template, data):
+    return loader.load(template).generate(**data)
+
+class BaseHandler(tornado.web.RequestHandler):
+    def get_current_user(self):
+        return self.get_secure_cookie("user")
+
+class AjaxHandler(BaseHandler):
+    def post(self):
+
+        if not self.current_user:
+            return
+
+        reqdata = json.loads(self.get_argument('data'))
+        if reqdata['request'] == 'navigate':
+            self.write(
+                json.dumps(
+                    list_directory(reqdata['path'], cwd)
+                )
+            )
+        if reqdata['request'] == 'get_tree':
+            self.write(
+                { root.replace(cwd, '') : {'dirs': dirs, 'files': files}
+                for root, dirs, files in os.walk(cwd) }
+            )
+        if reqdata['request'] == 'save_cfg':
+            try:
+                r = save_cfg(reqdata['cfgdata'])
+                self.write(json.dumps(r))
+            except:
+                self.write({'status': 'failed', 'reason': traceback.format_exc()})
+
+        if reqdata['request'] == 'get_cfg':
+            try:
+                current_cfg = json.load(open('igm-config.json'))
+            except:
+                current_cfg = None;
+            self.write(json.dumps(current_cfg))
+
+        if reqdata['request'] == 'get_log':
+            try:
+                log = readlog()
+            except:
+                log = None;
+            self.write(json.dumps({'log' : log}))
+
+        if reqdata['request'] == 'is_running':
+            try:
+                status = igm_is_running()
+            except:
+                status = 'fail';
+            self.write(json.dumps({'status' : status}))
+
+        if reqdata['request'] == 'get_history':
+            try:
+                h = history()
+            except:
+                h = []
+            self.write(json.dumps({'history' : h}))
+
+        if reqdata['request'] == 'start_pipeline':
+            try:
+                if igm_is_running() == 'yes':
+                    raise RuntimeError('IGM is already running')
+                import subprocess
+                subprocess.Popen(['nohup igm-run igm-config.json &> igm-log.txt < /dev/null &'], shell=True)
+                out = 'ok'
+            except:
+                out = traceback.format_exc()
+            self.write(json.dumps({'status' : out}))
+
+        if reqdata['request'] == 'kill_pipeline':
+            try:
+                kill_igm()
+                out = 'ok'
+            except:
+                out = traceback.format_exc()
+            self.write(json.dumps({'status' : out}))
+
+
+class MainHandler(BaseHandler):
+
+    def get(self):
+        if not self.current_user:
+            if self.get_argument("q", '') == token:
+                self.set_secure_cookie("user", self.get_argument("q"))
+            else:
+                self.redirect("/login")
+                return
+
+        if os.path.isfile('igm-config.json'):
+            current_cfg = json.load(open('igm-config.json'))
+        else:
+            current_cfg = 'undefined';
+
+        self.render( 'main.html',
+            schema=json.dumps(schema),
+            current_cfg=json.dumps(current_cfg),
+            root_directory=cwd,
+        )
+
+
+class LoginHandler(BaseHandler):
+    def get(self):
+        self.write('<html><body><form action="/login" method="post">'
+                   'Secure token: <input type="text" name="name">'
+                   '<input type="submit" value="Sign in">'
+                   '</form></body></html>')
+
+    def post(self):
+        if self.get_argument("name") == token:
+            self.set_secure_cookie("user", self.get_argument("name"))
+        self.redirect("/")
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description='Run an IGM control server')
+    parser.add_argument('-p', '--port', type=int, default=43254, help='Use this port for connecting to the server' )
+    parser.add_argument('dir', nargs='?', default=os.getcwd(), help='Optional. Directory where to run the IGM instance. If does not exist, it tries to create it.')
+
+    args = parser.parse_args()
+
+    if not os.path.isdir(args.dir):
+        os.makedirs(args.dir)
+
+    os.chdir(args.dir)
+    cwd = args.dir
+
+    # create a secure token
+    token = str(uuid.uuid4()).replace('-', '')
+    secret = str(uuid.uuid4()).replace('-', '')
+
+    # silence tornado access logger
+    tornado.log.access_log.setLevel(logging.ERROR)
+
+    settings = {
+        "static_path": os.path.join(os.path.dirname(igm.ui.__file__), "static"),
+        "cookie_secret": secret,
+        "login_url": "/login",
+        "xsrf_cookies": False,
+        "template_path" : template_dir,
+        "debug" : True,
+        "gzip" : True,
+    }
+
+    application = tornado.web.Application([
+        (r"/", MainHandler),
+        (r"/login", LoginHandler),
+        (r"/ajax/", AjaxHandler),
+
+    ], **settings)
+
+    try:
+        ips = subprocess.check_output(['hostname', '-I']).decode('utf-8').strip().split()
+    except:
+        ips = []
+
+    print('The list of ips for this machine is: ', ips)
+
+    print('The way to connect to the server depends on the platform.')
+    if len(ips):
+        print('If the machine is accessible, my educated guess is, try to copy and paste the following address in your browser:')
+        print('     ', ips[-1] + ':' + str(args.port) + '?q=' + token)
+
+    print('The secure token for this session is:', token)
+
+    application.listen(args.port)
+    tornado.ioloop.IOLoop.current().start()
+
+
+
+
+
+
+
+
+
+
+

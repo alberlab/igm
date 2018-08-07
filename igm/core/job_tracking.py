@@ -8,23 +8,23 @@ from ..utils.log import logger
 class StepDB(object):
 
     SCHEMA = [
-        ('uid', 'TEXT'), 
+        ('uid', 'TEXT'),
         ('name', 'TEXT'),
-        ('cfg', 'TEXT'), 
+        ('cfg', 'TEXT'),
         ('time', 'INT'),
-        ('status', 'TEXT'), 
+        ('status', 'TEXT'),
         ('data', 'TEXT')
     ]
 
-    JSONCOLS = ['cfg', 'data'] 
+    JSONCOLS = ['cfg', 'data']
 
     COLUMNS = [x[0] for x in SCHEMA]
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, mode='a'):
         self.db = None
-        self.prepare_db(cfg)
+        self.prepare_db(cfg, mode=mode)
 
-    def prepare_db(self, cfg):  
+    def prepare_db(self, cfg, mode='a'):
         self.db = cfg.get('step_db', None)
         if self.db:
             if os.path.isfile(self.db):
@@ -41,18 +41,20 @@ class StepDB(object):
                             raise AssertionError(msg)
 
                 except AssertionError as e:
-                    msg = 'Invalid database file %s.' % self.db   
+                    msg = 'Invalid database file %s.' % self.db
                     raise type(e)(e.message + '\n' + msg)
 
             else:
+                if mode == 'r':
+                    raise OSError('File not found')
                 with sqlite3.connect(self.db) as conn:
                     conn.execute(
-                        'CREATE TABLE steps (' + 
+                        'CREATE TABLE steps (' +
                         ','.join([
                             ' '.join(x) for x in StepDB.SCHEMA
                         ]) +
-                        ')' 
-                    )                  
+                        ')'
+                    )
 
     def record(self, **kwargs):
 
@@ -60,20 +62,20 @@ class StepDB(object):
             return
 
         data = {}
-        
+
         # prepare columns
         for c, t in StepDB.SCHEMA:
             if c == 'time':
                 data['time'] = kwargs.get('time', time.time())
             elif c in StepDB.JSONCOLS:
-                data[c] = json.dumps( kwargs.get(c, None) )   
+                data[c] = json.dumps( kwargs.get(c, None) )
             else:
                 data[c] = kwargs.get(c, '')
-                
+
         with sqlite3.connect(self.db) as conn:
             conn.execute(
                 'INSERT INTO steps (' +
-                ','.join(StepDB.COLUMNS) + 
+                ','.join(StepDB.COLUMNS) +
                 ') VALUES (' +
                 ','.join( ['?'] * len(StepDB.COLUMNS) ) +
                 ')',
@@ -90,7 +92,7 @@ class StepDB(object):
         return out
 
     def get_history(self, uid=None):
-        
+
         with sqlite3.connect(self.db) as conn:
             if uid is None:
                 query = 'SELECT * FROM steps ORDER BY time'

@@ -108,5 +108,7 @@ ENV/
 # mypy
 .mypy_cache/
 
+# mac temporary
+._*
 
 igm/cython_compiled/sprite.cpp

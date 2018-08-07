@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block head %}
+
+<link rel="stylesheet" type="text/css" href="{{ static_url("css/igm-edit-config.css") }}">
+<link rel="stylesheet" type="text/css" href="{{ static_url("css/main.css") }}">
+<script type="text/javascript">
+
+  schema = {% raw schema %};
+  current_cfg = {% raw current_cfg %};
+
+  if (current_cfg === "undefined")
+    current_cfg = undefined;
+</script>
+<script type="text/javascript" src="{{ static_url("js/igm-edit-config.js") }}"></script>
+<script type="text/javascript" src="{{ static_url("js/main.js") }}"></script>
+
+{% end %}
+
+{% block title %}IGM{% end %}
+
+{% block body %}
+
+<div class="row">
+  <div class="col">
+    <h1>
+      IGM
+    </h1>
+
+    <ul class="nav nav-tabs" id="myTab" role="tablist">
+      <li class="nav-item">
+        <a class="nav-link active" id="home-tab" data-toggle="tab" href="#home" role="tab" aria-controls="home" aria-selected="true">Home</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="options-tab" data-toggle="tab" href="#options" role="tab" aria-controls="options" aria-selected="false">Run Options</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="log-tab" data-toggle="tab" href="#log" role="tab" aria-controls="log" aria-selected="false">Log</a>
+      </li>
+    </ul>
+    <div class="tab-content" id="myTabContent">
+
+      <!-- HOME -->
+      <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
+        
+        <div id="main-div">
+          Working directory: {% raw root_directory %}
+
+          <div id="config-status">
+          </div>
+
+          <div id="running-status">
+          </div>
+
+          <div id="step-history">
+          </div>
+
+          <div id="data-analysis">
+          </div>
+        </div>
+
+      </div>
+
+      <!-- PARAMETERS -->
+      <div class="tab-pane fade" id="options" role="tabpanel" aria-labelledby="options-tab">
+        <div id="cfg-form-content"></div>
+        <div style="text-align: right;">
+          <button name="savecfg" id="btn-save-cfg" class="btn btn-primary btn-lg">Save</button>
+        </div>
+      </div>
+
+      <!-- LOG -->
+      <div class="tab-pane fade" id="log" role="tabpanel" aria-labelledby="log-tab">
+        <textarea id="log-ta" rows=100 cols=100 readonly></textarea>
+      </div>
+
+    </div> <!-- tab-content -->
+    <div id="bottom-spacer">&nbsp;</div>
+    <div id="help-wrapper">
+      <div id="dragbar"></div>
+      <button type="button" class="close" aria-label="Close" id="btn-help-close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+      <div id="help-content"></div>
+    </div>
+  </div>
+</div>
+{% end %}

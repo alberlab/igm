@@ -3,9 +3,19 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 import igm
 import sys
-import os.path
+import atexit
+import os, os.path
 from igm.utils.log import set_log, logger
-from shutil import copyfile
+from shutil import copyfile, SameFileError
+
+# create a file with the process id to monitor it
+pid = os.getpid()
+with open('.igm-pid.txt', 'w') as f:
+    f.write(str(pid))
+def rmpid():
+    os.remove('.igm-pid.txt')
+atexit.register(rmpid)
+
 
 #===start pipeline with configure file
 cfgfile = os.path.abspath(sys.argv[1])
@@ -22,10 +32,13 @@ igm.Preprocess(cfg)
 
 # Generate random initial configuration
 
-starting_coordinates = cfg.get('starting_coordinates', None) 
-if starting_coordinates is not None:
+starting_coordinates = cfg.get('starting_coordinates', '')
+if starting_coordinates != '':
     logger.info('Initial coordinates from: ' + starting_coordinates)
-    copyfile(starting_coordinates, cfg['structure_output']) 
+    try:
+        copyfile(starting_coordinates, cfg['structure_output'])
+    except SameFileError:
+        pass
 else:
     logger.info('Generating random initial coordinates.')
     randomStep = igm.RandomInit(cfg)
@@ -71,7 +84,7 @@ while True:
         step.run()
 
     # check the violations
-    if cfg['runtime']['violation_score'] < 1e-3:
+    if cfg['runtime']['violation_score'] < cfg.get('max_violations', 0.01):
         # no violations, go to next step or finish
         opt_iter = 0
         if 'Hi-C' in cfg['restraints'] and len( cfg["runtime"]["Hi-C"]["sigma_list"] ) != 0:

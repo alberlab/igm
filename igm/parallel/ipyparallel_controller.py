@@ -9,7 +9,8 @@ import zmq
 import sqlite3
 import time
 from .parallel_controller import ParallelController 
-from ..utils.log import print_progress, logger
+from ..utils.log import logger
+from tqdm import tqdm
 
 #from .globals import default_log_formatter
 #log_fmt = '[%(name)s] %(asctime)s (%(levelname)s) %(message)s'
@@ -57,27 +58,37 @@ class IppFunctionWrapper(object):
 
 
 class BasicIppController(ParallelController): 
-    def __init__(self, timeout=None):
+    def __init__(self, timeout=None, max_tasks=-1):
+        self.max_tasks = max_tasks
         self.timeout=timeout
 
     def map(self, parallel_task, args):
         from ipyparallel import Client
+        
+        chunksize = 1
+        if self.max_tasks > 0 and len(args) > self.max_tasks:
+            chunksize = len(args) // self.max_tasks
+            if chunksize*self.max_tasks < len(args):
+                chunksize += 1
+
         client = Client()
         try:
             client[:].use_cloudpickle()
             lbv = client.load_balanced_view()
             ar = lbv.map_async(
                 IppFunctionWrapper(parallel_task, self.timeout), 
-                args
+                args,
+                chunksize=chunksize
             )
             try:   
                 r = [] 
-                for z in print_progress(ar, timeout=1, every=None, fd=sys.stderr):
+                for k, z in enumerate(tqdm(ar, desc="(IPYPARALLEL)")):
                     if z[0] == -1:
                         logger.error(z[1])
+                        engine = ar.engine_id[k]
                         client.abort(ar)
                         client.close()
-                        raise RuntimeError('remote failure')
+                        raise RuntimeError('remote failure (task %d of %d on engine %d)' % (k+1, len(ar), engine))
                     elif z[0] == 0:
                         r.append(z[1])
             except KeyboardInterrupt:

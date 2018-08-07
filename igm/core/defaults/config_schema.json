@@ -1,0 +1,718 @@
+{
+    "label" : "IGM options",
+    "role" : "group",
+
+    "population_size" : {
+        "label" : "Number of structures",
+        "dtype" : "int",
+        "default" : 10000,
+        "min" : 1,
+        "description" : "Number of structures in the population"
+    },
+
+    "structure_output" : {
+        "label" : "Output file name",
+        "dtype" : "path",
+        "default" : "igm-model.hss",
+        "description" : "File name of the output model file (hss format)",
+        "role" : "output"
+    },
+
+    "step_db" : {
+        "label" : "Step database",
+        "dtype" : "path",
+        "default" : "stepdb.sqlite",
+        "description" : "SQLite database file containing execution history",
+        "role" : "output"
+    },
+
+    "tmp_dir" : {
+        "label" : "Hi-C temporary sub-directory",
+        "dtype" : "path-dir",
+        "role" : "output",
+        "default" : "tmp_opt",
+        "description" : "Directory for temporary Hi-C files"
+    },
+
+    "log" : {
+        "label" : "Log file",
+        "dtype" : "path",
+        "default" : "igm.log",
+        "description" : "Execution log file",
+        "role" : "output"
+    },
+
+    "log_level" : {
+        "label" : "Log level",
+        "dtype" : "str",
+        "default" : "debug",
+        "description" : "Log level (debug, info, warning)"
+    },
+
+    "max_iterations" : {
+        "label" : "Max optimization iterations",
+        "dtype" : "int",
+        "default" : 10,
+        "min" : 1,
+        "description" : "Maximum number of unsuccessful optimization iterations before giving up"
+    },
+
+    "keep_intermediate_structures" : {
+        "label" : "Keep Intermediate Structures",
+        "dtype" : "bool",
+        "default" : false,
+        "description" : "Keep a copy of the population for each optimization iteration"
+    },
+
+    "violation_tolerance" : {
+        "label" : "Violation tolerance",
+        "dtype" : "float",
+        "default" : 0.05,
+        "min" : 0.0,
+        "description" : "Distance tolerance before flagging a restraint as violated"
+    },
+
+    "max_violations" : {
+        "label" : "Violation tolerance",
+        "dtype" : "float",
+        "default" : 0.01,
+        "min" : 0.0,
+        "description" : "Fraction of allowed restraint violations on the total number of imposed restraints. Note that excluded volume is not considered in this computation."
+    },
+
+    "starting_coordinates" : {
+        "label" : "Initial coordinates",
+        "dtype" : "path",
+        "default" : "",
+        "role" : "input",
+        "description" : "An hss file with the starting coordinates. If not specified, a random polymer model with territories will be generated as a starting point"
+    },
+
+    "polymer_bonds_style" : {
+        "label" : "Polymer bond style",
+        "dtype" : "str",
+        "allowed_values": ["simple", "hic", "none"],
+        "default" : "simple",
+        "description" : "The polymeric bond style to apply. If set to `simple` (the default), successive beads in a chromosome are restrained to be closer than the `contact_range` distance. If set to `hic`, it will use Hi-C information to set distances accordingly to the probability values. If set to `none`, successive bead contacts are not imposed"
+    },
+
+    "genome" : {
+        "label" : "Genome specifications",
+        "role" : "group",
+
+        "usechr" : {
+            "label" : "Chromosomes considered",
+            "dtype" : "list",
+            "subdtype" : "str",
+            "default" : ["#", "X", "Y"],
+            "description" : "A list of chromosomes used in the modeling. The character `#` is a shortcut for autosomes. Can be strings or a genome"
+        },
+
+        "assembly" : {
+            "label" : "Genome assembly",
+            "dtype" : ["str", "path"],
+            "notes" : "change from genome -> assembly",
+            "default" : "hg38",
+            "required" : true,
+            "description" : "The genome assembly. Can be a string for an available assembly (mm9, hg19, hg38, etc) or the path of an hdf5 file containing genomic information (see alabtools.Genome objects)"
+        },
+
+        "segmentation" : {
+            "label" : "Genome segmentation",
+            "dtype" : ["int", "path"],
+            "role" : "input",
+            "default" : 1000000,
+            "description" : "The genome segmentation. Each segment will be represented by one bead. Can be a bed file or an hdf5 file containing a genomic index. If the genome assembly is specified and recognized, it can also be an integer number of basepairs N: in this case, the genome will be split in regions os size N.",
+            "required" : true
+        },
+
+        "ploidy" : {
+            "label" : "Ploidy",
+            "dtype" : ["dict", "str"],
+            "default" : "haploid",
+            "description" : "This parameter controls the number of copies for each chromosome. Valid values are `haploid`, `diploid`, `male` (two copies for each autosome, one X and one Y), or a dictionary of chromosome, number of copies pairs. The character `#` is a shortcut for autosomes. Es: {\"#\" : 4, \"X\" : 3, \"Y\": 2} will create a model with 4 copies for each autosome, 3 copies for X, 2 copies for Y"
+        }
+
+    },
+
+    "model" : {
+        "label" : "Model parameters",
+        "role" : "group",
+
+        "occupancy" : {
+            "label" : "Volume occupancy",
+            "dtype" : "float",
+            "default" : 0.2,
+            "min" : 0.0,
+            "description" : "Fraction of volume occupied by the hard core of the beads"
+        },
+
+        "nucleus_shape" : {
+            "label" : "Nucleus shape",
+            "dtype" : "str",
+            "role" : "select",
+            "allowed_values" : ["sphere", "ellipsoid"],
+            "default" : "sphere",
+            "description" : "The shape of the nucleus"
+        },
+
+        "nucleus_radius" : {
+            "label" : "Nucleus radius",
+            "dtype" : "float",
+            "default" : 5000.0,
+            "description" : "",
+            "depends_on" : "model__nucleus_shape=sphere"
+        },
+
+        "nucleus_semiaxes" : {
+            "label" : "Nucleus semiaxes",
+            "dtype" : "array",
+            "subdtype" : "float",
+            "length" : 3,
+            "sublabels" : ["a", "b", "c"],
+            "default" : [ 5000.0, 5000.0, 5000.0 ],
+            "description" : "",
+            "depends_on" : "model__nucleus_shape=ellipsoid"
+        },
+
+        "contact_range" : {
+            "label" : "Contact range",
+            "dtype" : "float",
+            "default" : 2.0,
+            "min" : 0.0,
+            "description" : "Two beads are considered in contact when their distance is `contact_range` times the sum of their hard-core radiuses"
+        }
+
+    },
+
+    "optimization" : {
+
+        "label" : "Optimization options",
+        "role" : "group",
+
+        "kernel" : {
+            "label" : "Optimization Kernel",
+            "dtype" : "str",
+            "role" : "select",
+            "allowed_values" : ["lammps"],
+            "default" : "lammps",
+            "description" : "The MD software used for minimization."
+        },
+
+        "tmp_dir" : {
+            "label" : "Optimization temporary directory",
+            "dtype" : "path-dir",
+            "role" : "output",
+            "default" : "tmp_opt",
+            "description" : "Directory for temporary optimization files"
+        },
+
+        "keep_temporary_files" : {
+            "label" : "Keep temporary files",
+            "dtype" : "bool",
+            "default" : false,
+            "description" : ""
+        },
+
+        "kernel_opts" : {
+            "label" : "Kernel specific options",
+            "role" : "group",
+
+            "lammps" : {
+                "label" : "Lammps Kernel options",
+                "role" : "group",
+                "depends_on" : "optimization__kernel=lammps",
+
+                "lammps_executable" : {
+                    "label" : "LAMMPS executable",
+                    "dtype" : "path",
+                    "role" : "input",
+                    "default" : "lmp_serial_mod",
+                    "description" : "The custom LAMMPS executable. Needs to be accessible by the workers"
+                },
+
+                "seed" : {
+                    "label" : "Random seed",
+                    "dtype" : "int",
+                    "blank" : true,
+                    "description" : "Random seed for optimization, specify to have binary repetible MD runs"
+                },
+
+                "max_neigh" : {
+                    "label" : "Maximum number of neighbors",
+                    "dtype" : "int",
+                    "default" : 2000,
+                    "description" : "Specify the maximum number of neighbors for lammps particles. Larger numbers impact memory usage, but may be necessary if the structures are very uneven."
+                },
+
+                "use_gpu" : {
+                    "label" : "Use GPU",
+                    "dtype" : "bool",
+                    "default" : false,
+                    "description" : "Use gpu options for pair potential"
+                }
+
+            }
+
+        },
+
+        "optimizer_options" : {
+            "label" : "MD options",
+            "role" : "group",
+
+            "mdsteps" : {
+                "label" : "Number of MD steps",
+                "dtype" : "int",
+                "default" : 20000,
+                "description" : "Number of MD steps for each round of optimization"
+            },
+
+            "timestep" : {
+                "label" : "Timestep for MD integration",
+                "dtype" : "float",
+                "default" : 0.25,
+                "description" : ""
+            },
+
+            "tstart" : {
+                "label" : "Starting temperature for simulated annealing",
+                "dtype" : "float",
+                "default" : 250.0,
+                "description" : ""
+            },
+
+            "tstop" : {
+                "label" : "Final temperature for simulated annealing",
+                "dtype" : "float",
+                "default" : 0.5,
+                "description" : ""
+            },
+
+            "damp" : {
+                "label" : "Damping parameter of thermostat",
+                "dtype" : "float",
+                "default" : 50.0,
+                "description" : ""
+            },
+
+            "max_velocity": {
+                "label" : "Cap bead velocity",
+                "dtype" : "float",
+                "default" : 100.0,
+                "description" : "In presence of extremely large forces, the velocity of beads will be capped to avoid explosion of the simulation"
+            },
+
+            "ev_factor" : {
+                "label" : "Scale factor for excluded volume",
+                "dtype" : "float",
+                "default" : 0.05,
+                "description" : "Scale excluded volume interactions. Smaller values correspond to weaker interactions"
+            },
+
+            "etol" : {
+                "label" : "Conjugate gradients energy tolerance",
+                "dtype" : "float",
+                "default" : 1e-4,
+                "description" : ""
+            },
+
+            "ftol" : {
+                "label" : "Conjugate gradients force tolerance",
+                "dtype" : "float",
+                "default" : 1e-6,
+                "description" : ""
+            },
+
+            "max_cg_iter" : {
+                "label" : "Maximum conjugate gradients iterations",
+                "dtype" : "int",
+                "default" : 500,
+                "description" : ""
+            },
+
+            "max_cg_eval" : {
+                "label" : "Maximum conjugate gradients evaluations",
+                "dtype" : "int",
+                "default" : 500,
+                "description" : ""
+            }
+
+        }
+
+    },
+
+    "restraints" : {
+        "label" : "Additional restraints",
+        "role" : "group",
+
+        "Hi-C" : {
+            "label" : "Hi-C",
+            "role" : "optional-group",
+            "input_matrix" : {
+                "label" : "Input probability matrix",
+                "dtype" : "path",
+                "role" : "input",
+                "required" : true,
+                "description" : "A .hcs file containing the input pairwise probability matrix"
+            },
+
+            "sigma_list" : {
+                "label" : "Sigma probabilities",
+                "dtype" : "list",
+                "subdtype" : "float",
+                "default" : [1.0, 0.2, 0.1, 0.05, 0.02, 0.01],
+                "description" : "The list of decreasing cutoff probabilities for iterative optimization of Hi-C contacts"
+            },
+
+            "contact_range" : {
+                "label" : "Contact range",
+                "dtype" : "float",
+                "default" : 2.0,
+                "min" : 0.0,
+                "description" : "Two beads are considered in contact when their distance is `contact_range` times the sum of their hard-core radiuses"
+            },
+
+            "contact_kspring" : {
+                "label" : "Hi-C restraint force constant",
+                "dtype" : "float",
+                "default" : 1.0,
+                "min" : 0.0,
+                "description" : "The force constant for Hi-C restraints [F=-k(x - x0, where x is the distance, x0 the contact distance, and k the force constant]"
+            },
+
+            "actdist_file": {
+                "label" : "Activation distances file",
+                "dtype" : "path",
+                "default" : "actdist.h5",
+                "description" : "A hdf5 file where to store information on the activation distances for Hi-C restraints"
+            },
+
+            "tmp_dir" : {
+                "label" : "Hi-C temporary sub-directory",
+                "dtype" : "path-dir",
+                "role" : "output",
+                "default" : "tmp_opt",
+                "description" : "Directory for temporary Hi-C files"
+            },
+
+            "keep_temporary_files" : {
+                "label" : "Keep temporary files",
+                "dtype" : "bool",
+                "default" : false,
+                "description" : ""
+            }
+
+        },
+
+
+        "damid" : {
+            
+            "label" : "DamID",
+            "role" : "optional-group",
+            "input_profile" : {
+                "label" : "Input damid profile",
+                "dtype" : "path",
+                "role" : "input",
+                "required" : true,
+                "description" : "A text file with the input damid profile"
+            },
+
+            "sigma_list" : {
+                "label" : "Sigma probabilities",
+                "dtype" : "list",
+                "subdtype" : "float",
+                "default" : [1.0, 0.2, 0.1, 0.05, 0.02, 0.01],
+                "description" : "The list of decreasing cutoff probabilities for iterative optimization of envelope contacts"
+            },
+
+            "contact_range" : {
+                "label" : "Contact range",
+                "dtype" : "float",
+                "default" : 2.0,
+                "min" : 0.0,
+                "description" : "A bead is considered in contact with the envelope when the center to envelope distance is `contact_range` times its hard-core radius"
+            },
+
+            "contact_kspring" : {
+                "label" : "DamID restraint force constant",
+                "dtype" : "float",
+                "default" : 1.0,
+                "min" : 0.0,
+                "description" : "The force constant for DamID restraints [F=-k(x - x0, where x is the distance, x0 the contact distance, and k the force constant]"
+            },
+
+            "damid_actdist_file": {
+                "label" : "DamID activation distances file",
+                "dtype" : "path",
+                "default" : "actdist.h5",
+                "description" : "A hdf5 file where to store information on the activation distances for DamID restraints"
+            },
+
+            "tmp_dir" : {
+                "label" : "DamID temporary sub-directory",
+                "dtype" : "path-dir",
+                "role" : "output",
+                "default" : "damid",
+                "description" : "Directory for temporary DamID files"
+            },
+
+            "keep_temporary_files" : {
+                "label" : "Keep temporary files",
+                "dtype" : "bool",
+                "default" : false,
+                "description" : ""
+            }
+
+
+        },
+
+
+        "sprite" : {
+            "label" : "Sprite",
+            "role" : "optional-group",
+
+            "clusters" : {
+                "label" : "Cluster file",
+                "dtype" : "path",
+                "required" : true,
+                "description" : "A hdf5 file containing the data for sprite clusters"
+            },
+
+            "volume_fraction" : {
+                "label" : "Volume fraction",
+                "dtype" : "float",
+                "min" : 0.0001,
+                "default" : 0.05,
+                "description" : "Target occupied volume fraction by each sprite cluster"
+            },
+
+            "contact_range" : {
+                "label" : "Contact range",
+                "dtype" : "float",
+                "default" : 2.0,
+                "min" : 0.0,
+                "description" : "Two beads are considered in contact when their distance is `contact_range` times the sum of their hard-core radiuses"
+            },
+
+            "kspring" : {
+                "label" : "Sprite restraint force constant",
+                "dtype" : "float",
+                "default" : 1.0,
+                "min" : 0.0,
+                "description" : "The force constant for Sprite restraints [F=-k(x - x0), where x is the distance, x0 the target distance, and k the force constant]"
+            },
+
+            "radius_kt" : {
+                "label" : "Gyration radius temperature parameter for assignment",
+                "dtype" : "float",
+                "default" : 100.0,
+                "min" : 0.0,
+                "description" : "The assignment procedure is a stochastic process depending on a Gibbs weight. The weight includes the radius of gyration of the cluster and the number of already assigned clusters. The `radius_kt` parameter controls the importance and flexibility of the radius of gyration value in the assignment. Two structures with a difference in cluster gyration radius of `radius_kt` are assigned a difference of 1KT"
+            },
+
+            "assignment_file": {
+                "label" : "Sprite assignment file",
+                "dtype" : "path",
+                "default" : "assignment.h5",
+                "description" : "A hdf5 file where to store information on the aassignment of sprite restraints"
+            },
+
+            "tmp_dir" : {
+                "label" : "Sprite temporary sub-directory",
+                "dtype" : "path-dir",
+                "role" : "output",
+                "default" : "tmp_opt",
+                "description" : "Directory for temporary Sprite files"
+            },
+
+            "keep_temporary_files" : {
+                "label" : "Keep temporary files",
+                "dtype" : "bool",
+                "default" : false,
+                "description" : ""
+            },
+
+            "max_chrom_in_cluster": {
+                "label" : "Maximum number of chromosomes in a cluster",
+                "dtype" : "int",
+                "default" : 6,
+                "min" : 1,
+                "description" : "Ignore clusters with more than `max_chrom_in_cluster` chromosomes"
+            },
+
+            "batch_size": {
+                "label" : "Batch size",
+                "dtype" : "int",
+                "default" : 150,
+                "min" : 1,
+                "description" : "Cluster are analyzed in batches of size `batch_size`"
+            },
+
+            "keep_best": {
+                "label" : "Best structures pool",
+                "dtype" : "int",
+                "default" : 50,
+                "min" : 1,
+                "description" : "Each cluster will be assigned to one structure in a pool of best fit structures. This parameter controls the size of the pool. Cannot be larger than the number of structures. Keep in mind that making this number larger has a (mainly I/O) performance impact"
+            }
+
+        },
+
+        "FISH" : {
+
+            "label" : "FISH",
+            "role" : "optional-group",
+
+            "fish_file" : {
+                "label" : "FISH restraints file",
+                "dtype" : "path",
+                "default" : "",
+                "role" : "input",
+                "required" : true,
+                "description" : "A hdf5 file of input FISH distance distributions"
+            },
+
+            "rtype" : {
+                "label" : "FISH restraints type",
+                "dtype" : "str",
+                "default" : "rRpP",
+                "description" : "The FISH restraint types to impose, as a combination of characters `r`, `R`, `p` and `P`. `r`: minimum radial; `R`: maximum radial; `p`: minimum pairs; `P`: maximum pairs"
+            },
+
+            "kspring" : {
+                "label" : "FISH restraints force constant",
+                "dtype" : "float",
+                "default" : 1.0,
+                "min" : 0.0,
+                "description" : "The force constant for FISH restraints [F=-k(x - x0), where x is the distance, x0 the target distance, and k the force constant]"
+            },
+
+            "tmp_dir" : {
+                "label" : "Sprite temporary sub-directory",
+                "dtype" : "path-dir",
+                "role" : "output",
+                "default" : "tmp_opt",
+                "description" : "Directory for temporary Sprite files"
+            },
+
+            "keep_temporary_files" : {
+                "label" : "Keep temporary files",
+                "dtype" : "bool",
+                "default" : false,
+                "description" : ""
+            },
+
+            "tolerance_list" : {
+                "label" : "FISH tolerances",
+                "dtype" : "list",
+                "subdtype" : "float",
+                "default" : [50.0, 25.0, 0.0],
+                "description" : "Decreasing tolerances list for fish restraints"
+            }
+
+        }
+
+    },
+
+    "parallel" : {
+
+        "label" : "Parallel mapping options",
+        "role" : "group",
+
+        "controller" : {
+
+            "label" : "Controller type",
+            "dtype" : "str",
+            "role" : "select",
+            "allowed_values" : ["serial", "slurm", "ipyparallel", "dask"],
+            "default" : "ipyparallel",
+            "description" : "The type of controller used to map parallel jobs."
+
+        },
+
+        "controller_options" : {
+
+            "label" : "Parallel mapping options",
+            "role" : "group",
+
+            "ipyparallel" : {
+
+                "label" : "Ipyparallel Controller",
+                "role" : "group",
+                "depends_on" : "parallel__controller=ipyparallel",
+
+                "timeout" : {
+                    "label" : "Max execution time",
+                    "dtype" : "float",
+                    "blank" : true,
+                    "description" : "If specified, the maximum execution time per task (in seconds)."
+                },
+
+                "max_tasks" : {
+                    "label" : "Maximum number of tasks per submission",
+                    "dtype" : "int",
+                    "default" : 5000,
+                    "description" : "If a positive number, limit the number of parallel tasks sent to the scheduler, mapping arguments in chunks if needed. A negative number sets no limit."
+                }
+
+            },
+
+            "slurm" : {
+
+                "label" : "Slurm Controller",
+                "role" : "group",
+                "depends_on" : "parallel__controller=slurm",
+
+                "simultaneous_tasks" : {
+                    "label" : "Maximum number of jobs submitted at the same time",
+                    "dtype" : "int",
+                    "default" : 300,
+                    "description" : "Setting this number to a lower value than `max_tasks` will avoid flooding the queue and make Luigi very mad."
+                },
+
+                "max_tasks" : {
+                    "label" : "Maximum number of tasks per submission",
+                    "dtype" : "int",
+                    "default" : 3000,
+                    "description" : "If a positive number, limit the number of parallel tasks sent to the scheduler, mapping arguments in chunks if needed."
+                },
+
+                "mem" : {
+                    "label" : "Memory",
+                    "dtype" : "str",
+                    "default" : "2GB",
+                    "description" : "The memory requested for each job"
+                },
+
+                "walltime" : {
+                    "label" : "Walltime",
+                    "dtype" : "str",
+                    "default" : "6:00:00",
+                    "description" : "The maximum walltime for each job"
+                },
+
+                "template" : {
+                    "label" : "Template",
+                    "dtype" : "path",
+                    "blank" : true,
+                    "description" : "A custom template for the slurm submit script. Variables are indicated with {{variable_name}}"
+                },
+
+                "other_options" : {
+                    "label" : "Other options",
+                    "dtype" : "dict",
+                    "default" : "{}",
+                    "description" : "A json dictionary with additional variables to insert in the script"
+                }
+
+
+            }
+
+
+        }
+
+
+
+    }
+
+}

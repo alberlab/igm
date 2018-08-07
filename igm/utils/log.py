@@ -45,7 +45,7 @@ def print_progress(iterable,
 
     last = 0
     fill = 0
-    if not fd.isatty():
+    if hasattr(fd, 'isatty') and (not fd.isatty()):
         fd.write('0 |' + ' ' * size + '| 100\n  |')
         fd.flush()
         lastfill = fill

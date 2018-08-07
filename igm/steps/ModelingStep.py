@@ -4,7 +4,7 @@ import os
 import os.path
 import numpy as np
 import sys
-
+from copy import deepcopy
 from shutil import copyfile
 
 from alabtools.analysis import HssFile
@@ -16,6 +16,7 @@ from ..utils import HmsFile
 from ..parallel.async_file_operations import FileLock, FutureFilePoller
 from ..utils.log import print_progress, logger
 from .RandomInit import generate_random_in_sphere
+from tqdm import tqdm
 
 
 class ModelingStep(StructGenStep):
@@ -87,6 +88,10 @@ class ModelingStep(StructGenStep):
         """
         Do single structure modeling with bond assignment from A-step
         """
+        # the static method modifications to the cfg should only be local,
+        # use a copy of the config file
+        cfg = deepcopy(cfg)
+
         #extract structure information
         step_id = cfg.runtime_hash()
 
@@ -218,7 +223,7 @@ class ModelingStep(StructGenStep):
         #     hss.set_struct_crd(i, crd)
         # #-
 
-        for i in print_progress(self.file_poller.enumerate(), timeout=1, every=None, fd=sys.stderr):
+        for i in tqdm(self.file_poller.enumerate(), desc='(REDUCE)'):
             pass
 
         total_violations, total_restraints = self.out_data['violations'], self.out_data['restraints']
