@@ -404,6 +404,69 @@
 
         },
 
+
+        "damid" : {
+            
+            "label" : "DamID",
+            "role" : "optional-group",
+            "input_profile" : {
+                "label" : "Input damid profile",
+                "dtype" : "path",
+                "role" : "input",
+                "required" : true,
+                "description" : "A text file with the input damid profile"
+            },
+
+            "sigma_list" : {
+                "label" : "Sigma probabilities",
+                "dtype" : "list",
+                "subdtype" : "float",
+                "default" : [1.0, 0.2, 0.1, 0.05, 0.02, 0.01],
+                "description" : "The list of decreasing cutoff probabilities for iterative optimization of envelope contacts"
+            },
+
+            "contact_range" : {
+                "label" : "Contact range",
+                "dtype" : "float",
+                "default" : 2.0,
+                "min" : 0.0,
+                "description" : "A bead is considered in contact with the envelope when the center to envelope distance is `contact_range` times its hard-core radius"
+            },
+
+            "contact_kspring" : {
+                "label" : "DamID restraint force constant",
+                "dtype" : "float",
+                "default" : 1.0,
+                "min" : 0.0,
+                "description" : "The force constant for DamID restraints [F=-k(x - x0, where x is the distance, x0 the contact distance, and k the force constant]"
+            },
+
+            "damid_actdist_file": {
+                "label" : "DamID activation distances file",
+                "dtype" : "path",
+                "default" : "actdist.h5",
+                "description" : "A hdf5 file where to store information on the activation distances for DamID restraints"
+            },
+
+            "tmp_dir" : {
+                "label" : "DamID temporary sub-directory",
+                "dtype" : "path-dir",
+                "role" : "output",
+                "default" : "damid",
+                "description" : "Directory for temporary DamID files"
+            },
+
+            "keep_temporary_files" : {
+                "label" : "Keep temporary files",
+                "dtype" : "bool",
+                "default" : false,
+                "description" : ""
+            }
+
+
+        },
+
+
         "sprite" : {
             "label" : "Sprite",
             "role" : "optional-group",

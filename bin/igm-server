@@ -3,12 +3,14 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 import tornado.ioloop
 import tornado.web
+import tornado.log
 import os.path
 import json
 import uuid
 import subprocess
 import traceback
 import argparse
+import logging
 from tornado import template
 
 import igm.ui
@@ -153,6 +155,8 @@ if __name__ == "__main__":
     token = str(uuid.uuid4()).replace('-', '')
     secret = str(uuid.uuid4()).replace('-', '')
 
+    # silence tornado access logger
+    tornado.log.access_log.setLevel(logging.ERROR)
 
     settings = {
         "static_path": os.path.join(os.path.dirname(igm.ui.__file__), "static"),

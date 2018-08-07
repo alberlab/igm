@@ -152,6 +152,7 @@ function ConfigUI(root_element, schema) {
         $.each( item.allowed_values, function(index, value) {
           input.append( $(`<option value="${value}">${value}</option>`) );
         });
+        input.val(item.default);
       }
 
       // int input

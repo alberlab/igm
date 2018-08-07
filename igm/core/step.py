@@ -344,7 +344,7 @@ class StructGenStep(Step):
         total_restraints = 0.0
         total_violations = 0.0
 
-        for i in tqdm(range(hss.nstruct), desc='(PACK HSS)'):
+        for i in tqdm(range(hss.nstruct), desc='(REDUCE)'):
             fname = "{}_{}.hms".format(self.tmp_file_prefix, i)
             hms = HmsFile( os.path.join( self.tmp_dir, fname ) )
             crd = hms.get_coordinates()
