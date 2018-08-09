@@ -43,7 +43,7 @@ class ActivationDistanceStep(Step):
     def setup(self):
         dictHiC = self.cfg['restraints']['Hi-C']
         sigma = self.cfg['runtime']['Hi-C']["sigma"]
-        input_matrix = Contactmatrix(dictHiC["data"]).matrix
+        input_matrix = Contactmatrix(dictHiC["input_matrix"]).matrix
         n = input_matrix.shape[0]
         last_actdist_file = self.cfg['runtime']['Hi-C'].get("actdist_file", None)
         batch_size = dictHiC.get('batch_size', 1000)

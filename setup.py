@@ -45,7 +45,8 @@ setup(
         description = 'Integrated Genome Modeling',
         
         packages=find_packages('./igm/'),
-        package_data={'igm' : ['core/defaults/*', 'ui/static/*', 'ui/templates/*']},
+        package_data={'' : ['core/defaults/*', 'ui/static/css/*', 'ui/static/js/*', 'ui/templates/*']},
+        include_package_data=True,
         install_requires=install_requires,
         tests_require=tests_require,
         extras_require=extras_require,
