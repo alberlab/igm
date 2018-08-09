@@ -119,16 +119,21 @@ function updateHome(){
     $('#config-status').html(`
       <div class="text-warning">
         No configuration file found in the current directory.
-        <a href="javascript:$('#options-tab').tab('show')"> Set a configuration file </a>
+        <a href="#" id="opts-show-link"> Set a configuration file </a>
       </div>
     `);
+    //opts-show-link
+    $('#opts-show-link').off('click').click( () => $('#options-tab').tab('show') );
+
+
   } else {
     $('#config-status').html(`
       <div class="text-success">
         Configuration file: igm-config.json.
-        <a href="javascript:$('#options-tab').tab('show')"> Change configuration </a>
+        <a href="#" id="opts-show-link"> Change configuration </a>
       </div>
     `);
+    $('#opts-show-link').off('click').click( () => $('#options-tab').tab('show') );
   }
 
   // ---- running status view
