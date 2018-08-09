@@ -82,7 +82,7 @@ class BasicIppController(ParallelController):
             )
             try:   
                 r = [] 
-                for k, z in enumerate(tqdm(ar, desc="(IPYPARALLEL)")):
+                for k, z in enumerate(tqdm(ar, desc="(IPYPARALLEL)", total=len(args))):
                     if z[0] == -1:
                         logger.error(z[1])
                         engine = ar.engine_id[k]

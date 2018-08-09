@@ -27,11 +27,11 @@
     },
 
     "tmp_dir" : {
-        "label" : "Hi-C temporary sub-directory",
+        "label" : "Temporary files directory",
         "dtype" : "path-dir",
         "role" : "output",
-        "default" : "tmp_opt",
-        "description" : "Directory for temporary Hi-C files"
+        "default" : "tmp",
+        "description" : "Directory to store temporary files"
     },
 
     "log" : {
@@ -47,6 +47,14 @@
         "dtype" : "str",
         "default" : "debug",
         "description" : "Log level (debug, info, warning)"
+    },
+
+    "min_iterations" : {
+        "label" : "Minimum optimization iterations",
+        "dtype" : "int",
+        "default" : 3,
+        "min" : 0,
+        "description" : "Minimum number of optimization iterations. The 0th iteration is special: if it succeeds, the pipeline skips to the next step ignoring this parameter."
     },
 
     "max_iterations" : {
@@ -203,7 +211,7 @@
             "label" : "Optimization temporary directory",
             "dtype" : "path-dir",
             "role" : "output",
-            "default" : "tmp_opt",
+            "default" : "opt",
             "description" : "Directory for temporary optimization files"
         },
 
@@ -588,11 +596,11 @@
             },
 
             "tmp_dir" : {
-                "label" : "Sprite temporary sub-directory",
+                "label" : "FISH temporary sub-directory",
                 "dtype" : "path-dir",
                 "role" : "output",
                 "default" : "tmp_opt",
-                "description" : "Directory for temporary Sprite files"
+                "description" : "Directory for temporary FISH files"
             },
 
             "keep_temporary_files" : {
@@ -700,7 +708,7 @@
 
                 "other_options" : {
                     "label" : "Other options",
-                    "dtype" : "dict",
+                    "dtype" : "str",
                     "default" : "{}",
                     "description" : "A json dictionary with additional variables to insert in the script"
                 }

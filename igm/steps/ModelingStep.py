@@ -3,7 +3,6 @@ from __future__ import division, print_function
 import os
 import os.path
 import numpy as np
-import sys
 from copy import deepcopy
 from shutil import copyfile
 
@@ -13,8 +12,8 @@ from ..core import StructGenStep
 from ..model import Model, Particle
 from ..restraints import Polymer, Envelope, Steric, HiC, Sprite
 from ..utils import HmsFile
-from ..parallel.async_file_operations import FileLock, FutureFilePoller
-from ..utils.log import print_progress, logger
+from ..parallel.async_file_operations import FilePoller
+from ..utils.log import logger
 from .RandomInit import generate_random_in_sphere
 from tqdm import tqdm
 
@@ -56,12 +55,12 @@ class ModelingStep(StructGenStep):
         self.file_poller = None
 
     def _run_poller(self):
-        self.lockfiles = [
+        self.readyfiles = [
             os.path.join(self.tmp_dir, '%s.%d.ready' % (self.cfg.runtime_hash(), struct_id) )
             for struct_id in self.argument_list
         ]
-        self.file_poller = FutureFilePoller(
-            self.lockfiles,
+        self.file_poller = FilePoller(
+            self.readyfiles,
             callback=self.set_structure,
             args=[[self.hss, i, self.out_data] for i in self.argument_list],
         )
@@ -173,21 +172,21 @@ class ModelingStep(StructGenStep):
         model.optimize(cfg)
 
         tol = cfg.get('violation_tolerance', 0.01)
-        lockfile = os.path.join(tmp_dir, '%s.%d.ready' % (step_id, struct_id) )
-        with FileLock(lockfile):
-            open(lockfile, 'w').close() # touch the ready-file
-            ofname = os.path.join(tmp_dir, 'mstep_%d.hms' % struct_id)
-            with HmsFile(ofname, 'w') as hms:
-                hms.saveModel(struct_id, model)
+        
+        ofname = os.path.join(tmp_dir, 'mstep_%d.hms' % struct_id)
+        with HmsFile(ofname, 'w') as hms:
+            hms.saveModel(struct_id, model)
 
-                for r in monitored_restraints:
-                    hms.saveViolations(r, tolerance=tol)
+            for r in monitored_restraints:
+                hms.saveViolations(r, tolerance=tol)
 
-            # double check it has been written correctly
-            with HmsFile(ofname, 'r') as hms:
-                if np.all( hms.get_coordinates() == model.getCoordinates() ):
-                    raise RuntimeError('error writing the file %s' % ofname)
+        # double check it has been written correctly
+        with HmsFile(ofname, 'r') as hms:
+            if not np.all( hms.get_coordinates() == model.getCoordinates() ):
+                raise RuntimeError('error writing the file %s' % ofname)
 
+        readyfile = os.path.join(tmp_dir, '%s.%d.ready' % (step_id, struct_id) )
+        open(readyfile, 'w').close() # touch the ready-file
 
     #-
 
