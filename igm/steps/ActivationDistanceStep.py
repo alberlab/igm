@@ -18,14 +18,14 @@ from ..utils.files import make_absolute_path
 try:
     # python 2 izip
     from itertools import izip as zip
-except ImportError: 
+except ImportError:
     pass
 
 
 actdist_shape = [
-    ('row', 'int32'), 
-    ('col', 'int32'), 
-    ('dist', 'float32'), 
+    ('row', 'int32'),
+    ('col', 'int32'),
+    ('dist', 'float32'),
     ('prob', 'float32')
 ]
 actdist_fmt_str = "%6d %6d %10.2f %.5f"
@@ -34,7 +34,7 @@ actdist_fmt_str = "%6d %6d %10.2f %.5f"
 class ActivationDistanceStep(Step):
 
     def name(self):
-        s = 'ActivationDistanceStep (sigma={:.2f}%, iter={:s})' 
+        s = 'ActivationDistanceStep (sigma={:.2f}%, iter={:s})'
         return s.format(
             self.cfg['runtime']['Hi-C']['sigma'] * 100.0,
             str( self.cfg['runtime'].get('opt_iter', 'N/A') )
@@ -43,26 +43,26 @@ class ActivationDistanceStep(Step):
     def setup(self):
         dictHiC = self.cfg['restraints']['Hi-C']
         sigma = self.cfg['runtime']['Hi-C']["sigma"]
-        input_matrix = Contactmatrix(dictHiC["data"]).matrix
+        input_matrix = Contactmatrix(dictHiC["input_matrix"]).matrix
         n = input_matrix.shape[0]
         last_actdist_file = self.cfg['runtime']['Hi-C'].get("actdist_file", None)
         batch_size = dictHiC.get('batch_size', 1000)
-        
+
         self.tmp_extensions = [".npy", ".tmp"]
-        
+
         self.tmp_dir = make_absolute_path(
-            self.cfg['restraints']['Hi-C'].get('actdist_dir', 'actdist'),
+            self.cfg['restraints']['Hi-C'].get('tmp_dir', 'actdist'),
             self.cfg['tmp_dir']
         )
 
         self.keep_temporary_files = dictHiC.get("keep_temporary_files", False)
-        
+
         if not os.path.exists(self.tmp_dir):
             os.makedirs(self.tmp_dir)
         #---
-        
-        # get the last iteration corrected probabilities. 
-        # TODO: find a way not to read all to memory? 
+
+        # get the last iteration corrected probabilities.
+        # TODO: find a way not to read all to memory?
         if last_actdist_file is not None:
             with h5py.File(last_actdist_file) as h5f:
                 row = h5f["row"][()]
@@ -70,7 +70,7 @@ class ActivationDistanceStep(Step):
                 ii = np.logical_and( row < n, col < n )
                 row = row[ii]
                 col = col[ii]
-                data = h5f["prob"][ii][()] 
+                data = h5f["prob"][ii][()]
 
                 plast = scipy.sparse.coo_matrix(
                     ( data, ( row, col ) ),
@@ -95,26 +95,27 @@ class ActivationDistanceStep(Step):
                 curr_batch = []
         fname = os.path.join(self.tmp_dir, '%d.in.npy' % n_args_batches)
         np.save(fname, curr_batch)
-        
+        n_args_batches += 1
+
         self.argument_list = range(n_args_batches)
-            
+
     @staticmethod
     def task(batch_id, cfg, tmp_dir):
-        
+
         dictHiC = cfg['restraints']['Hi-C']
         hss     = HssFile(cfg["structure_output"], 'r')
-        
+
         # read params
         fname = os.path.join(tmp_dir, '%d.in.npy' % batch_id)
         params = np.load(fname)
-        
+
         results = []
         for i, j, pwish, plast in params:
             res = get_actdist(
-                int(i), int(j), pwish, plast, hss, 
-                contactRange = dictHiC.get('contact_range', 2.0) 
+                int(i), int(j), pwish, plast, hss,
+                contactRange = dictHiC.get('contact_range', 2.0)
             )
-            
+
             for r in res:
                 results.append(r) #(i, j, actdist, p)
             #-
@@ -123,7 +124,7 @@ class ActivationDistanceStep(Step):
         fname = os.path.join(tmp_dir, '%d.out.tmp' % batch_id)
         with open(fname, 'w') as f:
             f.write('\n'.join([actdist_fmt_str % x for x in results]))
-        
+
     def reduce(self):
         actdist_file = os.path.join(self.tmp_dir, "actdist.hdf5")
         last_actdist_file = self.cfg['runtime']['Hi-C'].get("actdist_file", None)
@@ -131,7 +132,7 @@ class ActivationDistanceStep(Step):
         col = []
         dist = []
         prob = []
-        
+
         for i in tqdm(self.argument_list, desc='(REDUCE)'):
             fname = os.path.join(self.tmp_dir, '%d.out.tmp' % i)
             partial_actdist = np.genfromtxt( fname, dtype=actdist_shape )
@@ -139,7 +140,7 @@ class ActivationDistanceStep(Step):
             col.append(partial_actdist['col'])
             dist.append(partial_actdist['dist'])
             prob.append(partial_actdist['prob'])
-        
+
         additional_data = []
         if "Hi-C" in self.cfg['runtime']:
             additional_data .append(
@@ -153,9 +154,9 @@ class ActivationDistanceStep(Step):
                     self.cfg['runtime']['opt_iter']
                 )
             )
-        
+
         tmp_actdist_file = actdist_file+'.tmp'
-        
+
         with h5py.File(tmp_actdist_file, "w") as h5f:
             h5f.create_dataset("row", data=np.concatenate(row))
             h5f.create_dataset("col", data=np.concatenate(col))
@@ -178,8 +179,10 @@ class ActivationDistanceStep(Step):
         )
         self.actdist_file = os.path.join(self.tmp_dir, "actdist.hdf5")
         self.cfg['runtime']['Hi-C']["actdist_file"] = self.actdist_file
-#=  
-    
+
+
+#=
+
 def newton_prob(p_wish, x_now, x_last, p_now, p_last):
     # value of the functions
     f_now = p_now - p_wish
@@ -198,7 +201,7 @@ def cleanProbability(pij, pexist):
 def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
     '''
     Serial function to compute the activation distance for a pair of loci.
-        
+
     Parameters
     ----------
         i, j : int
@@ -207,7 +210,7 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
             target contact probability
         plast : float
             the last refined probability
-        hss : alabtools.analysis.HssFile 
+        hss : alabtools.analysis.HssFile
             file containing coordinates
         contactRange : int
             contact range of sum of radius of beads
@@ -228,11 +231,11 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
 
     if (i==j):
         return []
-    
+
     n_struct = hss.get_nstruct()
     copy_index = hss.get_index().copy_index
     chrom = hss.get_index().chrom
-              
+
     ii = copy_index[i]
     jj = copy_index[j]
 
@@ -241,21 +244,21 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
     n_possible_contacts = min(len(ii), len(jj))
     #for diploid cell n_combinations = 2*2 =4
     #n_possible_contacts = 2
-    
+
     radii  = hss.get_radii()
     ri, rj = radii[ii[0]], radii[jj[0]]
-    
-    d_sq = np.empty((n_combinations, n_struct))  
-    
-    it = 0  
+
+    d_sq = np.empty((n_combinations, n_struct))
+
+    it = 0
     for k in ii:
         for m in jj:
             x = hss.get_bead_crd(k)
-            y = hss.get_bead_crd(m) 
+            y = hss.get_bead_crd(m)
             d_sq[it] = np.sum(np.square(x - y), axis=1)
             it += 1
     #=
-    
+
     rcutsq = np.square(contactRange * (ri + rj))
     d_sq.sort(axis=0)
 
@@ -268,10 +271,10 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
 
     res = []
     if p>0:
-        o = min(n_possible_contacts * n_struct - 1, 
+        o = min(n_possible_contacts * n_struct - 1,
                 int(round(n_possible_contacts * p * n_struct)))
         activation_distance = np.sqrt(sortdist_sq[o])
-        
+
         if (chrom[i] == chrom[j]) and (option == 0):
             res = [(i0, i1, activation_distance, p) for i0,i1 in zip(ii,jj)]
         else:

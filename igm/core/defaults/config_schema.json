@@ -399,7 +399,7 @@
                 "label" : "Hi-C temporary sub-directory",
                 "dtype" : "path-dir",
                 "role" : "output",
-                "default" : "tmp_opt",
+                "default" : "actdist",
                 "description" : "Directory for temporary Hi-C files"
             },
 
@@ -414,7 +414,7 @@
 
 
         "damid" : {
-            
+
             "label" : "DamID",
             "role" : "optional-group",
             "input_profile" : {

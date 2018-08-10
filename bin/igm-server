@@ -11,7 +11,9 @@ import subprocess
 import traceback
 import argparse
 import logging
+import stat
 from tornado import template
+import atexit
 
 import igm.ui
 from igm.ui.config_parse import save_cfg, schema
@@ -141,7 +143,11 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Run an IGM control server')
     parser.add_argument('-p', '--port', type=int, default=43254, help='Use this port for connecting to the server' )
+    parser.add_argument('-t', '--tunnel', type=str, help='[user@]login-node: Try to create a ssh tunnel to an accessible node.')
+    parser.add_argument('--temporary-tokens', action='store_true', help='Do not try to read or save tokens to disk. Default location is $HOME/.igm/server-cfg.json')
     parser.add_argument('dir', nargs='?', default=os.getcwd(), help='Optional. Directory where to run the IGM instance. If does not exist, it tries to create it.')
+
+    #ssh -f -N -T -M -S <path-to-socket> -R <post>:<host>:<port> <server>
 
     args = parser.parse_args()
 
@@ -151,9 +157,49 @@ if __name__ == "__main__":
     os.chdir(args.dir)
     cwd = args.dir
 
-    # create a secure token
+    # create a tunnel if requested
+    if args.tunnel is not None:
+        print ('##### Estabilishing a SSH tunnel #####')
+        sock_path = '.ssh.sock.%C'
+        tunnel_cmd = 'ssh -f -N -M -S %s -R %d:localhost:%d %s' % (
+            sock_path, args.port, args.port, args.tunnel
+        )
+        print ('$', tunnel_cmd)
+        r = os.system(tunnel_cmd)
+        if r != 0:
+            raise RuntimeError('Unable to create tunnel. Exiting.')
+        print ('##### SSH tunnel open #####')
+        close_cmd = 'ssh -S %s -O exit %s' % (sock_path, args.tunnel)
+        atexit.register(os.system, close_cmd)
+
+    # create/read a secure token
+
     token = str(uuid.uuid4()).replace('-', '')
     secret = str(uuid.uuid4()).replace('-', '')
+    print('##### Securing server #####')
+    if not args.temporary_tokens:
+        secure_file = os.environ['HOME'] + '/.igm/server-cfg.json'
+        try:
+            # tries to load the file
+            v = json.load(open(secure_file, 'r'))
+            token = v['secure_token']
+            secret = v['server_secret']
+            print('Reading secure tokens from %s' % secure_file)
+        except ( FileNotFoundError, json.decoder.JSONDecodeError,
+                 KeyError ):
+            try:
+                if not os.path.isdir(os.environ['HOME'] + '/.igm'):
+                    os.makedirs(os.environ['HOME'] + '/.igm')
+                json.dump({
+                    'secure_token' : token,
+                    'server_secret' : secret
+                }, open(secure_file, 'w'), indent=4)
+                os.chmod(secure_file, stat.S_IRUSR)
+                print('Secure tokens have been saved to %s' % secure_file)
+            except PermissionError:
+                warnings.warn('Cannot access or write %s' % secure_file)
+    print()
+
 
     # silence tornado access logger
     tornado.log.access_log.setLevel(logging.ERROR)
@@ -180,15 +226,32 @@ if __name__ == "__main__":
     except:
         ips = []
 
-    print('The list of ips for this machine is: ', ips)
+    print('######################')
+    print('##### IGM Server #####')
+    print('######################\n')
 
-    print('The way to connect to the server depends on the platform.')
-    if len(ips):
-        print('If the machine is accessible, my educated guess is, try to copy and paste the following address in your browser:')
+
+
+    print('The way to connect to the server depends on your platform.')
+    print('The list of ips for this machine is: \n', ips, '\n')
+
+    if (args.tunnel):
+        print ('A tunnel has been estabilished. To access the server you need to connect to:')
+        print ('     %s:%d' % (args.tunnel, args.port))
+        print ('If you are not working directly on %s, you may want to create a tunnel from your workstation to it with:' % args.tunnel )
+        print ('    ssh -N -T -L %d:localhost:%d %s' % (args.port, args.port, args.tunnel))
+        print ('then point your browser to')
+        print ('    localhost:%d/?q=%s' % (args.port, token) )
+
+    elif len(ips):
+        print('If the machine running igm-server is accessible from your workstation, my educated guess is to try to copy and paste the following address in your browser:')
         print('     ', ips[-1] + ':' + str(args.port) + '?q=' + token)
+        print('If the machine is not accessible from your workstation you may need to set up a tunnel (with --tunnel option) to a node which is accessible from your workstation (for example a login node)')
 
+    print()
     print('The secure token for this session is:', token)
 
+    print ('##### IGM server starting #####')
     application.listen(args.port)
     tornado.ioloop.IOLoop.current().start()
 
