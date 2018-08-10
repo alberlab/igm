@@ -8,9 +8,12 @@ var step_history = null;
 var updateRunningFlag = true;
 var interfaceTimeout = 1000;
 var historyTimeout = 20000;
+var updateHomeFlag = true;
+
+var barpalette = ["#024d98","#034c96","#054c95","#064b93","#074b92","#094a90","#0b4a8f","#0c498d","#0d498c","#0f488a","#114889","#124887","#144786","#154784","#174683","#184681","#194580","#1b457e","#1c447d","#1e447b","#1f447a","#214378","#234377","#244275","#264274","#274172","#294171","#2a406f","#2c406e","#2d3f6c","#2f3f6b","#303f69","#323e68","#333e66","#353d65","#363d63","#383c62","#393c60","#3b3b5f","#3c3b5d","#3e3b5c","#3f3a5a","#413a59","#423957","#443956","#453854","#473853","#483751","#4a3750","#4b364e","#4d364d","#4e364b","#50354a","#513548","#533447","#543445","#563344","#573342","#593241","#5a323f","#5c313e","#5d313c","#5f313b","#603039","#613038","#632f36","#652f35","#662e33","#672e32","#692d30","#6b2d2f","#6c2d2d","#6e2c2c","#6f2c2a","#712b29","#722b27","#742a26","#752a24","#772923","#782921","#7a2820","#7b281e","#7d281d","#7e271b","#80271a","#812618","#832617","#842515","#862514","#872412","#892411","#8a240f","#8c230e","#8d230c","#8f220b","#902209","#922108","#932106","#952005","#962003","#981f02"];
 
 function requestStart() {
-  
+
   $('#btn-start-pipeline').off('click').text('Requesting...').attr('disabled', true);
   $.ajax({
     url : '/ajax/',
@@ -19,7 +22,7 @@ function requestStart() {
       'data' : JSON.stringify({ request : 'start_pipeline' })
     },
     dataType: 'json',
-    success: (data) => { 
+    success: (data) => {
       if (data.status != 'ok') {
         alert('An error occurred');
       }
@@ -38,15 +41,15 @@ function requestKill() {
       'data' : JSON.stringify({ request : 'kill_pipeline' })
     },
     dataType: 'json',
-    success: (data) => { 
+    success: (data) => {
       if (data.status != 'ok') {
         $('#btn-stop-pipeline').click(requestKill);
         alert('An error occurred');
       }
     },
     error: (x, e, s) => {
-      $('#btn-stop-pipeline').click(requestKill); 
-      console.log(x, e, s); 
+      $('#btn-stop-pipeline').click(requestKill);
+      console.log(x, e, s);
       alert('An error occurred');
     }
   });
@@ -112,8 +115,41 @@ function updateLogView() {
     $('#log-ta').val(igm_log);
 }
 
+function pad(num, size) {
+    var s = num+"";
+    while (s.length < size) s = "0" + s;
+    return s;
+}
+
+function prettyTime( n ){
+
+  var v = parseInt(n);
+  var x = v % 60;
+  var out = pad(x, 2) + 's';
+  v = Math.floor( v / 60 );
+
+  var units = ['m', 'h', 'd'];
+  var step = [60, 60, 24];
+
+  if ( v > 0 ) {
+    for (var i = 0; i < units.length; i++) {
+      var x = v % step[i];
+      v = Math.floor( v / step[i] );
+      if ( v > 0 )
+        out = pad(x, 2) + units[i] + '&nbsp;' + out;
+      else {
+        out = x + units[i] + '&nbsp;' + out;
+        break;
+      }
+    }
+  }
+  return out;
+
+}
 
 function updateHome(){
+  if (!updateHomeFlag)
+    return;
   // -------- configuration view
   if ( ! current_cfg ) {
     $('#config-status').html(`
@@ -140,7 +176,7 @@ function updateHome(){
   if ( ! current_cfg ) {
     $('#running-status').html('');
   } else if ( running_status != last_running_status ) {
-    
+
     last_running_status = running_status;
     if ( running_status == 'no' ) {
       $('#running-status').html(`
@@ -169,7 +205,7 @@ function updateHome(){
       $('#running-status').html('Error determining IGM status');
     }
 
-  } 
+  }
 
   // ---- history view
   if ( step_history && step_history.length) {
@@ -208,23 +244,30 @@ function updateHome(){
         }
 
         tbody += `<td>${step_history[i].status}</td>`;
-        tbody += `<td>${used[i]}</td>`;
+        tbody += `<td class="text-right">${prettyTime(used[i])}</td>`;
         var uperc = (used[i] / max_used * 100).toFixed(1);
-        tbody += `<td style="min-width: 100px !important;"><div class="blue-progress" style="background-color: blue; width : ${uperc}% ;">&nbsp;</div></td>`;
+        tbody += `<td style="min-width: 100px !important;"><div class="progress-bar" fill="${uperc}" style="width : ${uperc}% ;">&nbsp;</div></td>`;
 
-        tbody += `<td>${cumulative[i]}</td>`;
+        tbody += `<td>${prettyTime(cumulative[i])}</td>`;
         var cperc = (cumulative[i] / tot_time * 100).toFixed(1);
-        tbody += `<td style="min-width: 100px !important;"><div style="background-color: green; width : ${cperc}%;">&nbsp;</div></td>`;
+        tbody += `<td style="min-width: 100px !important;"><div class="progress-bar" fill="${cperc}" style="width : ${cperc}%;">&nbsp;</div></td>`;
         tbody += '</tr>';
       }
     }
+
     $('#step-history').html('<table class="table table-sm">'+ thead + tbody + '</table>');
+    $('.progress-bar').each( function(i, b) {
+      $( this ).css('background-color',
+        barpalette[ Math.floor( $( this ).attr('fill') ) ]
+      );
+    });
 
   } else {
+
     $('#step-history').html('<div class="alert alert-warning"> No history yet </div>');
 
   }
-  
+
 }
 
 $(document).ready( function() {
