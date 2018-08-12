@@ -1,4 +1,4 @@
-from __future__ import print_function, division 
+from __future__ import print_function, division
 
 import threading
 import multiprocessing
@@ -8,7 +8,8 @@ import sys
 import zmq
 import sqlite3
 import time
-from .parallel_controller import ParallelController 
+import six
+from .parallel_controller import ParallelController
 from ..utils.log import logger
 from tqdm import tqdm
 
@@ -33,14 +34,14 @@ class IppFunctionWrapper(object):
             self._q.put( (-1, tb_str, None) )
 
     def __call__(self, *args, **kwargs):
-        # runs on a child process to terminate execution if timeout exceedes 
+        # runs on a child process to terminate execution if timeout exceedes
         try:
             import multiprocessing
             try:
                 from Queue import Empty
             except:
                 from queue import Empty
-                
+
             self._q = multiprocessing.Queue()
             p = multiprocessing.Process(target=self.run, args=args, kwargs=kwargs)
             p.start()
@@ -57,32 +58,36 @@ class IppFunctionWrapper(object):
 
 
 
-class BasicIppController(ParallelController): 
+class BasicIppController(ParallelController):
     def __init__(self, timeout=None, max_tasks=-1):
         self.max_tasks = max_tasks
         self.timeout=timeout
 
     def map(self, parallel_task, args):
-        from ipyparallel import Client
-        
+        from ipyparallel import Client, TimeoutError
+
         chunksize = 1
         if self.max_tasks > 0 and len(args) > self.max_tasks:
             chunksize = len(args) // self.max_tasks
             if chunksize*self.max_tasks < len(args):
                 chunksize += 1
+        client = None
+        try:
+            client = Client()
+        except TimeoutError:
+            raise RuntimeError('Cannot connect to the ipyparallel client. Is it running?')
 
-        client = Client()
         try:
             client[:].use_cloudpickle()
             lbv = client.load_balanced_view()
             ar = lbv.map_async(
-                IppFunctionWrapper(parallel_task, self.timeout), 
+                IppFunctionWrapper(parallel_task, self.timeout),
                 args,
                 chunksize=chunksize
             )
-            try:   
-                r = [] 
-                for k, z in enumerate(tqdm(ar, desc="(IPYPARALLEL)")):
+            try:
+                r = []
+                for k, z in enumerate(tqdm(ar, desc="(IPYPARALLEL)", total=len(args))):
                     if z[0] == -1:
                         logger.error(z[1])
                         engine = ar.engine_id[k]
@@ -96,7 +101,8 @@ class BasicIppController(ParallelController):
                 raise
         finally:
             # always close the client to release resources
-            client.close()
+            if client:
+                client.close()
         return r
 
 class BasicAsyncIppController(BasicIppController):
@@ -129,13 +135,13 @@ class AdvancedIppController(ParallelController):
     RUNNING = 0
     SUCCESS = 1
 
-    def __init__(self, 
+    def __init__(self,
                  name='ParallelController',
                  serial_fun=None,
                  args=None,
-                 const_vars=None, 
+                 const_vars=None,
                  chunksize=1,
-                 logfile=None, 
+                 logfile=None,
                  loglevel=None,
                  poll_interval=60,
                  max_batch=None,
@@ -152,7 +158,7 @@ class AdvancedIppController(ParallelController):
         self.chunksize = chunksize
         self.logfile = logfile
         self.loglevel = loglevel
-        self.poll_interval = poll_interval # poll for status every 
+        self.poll_interval = poll_interval # poll for status every
                                            # poll_interval seconds
         self.results = []
         self._status = []
@@ -205,17 +211,17 @@ class AdvancedIppController(ParallelController):
         # setup logger
         if batch_no is None:
             self._logger = logging.getLogger(self.name)
-        else: 
+        else:
             self._logger = logging.getLogger(self.name + '/batch%d' % batch_no )
         # keep only stream handlers
         fnames = [fh.baseFilename for fh in self._logger.handlers]
-        
+
         if self.logfile is not None and self.logfile not in fnames:
             fh = logging.FileHandler(self.logfile)
             fh.setFormatter(default_log_formatter)
             self._logger.addHandler(fh)
         self._logger.setLevel(self.loglevel)
-        
+
         # prepare the remote function
         #self._fwrapper = FunctionWrapper(self._serial_fun, self.const_vars)
 
@@ -227,31 +233,31 @@ class AdvancedIppController(ParallelController):
         self._dview = self._client[self._ids]
         self._dview.use_cloudpickle()
         self._view = self._client.load_balanced_view(targets=self._ids)
-        
+
     def _cleanup(self):
         if self._client:
             self._client.close()
 
     def _handle_errors(self):
-        failed = [i for i, x in enumerate(self._status) 
+        failed = [i for i, x in enumerate(self._status)
                   if x == AdvancedIppController.FAILED]
         n_failed = len(failed)
         self._logger.error('%d tasks have failed.', n_failed)
-        print('%s: %d tasks have failed.' % (self.name, n_failed), 
+        print('%s: %d tasks have failed.' % (self.name, n_failed),
               file=sys.stderr)
         for cnt, i in enumerate(failed):
             if cnt > 2:
                 self._logger.error('... %d more errors ...', n_failed - 3)
-                print('... %d more errors ...' % (n_failed - 3), 
+                print('... %d more errors ...' % (n_failed - 3),
                       file=sys.stderr)
                 break
             self._logger.error('JOB# %d:\n %s \n' + '-'*40, i,
                                self.results[i])
-            print('JOB# %d:\n %s' % (i, self.results[i]), 
+            print('JOB# %d:\n %s' % (i, self.results[i]),
                   file=sys.stderr)
             print('-'*40, file=sys.stderr)
         return n_failed
-            
+
     def _split_batches(self):
         if self._max_batch is None:
             return [(0, len(self._to_process))]
@@ -259,8 +265,8 @@ class AdvancedIppController(ParallelController):
             num_batch = len(self._to_process) // self._max_batch
             if len(self._to_process) % self._max_batch != 0:
                 num_batch += 1
-            return [(b*self._max_batch, 
-                     min(len(self._to_process), (b+1)*self._max_batch)) 
+            return [(b*self._max_batch,
+                     min(len(self._to_process), (b+1)*self._max_batch))
                     for b in range(num_batch)]
 
     def _check_db(self):
@@ -284,7 +290,7 @@ class AdvancedIppController(ParallelController):
         self.results = [None] * len(self._args)
         self._status = [AdvancedIppController.RUNNING] * len(self._args)
         self._check_db()
-        
+
         tot_time = 0
         trial = 0
         error_count = 0
@@ -295,13 +301,13 @@ class AdvancedIppController(ParallelController):
                 now_completed = []
                 error_count = 0
                 self.job_batches = self._split_batches()
-                self._logger.info('Starting %s - %d jobs, divided in %d batches (trial %d)', 
+                self._logger.info('Starting %s - %d jobs, divided in %d batches (trial %d)',
                                   self.name, len(self._to_process), len(self.job_batches), trial)
                 for batch_no, (batch_start, batch_end) in enumerate(self.job_batches):
-                    p = multiprocessing.Process(target=self._run_batch, 
+                    p = multiprocessing.Process(target=self._run_batch,
                                                 args=(batch_no,))
                     p.start()
-                    
+
                     while True:
                         # keep the db file updated, so we can read the situation from outside
                         if time.time() - last_commit > self.commit_timeout:
@@ -319,10 +325,10 @@ class AdvancedIppController(ParallelController):
                                 self._status[i] = AdvancedIppController.SUCCESS
                                 self.results[i] = result[1]
                                 etime = result[2]
-                                conn.execute('INSERT INTO completed VALUES (?, ?, ?)', 
+                                conn.execute('INSERT INTO completed VALUES (?, ?, ?)',
                                              (i, int(time.time()), etime))
                                 now_completed.append(i)
-                                
+
                         elif i == -2:
                             p.join()
                             raise RuntimeError('Process raised error', result)
@@ -340,10 +346,10 @@ class AdvancedIppController(ParallelController):
         # handle errors if any occurred
         if error_count:
             n_failed = self._handle_errors()
-            raise RuntimeError('%d jobs failed. Log file: %s' % 
-                               (n_failed, self.logfile)) 
+            raise RuntimeError('%d jobs failed. Log file: %s' %
+                               (n_failed, self.logfile))
         else:
-            self._logger.info('Done. Time elapsed: %s', 
+            self._logger.info('Done. Time elapsed: %s',
             pretty_tdelta(tot_time))
             self._ok = True
 
@@ -351,21 +357,21 @@ class AdvancedIppController(ParallelController):
 
     def _run_batch(self, batch_no):
         self._setup_logger(batch_no)
-        
+
         batch_start, batch_end = self.job_batches[batch_no]
-        self._logger.info('Starting batch %d of %d: %d tasks', 
-                          batch_no + 1, len(self.job_batches), 
+        self._logger.info('Starting batch %d of %d: %d tasks',
+                          batch_no + 1, len(self.job_batches),
                           batch_end - batch_start)
         self._setup_ipp()
         self._logger.info('Working on %d worker engines', len(self._ids))
 
         # maps asyncronously on workers
-        fwrapper = IppFunctionWrapper(self._serial_fun, self.const_vars, 
+        fwrapper = IppFunctionWrapper(self._serial_fun, self.const_vars,
                                       self.max_exec_time)
-        self._ar = self._view.map_async(fwrapper, 
-                                        self._to_process[batch_start:batch_end], 
+        self._ar = self._view.map_async(fwrapper,
+                                        self._to_process[batch_start:batch_end],
                                         chunksize=self.chunksize)
-    
+
         # start a thread to monitor progress
         self._monitor_flag = True
         monitor_thread = threading.Thread(target=self._monitor)
@@ -385,11 +391,11 @@ class AdvancedIppController(ParallelController):
         self._queue.put((-3, self._ar.elapsed))
 
         # close the monitor thread and print details
-        self._logger.info('Batch completed. Time elapsed: %s', 
+        self._logger.info('Batch completed. Time elapsed: %s',
             pretty_tdelta(self._ar.elapsed))
-        
+
         monitor_thread.join()
-        
+
 
     def _monitor(self):
         while not self._ar.ready() and self._monitor_flag:
@@ -400,7 +406,7 @@ class AdvancedIppController(ParallelController):
                 etastr = pretty_tdelta(eta)
             else:
                 etastr = 'N/A'
-            self._logger.info('Completed %d of %d tasks. Time elapsed: %s  Remaining: %s', 
+            self._logger.info('Completed %d of %d tasks. Time elapsed: %s  Remaining: %s',
                         self._ar.progress,
                         n_tasks,
                         pretty_tdelta(self._ar.elapsed),

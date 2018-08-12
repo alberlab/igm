@@ -47,15 +47,26 @@ def igm_is_running():
     return status
 
 def kill_igm():
+    '''
+    Try to kindly ask to terminate, then kill the process
+    if it is not done in 5 seconds.
+    '''
+    import time, multiprocessing
     if os.path.isfile('.igm-pid.txt'):
         pid = int(open('.igm-pid.txt').read())
-        os.kill(pid, 9)
-        os.remove('.igm-pid.txt')
+        os.kill(pid, 2)
+        def real_kill(pid):
+            time.sleep(5)
+            if os.path.isfile('.igm-pid.txt'):
+                os.kill(pid, 9)
+                os.remove('.igm-pid.txt')
+        p = multiprocessing.Process(target=real_kill, args=(pid,), daemon=True)
+        p.start()
 
 
 def clear_previous_runs():
 
-    # this is ultra dangerous, one could change the config and 
+    # this is ultra dangerous, one could change the config and
     # remove arbitrary files, should check they are files
     # inside the current directory
     cfg = json.load(open('igm-config.json', 'r'))

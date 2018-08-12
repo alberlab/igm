@@ -123,7 +123,7 @@ class FutureFilePoller(object):
     def enumerate(self):
         return GeneratorLen(self._enumerate(), len(self.futures))
 
-class SimpleFilePoller(object):
+class FilePoller(object):
     def __init__(self, files, callback, args=None, kwargs=None, remove_after_callback=False):
         self.files = files
         self.args = args 
@@ -135,7 +135,7 @@ class SimpleFilePoller(object):
             self.kwargs = [ dict() ] * len(files)
 
         self.callback = callback
-        self.to_poll = {i: None for i in range(len(files))}
+        self.to_poll = set( range( len(files) ) )
         
         self.running = False
         self.th = None
@@ -153,7 +153,7 @@ class SimpleFilePoller(object):
                     self.callback(*self.args[i], **self.kwargs[i])
                     if self.remove_flag:
                         os.remove(self.files[i])
-                    del self.to_poll[i]
+                    self.to_poll.remove(i)
                     self.completed.append(i)
                 
             if len(self.to_poll) == 0:
