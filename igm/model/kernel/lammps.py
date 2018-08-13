@@ -317,7 +317,7 @@ def optimize(model, cfg):
 
     tmp_files_dir = cfg['optimization']['tmp_dir']
     if not os.path.isabs(cfg['optimization']['tmp_dir']):
-        tmp_files_dir = os.path.join(cfg['optimization']['tmp_dir'], tmp_files_dir)
+        tmp_files_dir = os.path.join(cfg['parameters']['tmp_dir'], tmp_files_dir)
     try:
         os.makedirs(tmp_files_dir)
     except OSError as e:

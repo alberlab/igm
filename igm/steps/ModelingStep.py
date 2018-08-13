@@ -127,18 +127,18 @@ class ModelingStep(StructGenStep):
         if cfg['model']['restraints']['envelope']['nucleus_shape'] == 'sphere':
             ev = Envelope(cfg['model']['restraints']['envelope']['nucleus_shape'],
                           cfg['model']['restraints']['envelope']['nucleus_radius'],
-                          cfg['model']['restraints']['envelope']['contact_kspring'])
+                          cfg['model']['restraints']['envelope']['nucleus_kspring'])
         elif cfg['model']['restraints']['envelope']['nucleus_shape'] == 'ellipsoid':
             ev = Envelope(cfg['model']['restraints']['envelope']['nucleus_shape'],
                           cfg['model']['restraints']['envelope']['nucleus_semiaxes'],
-                          cfg['model']['restraints']['envelope']['contact_kspring'])
+                          cfg['model']['restraints']['envelope']['nucleus_kspring'])
         model.addRestraint(ev)
 
         #add consecutive polymer restraint
         contact_probabilities = cfg['runtime'].get('consecutive_contact_probabilities', None)
         pp = Polymer(index,
                      cfg['model']['restraints']['polymer']['contact_range'],
-                     cfg['model']['restraints']['polymer']['contact_kspring'],
+                     cfg['model']['restraints']['polymer']['polymer_kspring'],
                      contact_probabilities=contact_probabilities)
         model.addRestraint(pp)
         monitored_restraints.append(pp)

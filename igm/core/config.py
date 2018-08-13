@@ -101,7 +101,7 @@ class Config(dict):
         self.igm_parameter_abspath()
 
         # fix optimizer arguments
-        #self.preprocess_optimization_arguments()
+        self.preprocess_optimization_arguments()
 
         # fix sprite arguments
         #self.preprocess_sprite_arguments()
@@ -153,8 +153,9 @@ class Config(dict):
         #if 'ev_factor' not in self['optimization']['optimizer_options']:
             #self['optimization']['optimizer_options']['ev_factor'] = self['model']['evfactor']
 
-        self['optimization']['optimizer_options'] = validate_user_args(self['optimization']['optimizer_options'], OPT_DEFAULT)
+        #self['optimization']['optimizer_options'] = validate_user_args(self['optimization']['optimizer_options'], OPT_DEFAULT)
         opt = self['optimization']['optimizer_options']
+        opt['ev_step'] = 0
         try:
             if opt['write'] == -1:
                 opt['write'] = opt['mdsteps']  # write only final step
