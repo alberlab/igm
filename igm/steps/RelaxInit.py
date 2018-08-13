@@ -19,8 +19,8 @@ class RelaxInit(StructGenStep):
         self.tmp_extensions = [".hms", ".data", ".lam", ".lammpstrj", ".ready"]
         self.tmp_file_prefix = "relax"
         self.file_poller = None
-        self.argument_list = range(self.cfg["population_size"])
-        self.hssfilename = self.cfg["structure_output"] + '.tmp'
+        self.argument_list = range(self.cfg["model"]["population_size"])
+        self.hssfilename = self.cfg["optimization"]["structure_output"] + '.tmp'
         self.hss = HssFile(self.hssfilename, 'a', driver='core')
         self.out_data = {
             'restraints': 0.0,
@@ -62,7 +62,7 @@ class RelaxInit(StructGenStep):
         cfg = deepcopy(cfg)
 
         #extract structure information
-        hssfilename    = cfg["structure_output"]
+        hssfilename    = cfg["optimization"]["structure_output"]
 
         #read index, radii, coordinates
         with HssFile(hssfilename,'r') as hss:
@@ -80,25 +80,25 @@ class RelaxInit(StructGenStep):
 
         #========Add restraint
         #add excluded volume restraint
-        ex = Steric(cfg['model']['evfactor']*0.05)
+        ex = Steric(cfg.get("model/restraints/excluded/evfactor"))
         model.addRestraint(ex)
 
         #add nucleus envelop restraint
-        if cfg['model']['nucleus_shape'] == 'sphere':
-            ev = Envelope(cfg['model']['nucleus_shape'],
-                          cfg['model']['nucleus_radius'],
-                          cfg['model']['contact_kspring'])
-        elif cfg['model']['nucleus_shape'] == 'ellipsoid':
-            ev = Envelope(cfg['model']['nucleus_shape'],
-                          cfg['model']['nucleus_semiaxes'],
-                          cfg['model']['contact_kspring'])
+        if cfg['model']['restraints']['envelope']['nucleus_shape'] == 'sphere':
+            ev = Envelope(cfg['model']['restraints']['envelope']['nucleus_shape'],
+                          cfg['model']['restraints']['envelope']['nucleus_radius'],
+                          cfg['model']['restraints']['envelope']['contact_kspring'])
+        elif cfg['model']['restraints']['envelope']['nucleus_shape'] == 'ellipsoid':
+            ev = Envelope(cfg['model']['restraints']['envelope']['nucleus_shape'],
+                          cfg['model']['restraints']['envelope']['nucleus_semiaxes'],
+                          cfg['model']['restraints']['envelope']['contact_kspring'])
         model.addRestraint(ev)
 
         #add consecutive polymer restraint
         contact_probabilities = cfg['runtime'].get('consecutive_contact_probabilities', None)
         pp = Polymer(index,
-                     cfg['model']['contact_range'],
-                     cfg['model']['contact_kspring'],
+                     cfg['model']['restraints']['polymer']['contact_range'],
+                     cfg['model']['restraints']['polymer']['contact_kspring'],
                      contact_probabilities=contact_probabilities)
         model.addRestraint(pp)
 
@@ -124,7 +124,7 @@ class RelaxInit(StructGenStep):
 
     def intermediate_name(self):
         return '.'.join([
-            self.cfg["structure_output"],
+            self.cfg["optimization"]["structure_output"],
             'relaxInit'
         ])
     #-
@@ -159,12 +159,12 @@ class RelaxInit(StructGenStep):
 
         # swap temporary and current hss files
         os.rename(self.hssfilename, self.hssfilename + '.swap')
-        os.rename(self.cfg["structure_output"], self.hssfilename)
-        os.rename(self.hssfilename + '.swap', self.cfg["structure_output"])
+        os.rename(self.cfg["optimization"]["structure_output"], self.hssfilename)
+        os.rename(self.hssfilename + '.swap', self.cfg["optimization"]["structure_output"])
 
         # save the output file with a unique file name if requested
         if self.keep_intermediate_structures:
             copyfile(
-                self.cfg["structure_output"],
+                self.cfg["optimization"]["structure_output"],
                 self.intermediate_name()
             )

@@ -122,7 +122,7 @@ def create_lammps_data(model, user_args):
                     #sigma = dc / 1.1224 #(2**(1.0/6.0))
                     #print(i+1, user_args['evfactor'], sigma, dc, file=f)
 
-                    print(id1, id2, A*user_args['ev_factor'], dc, file=f)
+                    print(id1, id2, A*model.evfactor, dc, file=f)
                 else:
                     print(id1, id2, 0.0, 0.0, file=f)
 
@@ -317,7 +317,7 @@ def optimize(model, cfg):
 
     tmp_files_dir = cfg['optimization']['tmp_dir']
     if not os.path.isabs(cfg['optimization']['tmp_dir']):
-        tmp_files_dir = os.path.join(cfg['tmp_dir'], tmp_files_dir)
+        tmp_files_dir = os.path.join(cfg['optimization']['tmp_dir'], tmp_files_dir)
     try:
         os.makedirs(tmp_files_dir)
     except OSError as e:

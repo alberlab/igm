@@ -161,8 +161,8 @@ class Step(object):
         self.cfg = cfg
         self.tmp_extensions = []
 
-        self.tmp_dir = self.cfg.get("tmp_dir", "tmp/")
-        self.tmp_dir = make_absolute_path(self.tmp_dir, cfg['workdir'])
+        self.tmp_dir = self.cfg["parameters"].get("tmp_dir", "tmp/")
+        self.tmp_dir = make_absolute_path(self.tmp_dir, cfg["parameters"]["workdir"])
         self.keep_temporary_files = True
         if not os.path.exists(self.tmp_dir):
             os.makedirs(self.tmp_dir)
@@ -325,11 +325,11 @@ class StructGenStep(Step):
     def __init__(self, cfg):
         super(StructGenStep, self).__init__(cfg)
         
-        self.argument_list = list(range(self.cfg["population_size"]))
+        self.argument_list = list(range(self.cfg["model"]["population_size"]))
         
         self.tmp_extensions.append(".hms")
         self.keep_temporary_files = cfg["optimization"]["keep_temporary_files"]
-        self.keep_intermediate_structures = cfg["keep_intermediate_structures"]
+        self.keep_intermediate_structures = cfg["optimization"]["keep_intermediate_structures"]
         
     def reduce(self):
         """
@@ -337,7 +337,7 @@ class StructGenStep(Step):
         """
 
         # create a temporary file if does not exist.
-        hssfilename = self.cfg["structure_output"] + '.tmp'
+        hssfilename = self.cfg["optimization"]["structure_output"] + '.tmp'
         hss = HssFile(hssfilename, 'a', driver='core')
         
         #iterate all structure files and 
@@ -362,14 +362,14 @@ class StructGenStep(Step):
         
         # swap files
         os.rename(hssfilename, hssfilename + '.swap')
-        os.rename(self.cfg["structure_output"], hssfilename)
-        os.rename(hssfilename + '.swap', self.cfg["structure_output"])
+        os.rename(self.cfg["optimization"]["structure_output"], hssfilename)
+        os.rename(hssfilename + '.swap', self.cfg["optimization"]["structure_output"])
 
         if self.keep_intermediate_structures:
             copyfile(
-                self.cfg["structure_output"],
+                self.cfg["optimization"]["structure_output"],
                 self.intermediate_name()
             )
 
     def intermediate_name(self):
-        return self.cfg["structure_output"] + '.' + self.uid
+        return self.cfg["optimization"]["structure_output"] + '.' + self.uid

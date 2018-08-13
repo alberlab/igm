@@ -76,22 +76,22 @@ def Preprocess(cfg):
     #Generate genome, index objects
     genome, index = PrepareGenomeIndex(cfg)
 
-    nstruct = cfg['population_size']
+    nstruct = cfg['model']['population_size']
     nbead = len(index)
 
     occupancy = cfg['model']['occupancy']
     _43pi = 4./3*np.pi
 
     # compute volume of the nucleus
-    if cfg['model']['nucleus_shape'] == 'sphere':
-        nucleus_radius = cfg['model']['nucleus_radius']
+    if cfg.get('model/restraints/envelope/nucleus_shape') == 'sphere':
+        nucleus_radius = cfg.get('model/restraints/envelope/nucleus_radius')
         nucleus_volume = _43pi * (nucleus_radius**3)
-    elif cfg['model']['nucleus_shape'] == 'ellipsoid':
-        sx = cfg['model']['nucleus_semiaxes']
+    elif cfg.get('model/restraints/envelope/nucleus_shape') == 'ellipsoid':
+        sx = cfg.get('model/restraints/envelope/nucleus_semiaxes')
         nucleus_volume = _43pi * sx[0] * sx[1] * sx[2]
     else:
         raise NotImplementedError(
-            "Cannot compute volume for shape %s" % cfg['model']['nucleus_shape']
+            "Cannot compute volume for shape %s" % cfg.get('model/restraints/envelope/nucleus_shape')
         )
 
     # compute model radius
@@ -104,8 +104,8 @@ def Preprocess(cfg):
     radii = ( np.array(sphere_volumes) / _43pi )**(1./3)
 
     # prepare Hss
-    if not os.path.isfile(cfg['structure_output']):
-        hss = HssFile(cfg['structure_output'], 'a')
+    if not os.path.isfile(cfg['optimization']['structure_output']):
+        hss = HssFile(cfg['optimization']['structure_output'], 'a')
 
         #put everything into hssFile
         hss.set_nbead(nbead)
@@ -117,27 +117,27 @@ def Preprocess(cfg):
         hss.close()
 
     # now create a temporary file for runtime use
-    if not os.path.isfile(cfg['structure_output'] + '.tmp'):
-        copyfile( cfg['structure_output'], cfg['structure_output'] + '.tmp' )
+    if not os.path.isfile(cfg['optimization']['structure_output'] + '.tmp'):
+        copyfile( cfg['optimization']['structure_output'], cfg['optimization']['structure_output'] + '.tmp' )
 
     # prepare tmp file dir
-    if not os.path.exists(cfg['tmp_dir']):
-        os.makedirs(cfg['tmp_dir'])
+    if not os.path.exists(cfg['parameters']['tmp_dir']):
+        os.makedirs(cfg['parameters']['tmp_dir'])
 
     # if we have a Hi-C probability matrix, use it to determine the consecutive
     # beads distances
-    pbs = cfg.get('polymer_bonds_style', 'simple')
+    pbs = cfg.get('model/polymer/polymer_bonds_style', 'simple')
     if pbs == 'hic':
         if "Hi-C" not in cfg['restraints']:
             raise RuntimeError('Hi-C restraints specifications are missing in the cfg, but "polymer_bond_style" is set to "hic"')
         # read the HiC matrix and get the first diagonal.
-        m = Contactmatrix(cfg['restraints']['Hi-C']['data']).matrix
+        m = Contactmatrix(cfg['restraints']['Hi-C']['input_matrix']).matrix
         cps = np.zeros(len(index) - 1)
         for i in range(m.shape[0] - 1):
             f = m[i][i+1]
             for j in index.copy_index[i]:
                 cps[j] = f
-        cpfname = os.path.join(cfg['tmp_dir'], 'consecutive_contacts.npy')
+        cpfname = os.path.join(cfg['parameters']['tmp_dir'], 'consecutive_contacts.npy')
         np.save(cpfname, cps)
         cfg['runtime']['consecutive_contact_probabilities'] = cpfname
 

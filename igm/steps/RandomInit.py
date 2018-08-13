@@ -18,8 +18,8 @@ class RandomInit(StructGenStep):
         """
         generate one random structure with territories
         """
-        hssfilename    = cfg["structure_output"]
-        nucleus_radius = cfg['model']['nucleus_radius']
+        hssfilename    = cfg["optimization"]["structure_output"]
+        nucleus_radius = cfg.get("model/restraints/envelope/nucleus_radius")
 
         with HssFile(hssfilename,'r') as hss:
             index = hss.index
@@ -32,14 +32,14 @@ class RandomInit(StructGenStep):
 
     def intermediate_name(self):
         return '.'.join([
-            self.cfg["structure_output"],
+            self.cfg["optimization"]["structure_output"],
             'randomInit'
         ])
     #-
 
 
 def uniform_sphere(R):
-    '''
+    """
     Generates uniformly distributed points in a sphere
 
     Arguments:
@@ -47,7 +47,7 @@ def uniform_sphere(R):
     Returns:
         np.array:
             triplet of coordinates x, y, z
-    '''
+    """
     phi = np.random.uniform(0, 2 * pi)
     costheta = np.random.uniform(-1, 1)
     u = np.random.uniform(0, 1)

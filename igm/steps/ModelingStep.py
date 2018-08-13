@@ -43,14 +43,14 @@ class ModelingStep(StructGenStep):
     def setup(self):
         self.tmp_extensions = [".hms", ".data", ".lam", ".lammpstrj", ".ready"]
         self.tmp_file_prefix = "mstep"
-        self.argument_list = range(self.cfg["population_size"])
+        self.argument_list = range(self.cfg["model"]["population_size"])
 
         self.out_data = {
             'restraints': 0.0,
             'violations': 0.0
         }
 
-        self.hssfilename = self.cfg["structure_output"] + '.tmp'
+        self.hssfilename = self.cfg["optimization"]["structure_output"] + '.tmp'
         self.hss = HssFile(self.hssfilename, 'a', driver='core')
         self.file_poller = None
 
@@ -94,14 +94,14 @@ class ModelingStep(StructGenStep):
         #extract structure information
         step_id = cfg.runtime_hash()
 
-        hssfilename    = cfg["structure_output"]
+        hssfilename    = cfg["optimization"]["structure_output"]
 
         #read index, radii, coordinates
         with HssFile(hssfilename,'r') as hss:
             index = hss.index
             radii = hss.radii
-            if cfg.get('random_shuffling', False):
-                crd = generate_random_in_sphere(radii, cfg['model']['nucleus_radius'])
+            if cfg.get('optimization/random_shuffling', False):
+                crd = generate_random_in_sphere(radii, cfg.get('model/restraints/envelope/nucleus_radius'))
             else:
                 crd = hss.get_struct_crd(struct_id)
 
@@ -120,25 +120,25 @@ class ModelingStep(StructGenStep):
         monitored_restraints = []
 
         #add excluded volume restraint
-        ex = Steric(cfg['model']['evfactor'])
+        ex = Steric(cfg.get("model/restraints/excluded/evfactor"))
         model.addRestraint(ex)
 
         #add nucleus envelop restraint
-        if cfg['model']['nucleus_shape'] == 'sphere':
-            ev = Envelope(cfg['model']['nucleus_shape'],
-                          cfg['model']['nucleus_radius'],
-                          cfg['model']['nucleus_kspring'])
-        elif cfg['model']['nucleus_shape'] == 'ellipsoid':
-            ev = Envelope(cfg['model']['nucleus_shape'],
-                          cfg['model']['nucleus_semiaxes'],
-                          cfg['model']['nucleus_kspring'])
+        if cfg['model']['restraints']['envelope']['nucleus_shape'] == 'sphere':
+            ev = Envelope(cfg['model']['restraints']['envelope']['nucleus_shape'],
+                          cfg['model']['restraints']['envelope']['nucleus_radius'],
+                          cfg['model']['restraints']['envelope']['contact_kspring'])
+        elif cfg['model']['restraints']['envelope']['nucleus_shape'] == 'ellipsoid':
+            ev = Envelope(cfg['model']['restraints']['envelope']['nucleus_shape'],
+                          cfg['model']['restraints']['envelope']['nucleus_semiaxes'],
+                          cfg['model']['restraints']['envelope']['contact_kspring'])
         model.addRestraint(ev)
 
         #add consecutive polymer restraint
         contact_probabilities = cfg['runtime'].get('consecutive_contact_probabilities', None)
         pp = Polymer(index,
-                     cfg['model']['contact_range'],
-                     cfg['model']['contact_kspring'],
+                     cfg['model']['restraints']['polymer']['contact_range'],
+                     cfg['model']['restraints']['polymer']['contact_kspring'],
                      contact_probabilities=contact_probabilities)
         model.addRestraint(pp)
         monitored_restraints.append(pp)
@@ -148,7 +148,7 @@ class ModelingStep(StructGenStep):
             dictHiC = cfg['restraints']['Hi-C']
             actdist_file = cfg['runtime']['Hi-C']['actdist_file']
             contact_range = dictHiC.get( 'contact_range', 2.0 )
-            k = dictHiC.get( 'contact_kspring', 1.0 )
+            k = dictHiC.get( 'contact_kspring', 0.05)
 
             hic = HiC(actdist_file, contact_range, k)
             model.addRestraint(hic)
@@ -171,7 +171,7 @@ class ModelingStep(StructGenStep):
         cfg['runtime']['run_name'] = cfg['runtime']['step_hash'] + '_' + str(struct_id)
         model.optimize(cfg)
 
-        tol = cfg.get('violation_tolerance', 0.01)
+        tol = cfg.get('optimization/violation_tolerance', 0.01)
         
         ofname = os.path.join(tmp_dir, 'mstep_%d.hms' % struct_id)
         with HmsFile(ofname, 'w') as hms:
@@ -206,7 +206,7 @@ class ModelingStep(StructGenStep):
         """
 
         # create a temporary file if does not exist.
-        # hssfilename = self.cfg["structure_output"] + '.tmp'
+        # hssfilename = self.cfg["optimization"]["structure_output"] + '.tmp'
         # hss = HssFile(hssfilename, 'a', driver='core')
 
         # #iterate all structure files and
@@ -238,13 +238,13 @@ class ModelingStep(StructGenStep):
 
         # swap temporary and current hss files
         os.rename(self.hssfilename, self.hssfilename + '.swap')
-        os.rename(self.cfg["structure_output"], self.hssfilename)
-        os.rename(self.hssfilename + '.swap', self.cfg["structure_output"])
+        os.rename(self.cfg["optimization"]["structure_output"], self.hssfilename)
+        os.rename(self.hssfilename + '.swap', self.cfg["optimization"]["structure_output"])
 
         # save the output file with a unique file name if requested
         if self.keep_intermediate_structures:
             copyfile(
-                self.cfg["structure_output"],
+                self.cfg["optimization"]["structure_output"],
                 self.intermediate_name()
             )
 
@@ -271,7 +271,7 @@ class ModelingStep(StructGenStep):
         additional_data.append(str(self.uid))
 
         return '.'.join( [
-            self.cfg["structure_output"],
+            self.cfg["optimization"]["structure_output"],
         ] + additional_data )
 
 

@@ -85,7 +85,7 @@ class DamidActivationDistanceStep(Step):
     def task(batch_id, cfg, tmp_dir):
         
         curr_cfg = cfg['restraints']['DAM-ID']
-        hss     = HssFile(cfg["structure_output"], 'r')
+        hss     = HssFile(cfg["parameters"]["structure_output"], 'r')
         
         # read params
         fname = os.path.join(tmp_dir, '%d.damid.in.npy' % batch_id)
@@ -144,7 +144,7 @@ class DamidActivationDistanceStep(Step):
         if os.path.isabs(hic_tmp_dir):
             self.tmp_dir = hic_tmp_dir
         else:    
-            self.tmp_dir = os.path.join( self.cfg['tmp_dir'], hic_tmp_dir )
+            self.tmp_dir = os.path.join( self.cfg['parameters']['tmp_dir'], hic_tmp_dir )
             self.tmp_dir = os.path.abspath(self.tmp_dir)
 
 

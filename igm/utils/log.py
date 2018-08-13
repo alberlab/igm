@@ -8,6 +8,12 @@ FORMAT = '(%(name)s) %(asctime)-15s [%(levelname)s] %(message)s'
 logging.basicConfig(format=FORMAT, level=logging.INFO)
 logger = logging.getLogger('IGM')
 
+def SetupLogging(cfg):
+    if 'log' in cfg['parameters']:
+        loglevel=logging.INFO
+        set_log(cfg['parameters']['log'], loglevel=loglevel)
+    
+    
 def set_log(fname, loglevel=logging.INFO):
 
     fname = os.path.abspath(fname)

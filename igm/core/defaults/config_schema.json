@@ -1,121 +1,10 @@
 {
     "label" : "IGM options",
     "role" : "group",
-
-    "population_size" : {
-        "label" : "Number of structures",
-        "dtype" : "int",
-        "default" : 10000,
-        "min" : 1,
-        "description" : "Number of structures in the population"
-    },
-
-    "structure_output" : {
-        "label" : "Output file name",
-        "dtype" : "path",
-        "default" : "igm-model.hss",
-        "description" : "File name of the output model file (hss format)",
-        "role" : "output"
-    },
-
-    "step_db" : {
-        "label" : "Step database",
-        "dtype" : "path",
-        "default" : "stepdb.sqlite",
-        "description" : "SQLite database file containing execution history",
-        "role" : "output"
-    },
-
-    "tmp_dir" : {
-        "label" : "Temporary files directory",
-        "dtype" : "path-dir",
-        "role" : "output",
-        "default" : "tmp",
-        "description" : "Directory to store temporary files"
-    },
-
-    "log" : {
-        "label" : "Log file",
-        "dtype" : "path",
-        "default" : "igm.log",
-        "description" : "Execution log file",
-        "role" : "output"
-    },
-
-    "log_level" : {
-        "label" : "Log level",
-        "dtype" : "str",
-        "default" : "debug",
-        "description" : "Log level (debug, info, warning)"
-    },
-
-    "min_iterations" : {
-        "label" : "Minimum optimization iterations",
-        "dtype" : "int",
-        "default" : 3,
-        "min" : 0,
-        "description" : "Minimum number of optimization iterations. The 0th iteration is special: if it succeeds, the pipeline skips to the next step ignoring this parameter."
-    },
-
-    "max_iterations" : {
-        "label" : "Max optimization iterations",
-        "dtype" : "int",
-        "default" : 10,
-        "min" : 1,
-        "description" : "Maximum number of unsuccessful optimization iterations before giving up"
-    },
-
-    "keep_intermediate_structures" : {
-        "label" : "Keep Intermediate Structures",
-        "dtype" : "bool",
-        "default" : false,
-        "description" : "Keep a copy of the population for each optimization iteration"
-    },
-
-    "violation_tolerance" : {
-        "label" : "Violation tolerance",
-        "dtype" : "float",
-        "default" : 0.05,
-        "min" : 0.0,
-        "description" : "Distance tolerance before flagging a restraint as violated"
-    },
-
-    "max_violations" : {
-        "label" : "Violation tolerance",
-        "dtype" : "float",
-        "default" : 0.01,
-        "min" : 0.0,
-        "description" : "Fraction of allowed restraint violations on the total number of imposed restraints. Note that excluded volume is not considered in this computation."
-    },
-
-    "starting_coordinates" : {
-        "label" : "Initial coordinates",
-        "dtype" : "path",
-        "default" : "",
-        "role" : "input",
-        "description" : "An hss file with the starting coordinates. If not specified, a random polymer model with territories will be generated as a starting point"
-    },
-
-    "polymer_bonds_style" : {
-        "label" : "Polymer bond style",
-        "dtype" : "str",
-        "allowed_values": ["simple", "hic", "none"],
-        "default" : "simple",
-        "description" : "The polymeric bond style to apply. If set to `simple` (the default), successive beads in a chromosome are restrained to be closer than the `contact_range` distance. If set to `hic`, it will use Hi-C information to set distances accordingly to the probability values. If set to `none`, successive bead contacts are not imposed"
-    },
-
     "genome" : {
         "label" : "Genome specifications",
         "role" : "group",
-
-        "usechr" : {
-            "label" : "Chromosomes considered",
-            "dtype" : "list",
-            "subdtype" : "str",
-            "default" : ["#", "X", "Y"],
-            "description" : "A list of chromosomes used in the modeling. The character `#` is a shortcut for autosomes. Can be strings or a genome"
-        },
-
+        
         "assembly" : {
             "label" : "Genome assembly",
             "dtype" : ["str", "path"],
@@ -123,6 +12,21 @@
             "default" : "hg38",
             "required" : true,
             "description" : "The genome assembly. Can be a string for an available assembly (mm9, hg19, hg38, etc) or the path of an hdf5 file containing genomic information (see alabtools.Genome objects)"
+        }, 
+        
+        "ploidy" : {
+            "label" : "Ploidy",
+            "dtype" : ["dict", "str"],
+            "default" : "male",
+            "description" : "This parameter controls the number of copies for each chromosome. Valid values are `haploid`, `diploid`, `male` (two copies for each autosome, one X and one Y), or a dictionary of chromosome, number of copies pairs. The character `#` is a shortcut for autosomes. Es: {\"#\" : 4, \"X\" : 3, \"Y\": 2} will create a model with 4 copies for each autosome, 3 copies for X, 2 copies for Y"
+        },
+        
+        "usechr" : {
+            "label" : "Chromosomes considered",
+            "dtype" : "list",
+            "subdtype" : "str",
+            "default" : ["#", "X", "Y"],
+            "description" : "A list of chromosomes used in the modeling. The character `#` is a shortcut for autosomes. Can be strings or a genome"
         },
 
         "segmentation" : {
@@ -132,20 +36,29 @@
             "default" : 1000000,
             "description" : "The genome segmentation. Each segment will be represented by one bead. Can be a bed file or an hdf5 file containing a genomic index. If the genome assembly is specified and recognized, it can also be an integer number of basepairs N: in this case, the genome will be split in regions os size N.",
             "required" : true
-        },
-
-        "ploidy" : {
-            "label" : "Ploidy",
-            "dtype" : ["dict", "str"],
-            "default" : "haploid",
-            "description" : "This parameter controls the number of copies for each chromosome. Valid values are `haploid`, `diploid`, `male` (two copies for each autosome, one X and one Y), or a dictionary of chromosome, number of copies pairs. The character `#` is a shortcut for autosomes. Es: {\"#\" : 4, \"X\" : 3, \"Y\": 2} will create a model with 4 copies for each autosome, 3 copies for X, 2 copies for Y"
         }
-
     },
-
+    
+    
+    
     "model" : {
         "label" : "Model parameters",
         "role" : "group",
+        "population_size" : {
+            "label" : "Number of structures",
+            "dtype" : "int",
+            "default" : 10000,
+            "min" : 1,
+            "description" : "Number of structures in the population"
+        },
+        
+        "starting_coordinates" : {
+            "label" : "Initial coordinates",
+            "dtype" : "path",
+            "default" : "",
+            "role" : "input",
+            "description" : "An hss file with the starting coordinates. If not specified, a random polymer model with territories will be generated as a starting point"
+        },
 
         "occupancy" : {
             "label" : "Volume occupancy",
@@ -154,200 +67,96 @@
             "min" : 0.0,
             "description" : "Fraction of volume occupied by the hard core of the beads"
         },
-
-        "nucleus_shape" : {
-            "label" : "Nucleus shape",
-            "dtype" : "str",
-            "role" : "select",
-            "allowed_values" : ["sphere", "ellipsoid"],
-            "default" : "sphere",
-            "description" : "The shape of the nucleus"
-        },
-
-        "nucleus_radius" : {
-            "label" : "Nucleus radius",
-            "dtype" : "float",
-            "default" : 5000.0,
-            "description" : "",
-            "depends_on" : "model__nucleus_shape=sphere"
-        },
-
-        "nucleus_semiaxes" : {
-            "label" : "Nucleus semiaxes",
-            "dtype" : "array",
-            "subdtype" : "float",
-            "length" : 3,
-            "sublabels" : ["a", "b", "c"],
-            "default" : [ 5000.0, 5000.0, 5000.0 ],
-            "description" : "",
-            "depends_on" : "model__nucleus_shape=ellipsoid"
-        },
-
-        "contact_range" : {
-            "label" : "Contact range",
-            "dtype" : "float",
-            "default" : 2.0,
-            "min" : 0.0,
-            "description" : "Two beads are considered in contact when their distance is `contact_range` times the sum of their hard-core radiuses"
-        }
-
-    },
-
-    "optimization" : {
-
-        "label" : "Optimization options",
-        "role" : "group",
-
-        "kernel" : {
-            "label" : "Optimization Kernel",
-            "dtype" : "str",
-            "role" : "select",
-            "allowed_values" : ["lammps"],
-            "default" : "lammps",
-            "description" : "The MD software used for minimization."
-        },
-
-        "tmp_dir" : {
-            "label" : "Optimization temporary directory",
-            "dtype" : "path-dir",
-            "role" : "output",
-            "default" : "opt",
-            "description" : "Directory for temporary optimization files"
-        },
-
-        "keep_temporary_files" : {
-            "label" : "Keep temporary files",
-            "dtype" : "bool",
-            "default" : false,
-            "description" : ""
-        },
-
-        "kernel_opts" : {
-            "label" : "Kernel specific options",
+        
+        "restraints" : {
+            "label" : "Prime model restraints",
             "role" : "group",
-
-            "lammps" : {
-                "label" : "Lammps Kernel options",
+            "excluded" : {
+                "label" : "Chromatin bead excluded volume restraint",
                 "role" : "group",
-                "depends_on" : "optimization__kernel=lammps",
-
-                "lammps_executable" : {
-                    "label" : "LAMMPS executable",
-                    "dtype" : "path",
-                    "role" : "input",
-                    "default" : "lmp_serial_mod",
-                    "description" : "The custom LAMMPS executable. Needs to be accessible by the workers"
-                },
-
-                "seed" : {
-                    "label" : "Random seed",
-                    "dtype" : "int",
-                    "default" : "_random",
-                    "description" : "Random seed for optimization, specify to have binary repetible MD runs"
-                },
-
-                "max_neigh" : {
-                    "label" : "Maximum number of neighbors",
-                    "dtype" : "int",
-                    "default" : 2000,
-                    "description" : "Specify the maximum number of neighbors for lammps particles. Larger numbers impact memory usage, but may be necessary if the structures are very uneven."
-                },
-
-                "use_gpu" : {
-                    "label" : "Use GPU",
-                    "dtype" : "bool",
-                    "default" : false,
-                    "description" : "Use gpu options for pair potential"
+                
+                "evfactor" : {
+                    "label" : "Scale factor for excluded volume",
+                    "dtype" : "float",
+                    "default" : 0.05,
+                    "description" : "Scale excluded volume interactions. Smaller values correspond to weaker interactions"
                 }
+            },
+            
+            "envelope" : {
+                "label" : "Nucleus envelope restraints",
+                "role" : "group",
+                
+                "nucleus_shape" : {
+                    "label" : "Nucleus shape",
+                    "dtype" : "str",
+                    "role" : "select",
+                    "allowed_values" : ["sphere", "ellipsoid"],
+                    "default" : "sphere",
+                    "description" : "The shape of the nucleus"
+                },
 
+                "nucleus_radius" : {
+                    "label" : "Nucleus radius",
+                    "dtype" : "float",
+                    "default" : 5000.0,
+                    "description" : "",
+                    "depends_on" : "model__restraints__envelope__nucleus_shape=sphere"
+                },
+
+                "nucleus_semiaxes" : {
+                    "label" : "Nucleus semiaxes",
+                    "dtype" : "array",
+                    "subdtype" : "float",
+                    "length" : 3,
+                    "sublabels" : ["a", "b", "c"],
+                    "default" : [ 5000.0, 5000.0, 5000.0 ],
+                    "description" : "",
+                    "depends_on" : "model__restraints__envelope__nucleus_shape=ellipsoid"
+                },
+                
+                "nucleus_kspring" : {
+                    "label" : "Nucleus shape restraint force constant",
+                    "dtype" : "float",
+                    "default" : 0.05,
+                    "min" : 0.0,
+                    "description" : "The force constant for nucleus shape"
+                }
+            },
+            
+            "polymer" : {
+                "label" : "polymer restraints",
+                "role" : "group",
+                
+                "contact_range" : {
+                    "label" : "Contact range",
+                    "dtype" : "float",
+                    "default" : 2.0,
+                    "min" : 0.0,
+                    "description" : "Two beads are considered in contact when their distance is `contact_range` times the sum of their hard-core radiuses"
+                },
+                
+                "polymer_bonds_style" : {
+                    "label" : "Polymer bond style",
+                    "dtype" : "str",
+                    "allowed_values": ["simple", "hic", "none"],
+                    "default" : "simple",
+                    "description" : "The polymeric bond style to apply. If set to `simple` (the default), successive beads in a chromosome are restrained to be closer than the `contact_range` distance. If set to `hic`, it will use Hi-C information to set distances accordingly to the probability values. If set to `none`, successive bead contacts are not imposed"
+                },
+                
+                "polymer_kspring" : {
+                    "label" : "polymeric bond restraint force constant",
+                    "dtype" : "float",
+                    "default" : 0.05,
+                    "min" : 0.0,
+                    "description" : "The force constant for polymeric bond"
+                }
             }
-
-        },
-
-        "optimizer_options" : {
-            "label" : "MD options",
-            "role" : "group",
-
-            "mdsteps" : {
-                "label" : "Number of MD steps",
-                "dtype" : "int",
-                "default" : 20000,
-                "description" : "Number of MD steps for each round of optimization"
-            },
-
-            "timestep" : {
-                "label" : "Timestep for MD integration",
-                "dtype" : "float",
-                "default" : 0.25,
-                "description" : ""
-            },
-
-            "tstart" : {
-                "label" : "Starting temperature for simulated annealing",
-                "dtype" : "float",
-                "default" : 250.0,
-                "description" : ""
-            },
-
-            "tstop" : {
-                "label" : "Final temperature for simulated annealing",
-                "dtype" : "float",
-                "default" : 0.5,
-                "description" : ""
-            },
-
-            "damp" : {
-                "label" : "Damping parameter of thermostat",
-                "dtype" : "float",
-                "default" : 50.0,
-                "description" : ""
-            },
-
-            "max_velocity": {
-                "label" : "Cap bead velocity",
-                "dtype" : "float",
-                "default" : 100.0,
-                "description" : "In presence of extremely large forces, the velocity of beads will be capped to avoid explosion of the simulation"
-            },
-
-            "ev_factor" : {
-                "label" : "Scale factor for excluded volume",
-                "dtype" : "float",
-                "default" : 0.05,
-                "description" : "Scale excluded volume interactions. Smaller values correspond to weaker interactions"
-            },
-
-            "etol" : {
-                "label" : "Conjugate gradients energy tolerance",
-                "dtype" : "float",
-                "default" : 1e-4,
-                "description" : ""
-            },
-
-            "ftol" : {
-                "label" : "Conjugate gradients force tolerance",
-                "dtype" : "float",
-                "default" : 1e-6,
-                "description" : ""
-            },
-
-            "max_cg_iter" : {
-                "label" : "Maximum conjugate gradients iterations",
-                "dtype" : "int",
-                "default" : 500,
-                "description" : ""
-            },
-
-            "max_cg_eval" : {
-                "label" : "Maximum conjugate gradients evaluations",
-                "dtype" : "int",
-                "default" : 500,
-                "description" : ""
-            }
-
         }
 
     },
+
+    
 
     "restraints" : {
         "label" : "Additional restraints",
@@ -383,7 +192,7 @@
             "contact_kspring" : {
                 "label" : "Hi-C restraint force constant",
                 "dtype" : "float",
-                "default" : 1.0,
+                "default" : 0.05,
                 "min" : 0.0,
                 "description" : "The force constant for Hi-C restraints [F=-k(x - x0, where x is the distance, x0 the contact distance, and k the force constant]"
             },
@@ -444,7 +253,7 @@
             "contact_kspring" : {
                 "label" : "DamID restraint force constant",
                 "dtype" : "float",
-                "default" : 1.0,
+                "default" : 0.05,
                 "min" : 0.0,
                 "description" : "The force constant for DamID restraints [F=-k(x - x0, where x is the distance, x0 the contact distance, and k the force constant]"
             },
@@ -505,7 +314,7 @@
             "kspring" : {
                 "label" : "Sprite restraint force constant",
                 "dtype" : "float",
-                "default" : 1.0,
+                "default" : 0.05,
                 "min" : 0.0,
                 "description" : "The force constant for Sprite restraints [F=-k(x - x0), where x is the distance, x0 the target distance, and k the force constant]"
             },
@@ -590,7 +399,7 @@
             "kspring" : {
                 "label" : "FISH restraints force constant",
                 "dtype" : "float",
-                "default" : 1.0,
+                "default" : 0.05,
                 "min" : 0.0,
                 "description" : "The force constant for FISH restraints [F=-k(x - x0), where x is the distance, x0 the target distance, and k the force constant]"
             },
@@ -622,6 +431,258 @@
 
     },
 
+    
+    
+    "optimization" : {
+
+        "label" : "Optimization options",
+        "role" : "group",
+        
+        "min_iterations" : {
+            "label" : "Minimum optimization iterations",
+            "dtype" : "int",
+            "default" : 5,
+            "min" : 0,
+            "description" : "Minimum number of optimization iterations. The 0th iteration is special: if it succeeds, the pipeline skips to the next step ignoring this parameter."
+        },
+
+        "max_iterations" : {
+            "label" : "Max optimization iterations",
+            "dtype" : "int",
+            "default" : 10,
+            "min" : 1,
+            "description" : "Maximum number of unsuccessful optimization iterations before giving up"
+        },
+
+
+
+        "violation_tolerance" : {
+            "label" : "Violation tolerance",
+            "dtype" : "float",
+            "default" : 0.05,
+            "min" : 0.0,
+            "description" : "Distance tolerance before flagging a restraint as violated"
+        },
+
+        "max_violations" : {
+            "label" : "Violation tolerance",
+            "dtype" : "float",
+            "default" : 0.01,
+            "min" : 0.0,
+            "description" : "Fraction of allowed restraint violations on the total number of imposed restraints. Note that excluded volume is not considered in this computation."
+        },
+        
+        "structure_output" : {
+            "label" : "Output file name",
+            "dtype" : "path",
+            "default" : "igm-model.hss",
+            "description" : "File name of the output model file (hss format)",
+            "role" : "output"
+        },
+        
+        "keep_intermediate_structures" : {
+            "label" : "Keep Intermediate Structures",
+            "dtype" : "bool",
+            "default" : false,
+            "description" : "Keep a copy of the population for each optimization iteration"
+        },
+        
+        "kernel" : {
+            "label" : "Optimization Kernel",
+            "dtype" : "str",
+            "role" : "select",
+            "allowed_values" : ["lammps"],
+            "default" : "lammps",
+            "description" : "The MD software used for minimization."
+        },
+
+        "tmp_dir" : {
+            "label" : "Optimization temporary directory",
+            "dtype" : "path-dir",
+            "role" : "output",
+            "default" : "opt",
+            "description" : "Directory for temporary optimization files"
+        },
+
+        "keep_temporary_files" : {
+            "label" : "Keep temporary files",
+            "dtype" : "bool",
+            "default" : false,
+            "description" : ""
+        },
+
+        "kernel_opts" : {
+            "label" : "Kernel specific options",
+            "role" : "group",
+
+            "lammps" : {
+                "label" : "Lammps Kernel options",
+                "role" : "group",
+                "depends_on" : "optimization__kernel=lammps",
+
+                "lammps_executable" : {
+                    "label" : "LAMMPS executable",
+                    "dtype" : "path",
+                    "role" : "input",
+                    "default" : "lmp_serial_mod",
+                    "description" : "The custom LAMMPS executable. Needs to be accessible by the workers"
+                },
+
+                "seed" : {
+                    "label" : "Random seed",
+                    "dtype" : "int",
+                    "default" : "_random",
+                    "description" : "Random seed for optimization, specify to have binary repetible MD runs"
+                },
+
+                "max_neigh" : {
+                    "label" : "Maximum number of neighbors",
+                    "dtype" : "int",
+                    "default" : 2000,
+                    "description" : "Specify the maximum number of neighbors for lammps particles. Larger numbers impact memory usage, but may be necessary if the structures are very uneven."
+                },
+
+                "use_gpu" : {
+                    "label" : "Use GPU",
+                    "dtype" : "bool",
+                    "default" : false,
+                    "description" : "Use gpu options for pair potential"
+                }
+
+            }
+
+        },
+
+        "optimizer_options" : {
+            "label" : "MD options",
+            "role" : "group",
+
+            "mdsteps" : {
+                "label" : "Number of MD steps",
+                "dtype" : "int",
+                "default" : 40000,
+                "description" : "Number of MD steps for each round of optimization"
+            },
+
+            "timestep" : {
+                "label" : "Timestep for MD integration",
+                "dtype" : "float",
+                "default" : 0.25,
+                "description" : ""
+            },
+
+            "tstart" : {
+                "label" : "Starting temperature for simulated annealing",
+                "dtype" : "float",
+                "default" : 500.0,
+                "description" : ""
+            },
+
+            "tstop" : {
+                "label" : "Final temperature for simulated annealing",
+                "dtype" : "float",
+                "default" : 2,
+                "description" : ""
+            },
+
+            "damp" : {
+                "label" : "Damping parameter of thermostat",
+                "dtype" : "float",
+                "default" : 50.0,
+                "description" : ""
+            },
+
+            "max_velocity": {
+                "label" : "Cap bead velocity",
+                "dtype" : "float",
+                "default" : 100.0,
+                "description" : "In presence of extremely large forces, the velocity of beads will be capped to avoid explosion of the simulation"
+            },
+
+            "etol" : {
+                "label" : "Conjugate gradients energy tolerance",
+                "dtype" : "float",
+                "default" : 1e-4,
+                "description" : ""
+            },
+
+            "ftol" : {
+                "label" : "Conjugate gradients force tolerance",
+                "dtype" : "float",
+                "default" : 1e-6,
+                "description" : ""
+            },
+
+            "max_cg_iter" : {
+                "label" : "Maximum conjugate gradients iterations",
+                "dtype" : "int",
+                "default" : 500,
+                "description" : ""
+            },
+
+            "max_cg_eval" : {
+                "label" : "Maximum conjugate gradients evaluations",
+                "dtype" : "int",
+                "default" : 500,
+                "description" : ""
+            },
+            
+            "thermo" : {
+                "label" : "Dhermodynamic steps",
+                "dtype" : "int",
+                "default" : 1000,
+                "description" : "Output thermodynamic info every <thermo> MD timesteps",
+                "hidden" : true
+            },
+            
+            "write" : {
+                "label" : "Dump MD timesteps",
+                "dtype" : "int",
+                "default" : -1,
+                "description" : "Dump coordinates every <write> MD timesteps",
+                "hidden" : true
+            }
+
+        }
+
+    },
+    
+    
+    
+    "parameters" : {
+        "label" : "IGM parameters",
+        "role" : "group",
+        "step_db" : {
+            "label" : "Step database",
+            "dtype" : "path",
+            "default" : "stepdb.sqlite",
+            "description" : "SQLite database file containing execution history",
+            "role" : "output"
+        },
+        "tmp_dir" : {
+            "label" : "Temporary files directory",
+            "dtype" : "path-dir",
+            "role" : "output",
+            "default" : "tmp",
+            "description" : "Directory to store temporary files"
+        },
+        "log" : {
+            "label" : "Log file",
+            "dtype" : "path",
+            "default" : "igm.log",
+            "description" : "Execution log file",
+            "role" : "output"
+        },
+
+        "log_level" : {
+            "label" : "Log level",
+            "dtype" : "str",
+            "default" : "debug",
+            "description" : "Log level (debug, info, warning)"
+        }
+    },
+    
+    
     "parallel" : {
 
         "label" : "Parallel mapping options",

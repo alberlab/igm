@@ -25,7 +25,7 @@ class StepDB(object):
         self.prepare_db(cfg, mode=mode)
 
     def prepare_db(self, cfg, mode='a'):
-        self.db = cfg.get('step_db', None)
+        self.db = cfg["parameters"].get('step_db', None)
         if self.db:
             if os.path.isfile(self.db):
                 logger.debug('db file found')
