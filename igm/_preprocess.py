@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 
 from alabtools.utils import Genome, Index, make_diploid, make_multiploid
-from alabtools.analysis import HssFile
+from alabtools.analysis import HssFile, COORD_DTYPE
 from alabtools import Contactmatrix
 import os.path
 import json
@@ -116,9 +116,24 @@ def Preprocess(cfg):
         hss.set_coordinates(np.zeros((nbead,nstruct,3)))
         hss.close()
 
-    # now create a temporary file for runtime use
-    if not os.path.isfile(cfg['optimization']['structure_output'] + '.tmp'):
-        copyfile( cfg['optimization']['structure_output'], cfg['optimization']['structure_output'] + '.tmp' )
+    # now create a temporary struct-major file for runtime use
+    if not os.path.isfile(cfg['optimization']['structure_output'] + '.T'):
+        hss = HssFile(cfg['optimization']['structure_output'] + '.T', 'a')
+
+        #put everything into hssFile
+        hss.set_nbead(nbead)
+        hss.set_nstruct(nstruct)
+        hss.set_genome(genome)
+        hss.set_index(index)
+        hss.set_radii(radii)
+
+        PACK_SIZE = 1e6
+        pack_struct = max(1, int( PACK_SIZE / nbead / 3 ) )
+
+        hss.create_dataset('coordinates', shape=(nbead, nstruct, 3), dtype=COORD_DTYPE, chunks=(nbead, pack_struct, 3))
+        hss.close()
+
+        #copyfile( cfg['optimization']['structure_output'], cfg['optimization']['structure_output'] + '.tmp' )
 
     # prepare tmp file dir
     if not os.path.exists(cfg['parameters']['tmp_dir']):

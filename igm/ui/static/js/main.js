@@ -1,4 +1,4 @@
-
+var cwd = null;
 var cui = null;
 var igm_log = null;
 var updateLogFlag = true;
@@ -30,6 +30,12 @@ function requestStart() {
     error: (x, e, s) => { console.log(x, e, s); }
   });
 
+}
+
+function autoresizeTextarea(ta, minh=2){
+  var content = $(ta).val();
+  var lines = (content.match(/\r?\n/g) || '').length + 1;
+  $(ta).attr('rows', Math.max(lines+1, minh));
 }
 
 function requestKill() {
@@ -77,9 +83,9 @@ function getLog() {
 
 // ---- home status updates
 function updateRunningStatus() {
-  if (!updateRunningFlag) {
+  var updateRunningStatus = $('#main-div').is(":visible");
+  if (!updateRunningStatus)
     return;
-  }
 
   $.ajax({
     url : '/ajax/',
@@ -93,120 +99,8 @@ function updateRunningStatus() {
   });
 }
 
-// ---- history updates
-function updateHistory() {
-  $.ajax({
-    url : '/ajax/',
-    method : 'POST',
-    data : {
-      'data' : JSON.stringify({ request : 'get_history' })
-    },
-    dataType: 'json',
-    success: (data) => { step_history = data.history; },
-    error: (x, e, s) => { console.log(x, e, s); }
-  });
-}
 
-
-// ---- update the log view
-function updateLogView() {
-  updateLogFlag = $('#log-ta').is(":visible");
-  if (updateLogFlag)
-    $('#log-ta').val(igm_log);
-}
-
-function pad(num, size) {
-    var s = num+"";
-    while (s.length < size) s = "0" + s;
-    return s;
-}
-
-function prettyTime( n ){
-
-  var v = parseInt(n);
-  var x = v % 60;
-  var out = pad(x, 2) + 's';
-  v = Math.floor( v / 60 );
-
-  var units = ['m', 'h', 'd'];
-  var step = [60, 60, 24];
-
-  if ( v > 0 ) {
-    for (var i = 0; i < units.length; i++) {
-      var x = v % step[i];
-      v = Math.floor( v / step[i] );
-      if ( v > 0 )
-        out = pad(x, 2) + units[i] + '&nbsp;' + out;
-      else {
-        out = x + units[i] + '&nbsp;' + out;
-        break;
-      }
-    }
-  }
-  return out;
-
-}
-
-function updateHome(){
-  if (!updateHomeFlag)
-    return;
-  // -------- configuration view
-  if ( ! current_cfg ) {
-    $('#config-status').html(`
-      <div class="text-warning">
-        No configuration file found in the current directory.
-        <a href="#" id="opts-show-link"> Set a configuration file </a>
-      </div>
-    `);
-    //opts-show-link
-    $('#opts-show-link').off('click').click( () => $('#options-tab').tab('show') );
-
-
-  } else {
-    $('#config-status').html(`
-      <div class="text-success">
-        Configuration file: igm-config.json.
-        <a href="#" id="opts-show-link"> Change configuration </a>
-      </div>
-    `);
-    $('#opts-show-link').off('click').click( () => $('#options-tab').tab('show') );
-  }
-
-  // ---- running status view
-  if ( ! current_cfg ) {
-    $('#running-status').html('');
-  } else if ( running_status != last_running_status ) {
-
-    last_running_status = running_status;
-    if ( running_status == 'no' ) {
-      $('#running-status').html(`
-        <div class="text-secondary">
-          IGM is not currently running.
-          <button class="btn btn-primary" id="btn-start-pipeline"> Start pipeline </button>
-        </div>
-      `);
-      $('#btn-start-pipeline').click(requestStart);
-    } else if ( running_status == 'maybe' ) {
-      $('#running-status').html(`
-        <div class="text-warning">
-          IGM seems to be running, but not on this machine. If you are positive IGM is not
-          currently running, you can
-          <a id="btn-delete-processfile"> delete the process file </a>.
-        </div>
-      `);
-    } else if ( running_status == 'yes' ) {
-      $('#running-status').html(`
-        <div class="text-primary">
-          IGM is running.
-          <a class="text-danger" id="btn-stop-pipeline" href="javascript:requestKill();"> Kill the process </a>
-        </div>
-      `);
-    } else {
-      $('#running-status').html('Error determining IGM status');
-    }
-
-  }
-
+function updateHistoryView() {
   // ---- history view
   if ( step_history && step_history.length) {
     var used = [];
@@ -267,6 +161,231 @@ function updateHome(){
     $('#step-history').html('<div class="alert alert-warning"> No history yet </div>');
 
   }
+}
+
+// ---- history updates
+function updateHistory() {
+  var updateHistoryFlag = $('#step-history-view').is(":visible");
+  if (!updateHistoryFlag)
+    return;
+  $.ajax({
+    url : '/ajax/',
+    method : 'POST',
+    data : {
+      'data' : JSON.stringify({ request : 'get_history' })
+    },
+    dataType: 'json',
+    success: (data) => { step_history = data.history; updateHistoryView(); },
+    error: (x, e, s) => { console.log(x, e, s); }
+  });
+}
+
+function clearAll() {
+  igm_log = '';
+  step_history = null;
+  running_status = 'no';
+  $('#log-ta').val('');
+  $('#config-status').html('');
+  $('#config-status').html('');
+  $('#step-history').html('');
+}
+
+// ---- update the log view
+function updateLogView() {
+  updateLogFlag = $('#log-ta').is(":visible");
+  if (updateLogFlag)
+    $('#log-ta').val(igm_log);
+}
+
+function pad(num, size) {
+    var s = num+"";
+    while (s.length < size) s = "0" + s;
+    return s;
+}
+
+function prettyTime( n ){
+
+  var v = parseInt(n);
+  var x = v % 60;
+  var out = pad(x, 2) + 's';
+  v = Math.floor( v / 60 );
+
+  var units = ['m', 'h', 'd'];
+  var step = [60, 60, 24];
+
+  if ( v > 0 ) {
+    for (var i = 0; i < units.length; i++) {
+      var x = v % step[i];
+      v = Math.floor( v / step[i] );
+      if ( v > 0 )
+        out = pad(x, 2) + units[i] + '&nbsp;' + out;
+      else {
+        out = x + units[i] + '&nbsp;' + out;
+        break;
+      }
+    }
+  }
+  return out;
+
+}
+
+function lexSort(prop, reverse=false) {
+  if (reverse)
+    return function(a,b){ return b[prop].localeCompare(a[prop]); };
+  else
+    return function(a,b){ return a[prop].localeCompare(b[prop]); };
+}
+
+function updateFolders(sortby='folder', reverse=false) {
+  var fields = ['name', 'cell_line', 'resolution', 'created'];
+  var headers = ['Alias', 'Cell line', 'Resolution', 'Created on'];
+  $('#igm-folders-thead').html('');
+  for (var i = 0; i < headers.length; i++) {
+    $('#igm-folders-thead').append( $(`<th>${headers[i]}</th>`) );
+  }
+  $.ajax({
+    url : '/ajax/',
+    method : 'POST',
+    data : {
+      'data' : JSON.stringify({ request : 'igm_folders' })
+    },
+    dataType: 'json',
+    success: (data) => {
+      cwd = data.current;
+      if ( data.status === 'ok' ) {
+        var folders = data.folders;
+        if (sortby != 'created')
+          folders.sort(lexSort(sortby, reverse));
+        else {
+          folders.sort()
+          if (reverse)
+            folders.reverse();
+        }
+        $('#igm-folders-tbody').html('');
+        for (var i = 0; i < folders.length; i++) {
+          let f = folders[i];
+          let row = $(`<tr class="igm-folder" path="${f.folder}"></tr>`);
+          for (var j = 0; j < fields.length; j++) {
+            var cf = fields[j];
+            var v = f[cf];
+            if (cf == 'created') {
+              var date = new Date(f['created']*1000);
+              v = date.toLocaleString();
+            } else if (cf == 'name') {
+              if (v == '')
+                v = f.folder;
+            }
+            if (f['folder'] === data.current){
+              row.addClass('table-primary');
+              $('#folder-name-edt').val(f.name);
+              $('#cell-line-edt').val(f.cell_line);
+              $('#resolution-edt').val(f.resolution);
+              $('#folder-notes-edt').val(f.notes);
+              autoresizeTextarea($('#folder-notes-edt'));
+            }
+            row.append( $(`<td>${v}</td>`) );
+          }
+          $('#igm-folders-tbody').append(row);
+        }
+        $('.igm-folder').on('click', function() {
+          chdir($(this).attr('path'));
+        });
+
+        if ( app ) {
+          app.fileBrowser.navigate('.');
+          app.viewer.clear();
+        }
+
+        $('title').text('IGM - ' + data.current);
+        $('#main-header').html(`IGM <small>${data.current}</small>`);
+      }
+    },
+    error: (x, e, s) => { console.log(x, e, s); }
+  });
+}
+
+function chdir(folder) {
+  $.ajax({
+    url : '/ajax/',
+    method : 'POST',
+    data : {
+      'data' : JSON.stringify({ request : 'chdir', path : folder })
+    },
+    dataType: 'json',
+    success: (data) => {
+      if (data.status == 'ok') {
+        clearAll();
+        updateFolders();
+      }
+    },
+    error: (x, e, s) => { console.log(x, e, s); }
+  });
+}
+
+function updateHome(){
+  var updateHomeFlag = $('#main-div').is(":visible");
+  $('#config-status').html('');
+  //$('#running-status').html('');
+  if (!updateHomeFlag)
+    return;
+  // -------- configuration view
+  if ( ! current_cfg ) {
+    $('#config-status').html(`
+      <div class="text-warning">
+        No configuration file found in the current directory.
+        <a href="#" id="opts-show-link"> Set a configuration file </a>
+      </div>
+    `);
+    //opts-show-link
+    $('#opts-show-link').off('click').click( () => $('#options-tab').tab('show') );
+
+
+  } else {
+    $('#config-status').html(`
+      <div class="text-success">
+        Configuration file: igm-config.json.
+        <a href="#" id="opts-show-link"> Change configuration </a>
+      </div>
+    `);
+    $('#opts-show-link').off('click').click( () => $('#options-tab').tab('show') );
+  }
+
+  // ---- running status view
+  if ( ! current_cfg ) {
+    $('#running-status').html('');
+  } else if ( running_status != last_running_status ) {
+
+    last_running_status = running_status;
+    if ( running_status == 'no' ) {
+      $('#running-status').html(`
+        <div class="text-secondary">
+          IGM is not currently running.
+          <button class="btn btn-primary" id="btn-start-pipeline"> Start pipeline </button>
+        </div>
+      `);
+      $('#btn-start-pipeline').click(requestStart);
+    } else if ( running_status == 'maybe' ) {
+      $('#running-status').html(`
+        <div class="text-warning">
+          IGM seems to be running, but not on this machine. If you are positive IGM is not
+          currently running, you can
+          <a id="btn-delete-processfile"> delete the process file </a>.
+        </div>
+      `);
+    } else if ( running_status == 'yes' ) {
+      $('#running-status').html(`
+        <div class="text-primary">
+          IGM is running.
+          <a class="text-danger" id="btn-stop-pipeline" href="javascript:requestKill();"> Kill the process </a>
+        </div>
+      `);
+    } else {
+      $('#running-status').html('Error determining IGM status');
+    }
+
+  }
+
+
 
 }
 
@@ -294,6 +413,9 @@ $(document).ready( function() {
       $(item).addClass('form-check-input');
 
     });
+
+    // show only the appropriate controls
+    cui.setDependencies();
 
     // bind save on button
 
@@ -350,6 +472,8 @@ $(document).ready( function() {
             .addClass('btn-primary'),
           10000);
       }
+
+      console.log(cui.getConfig());
 
       $.ajax({
 
@@ -466,9 +590,59 @@ $(document).ready( function() {
         method : 'POST',
         data : { request : 'get_cfg' },
         dataType: 'json',
-        success: (data) => { current_cfg = data }
+        success: (data) => {
+          current_cfg = data;
+          cui.setDependencies();
+        }
       });
     };
+
+    $('#save-folder-data-btn').click( function() {
+
+      var metadata = {
+        folder: cwd,
+        name: $('#folder-name-edt').val(),
+        cell_line: $('#cell-line-edt').val(),
+        resolution: $('#resolution-edt').val(),
+        notes: $('#folder-notes-edt').val()
+      };
+
+      $.ajax({
+        url : '/ajax/',
+        method : 'POST',
+        data : {
+          'data' : JSON.stringify({ request : 'save_metadata', metadata : metadata })
+        },
+        dataType: 'json',
+        success: (data) => {
+          if (data.status == 'ok') {
+            clearAll();
+            updateFolders();
+          }
+        },
+        error: (x, e, s) => { console.log(x, e, s); }
+      });
+
+    })
+
+
+  $('#folder-notes-edt').on('input change', function() {
+    autoresizeTextarea($('#folder-notes-edt'));
+  });
+
+
+  $('#left-menu').width($('#left-menu-btn').outerWidth());
+  $('#folder-navigator').hide();
+  $('#left-menu-btn').click( function() {
+    $('#folder-navigator').toggle();
+    if( $('#folder-navigator').is(':visible') ) {
+      $('#left-menu-btn').html(' <i class="fas fa-angle-left"></i> ');
+    } else {
+      $('#left-menu-btn').html(' <i class="fas fa-angle-right"></i> ');
+    }
+  });
+
+  updateFolders();
 
   getLog();
   setInterval(getLog, interfaceTimeout);
@@ -483,6 +657,16 @@ $(document).ready( function() {
   setInterval(updateHistory, historyTimeout);
 
   setInterval(updateHome, interfaceTimeout);
+
+  /*update stuff when changing tab*/
+  $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+    updateLogView();
+    updateRunningStatus();
+    updateHistory();
+    updateHome();
+  })
+
+
 
 }); // document.ready
 

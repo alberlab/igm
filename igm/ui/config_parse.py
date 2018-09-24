@@ -67,7 +67,7 @@ def validate_value(value, dtype, subdtype=None, alen=None):
     else:
         raise ValueError()
 
-def save_cfg(data):
+def save_cfg(data, folder='.'):
     warnings = []
     errors = []
     cfg = {}
@@ -125,7 +125,8 @@ def save_cfg(data):
         r['cfg'] = None
         return r
     else:
-        with open('igm-config.json', 'w') as f:
+        cfgf = os.path.join(folder, 'igm-config.json')
+        with open(cfgf, 'w') as f:
             json.dump(cfg, f, indent=4)
         r['status'] = 'ok'
         r['cfg'] = cfg

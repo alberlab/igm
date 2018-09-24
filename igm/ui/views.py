@@ -35,8 +35,11 @@ def history(cfgf):
 
     cfgf = os.path.abspath(cfgf)
     cfg = Config(cfgf)
-    db = StepDB(cfg)
-    h = db.get_history()
+    try:
+        db = StepDB(cfg, mode='r')
+        h = db.get_history()
+    except OSError:
+        h = []
     for i in range(len(h)):
         h[i]['elapsed'] = pretty_time(h[i]['time'] - h[0]['time'])
         h[i]['step_no'] = i

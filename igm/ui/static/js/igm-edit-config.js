@@ -225,7 +225,7 @@ function ConfigUI(root_element, schema) {
       // array input
       else if ( item.dtype == 'array' ) {
 
-        input = $('<div class="igm-array-edit" name="${curr_path}"></div>');
+        input = $(`<div class="igm-array-edit" name="${curr_path}"></div>`);
 
         var sublabels = item.sublabels || new Array(item.length);
         var defaults = item.default || new Array(item.length);
@@ -324,7 +324,7 @@ function ConfigUI(root_element, schema) {
 
     } else {
 
-      if ( $(`[name=${curr_path}]`).is(':visible') ) {
+      if ( $(`[name=${curr_path}]`).is(':visible') || $(`[name=${curr_path}-0]`).is(':visible') ) {
 
         if ( item.dtype == 'array' ) {
 

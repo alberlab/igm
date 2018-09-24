@@ -12,6 +12,7 @@ from ..model import Model, Particle
 from ..restraints import Polymer, Envelope, Steric
 from ..utils import HmsFile
 from ..parallel.async_file_operations import FilePoller
+from ..utils.log import logger
 
 class RelaxInit(StructGenStep):
 
@@ -20,7 +21,7 @@ class RelaxInit(StructGenStep):
         self.tmp_file_prefix = "relax"
         self.file_poller = None
         self.argument_list = range(self.cfg["model"]["population_size"])
-        self.hssfilename = self.cfg["optimization"]["structure_output"] + '.tmp'
+        self.hssfilename = self.cfg["optimization"]["structure_output"] + '.T'
         self.hss = HssFile(self.hssfilename, 'a', driver='core')
         self.out_data = {
             'restraints': 0.0,
@@ -154,8 +155,19 @@ class RelaxInit(StructGenStep):
             violation_score = total_violations / total_restraints
 
         self.hss.set_violation(violation_score)
-
+        n_struct = self.hss.nstruct
         self.hss.close()
+
+        PACK_SIZE = 1e6
+        pack_beads = max(1, int( PACK_SIZE / n_struct / 3 ) )
+
+        logger.info('repacking...')
+        cmd = 'h5repack -l coordinates:CHUNK={:d}x{:d}x3 {:s} {:s}'.format(
+            pack_beads, n_struct, self.hssfilename, self.hssfilename + '.swap'
+        )
+        os.system(cmd)
+        logger.info('done.')
+        os.rename(self.hssfilename + '.swap', self.cfg.get("optimization/structure_output"))
 
         # swap temporary and current hss files
         os.rename(self.hssfilename, self.hssfilename + '.swap')
@@ -168,3 +180,12 @@ class RelaxInit(StructGenStep):
                 self.cfg["optimization"]["structure_output"],
                 self.intermediate_name()
             )
+
+    def cleanup(self):
+        try:
+            self.hss.close()
+        except:
+            pass
+
+    def __del__(self):
+        self.cleanup()

@@ -33,19 +33,19 @@ actdist_fmt_str = "%6d %6d %10.2f %.5f"
 
 class ActivationDistanceStep(Step):
     def __init__(self, cfg):
-        super(ActivationDistanceStep, self).__init__(cfg)
-        
+
         # prepare the list of sigmas in the runtime status
         if 'sigma_list' not in cfg["runtime"]["Hi-C"]:
             cfg["runtime"]["Hi-C"]['sigma_list'] = cfg["restraints"]["Hi-C"]["sigma_list"][:]
         if "sigma" not in cfg["runtime"]["Hi-C"]:
             cfg["runtime"]["Hi-C"]["sigma"] = cfg["runtime"]["Hi-C"]["sigma_list"].pop(0)
-            
+        super(ActivationDistanceStep, self).__init__(cfg)
+
     def name(self):
         s = 'ActivationDistanceStep (sigma={:.2f}%, iter={:s})'
         return s.format(
-            self.cfg['runtime']['Hi-C']['sigma'] * 100.0,
-            str( self.cfg['runtime'].get('opt_iter', 'N/A') )
+            self.cfg.get('runtime/Hi-C/sigma') * 100.0,
+            str( self.cfg.get('runtime/opt_iter', 'NA') )
         )
 
     def setup(self):
@@ -53,14 +53,14 @@ class ActivationDistanceStep(Step):
         sigma = self.cfg['runtime']['Hi-C']["sigma"]
         input_matrix = Contactmatrix(dictHiC["input_matrix"]).matrix
         n = input_matrix.shape[0]
-        last_actdist_file = self.cfg['runtime']['Hi-C'].get("actdist_file", None)
-        batch_size = dictHiC.get('batch_size', 1000)
+        last_actdist_file = self.cfg.get('runtime/Hi-C').get("actdist_file", None)
+        batch_size = self.cfg.get('restraints/Hi-C/batch_size', 1000)
 
         self.tmp_extensions = [".npy", ".tmp"]
 
         self.tmp_dir = make_absolute_path(
-            self.cfg['restraints']['Hi-C'].get('tmp_dir', 'actdist'),
-            self.cfg['parameters']['tmp_dir']
+            self.cfg.get('restraints/Hi-C/tmp_dir', 'actdist'),
+            self.cfg.get('parameters/tmp_dir')
         )
 
         self.keep_temporary_files = dictHiC.get("keep_temporary_files", False)
@@ -111,7 +111,7 @@ class ActivationDistanceStep(Step):
     def task(batch_id, cfg, tmp_dir):
 
         dictHiC = cfg['restraints']['Hi-C']
-        hss     = HssFile(cfg["optimization"]["structure_output"], 'r')
+        hss     = HssFile(cfg.get("optimization/structure_output"), 'r')
 
         # read params
         fname = os.path.join(tmp_dir, '%d.in.npy' % batch_id)
@@ -182,8 +182,8 @@ class ActivationDistanceStep(Step):
         Fix the dictionary values when already completed
         '''
         self.tmp_dir = make_absolute_path(
-            self.cfg['restraints']['Hi-C'].get('actdist_dir', 'actdist'),
-            self.cfg['optimization']['tmp_dir']
+            self.cfg.get('restraints/Hi-C/tmp_dir', 'actdist'),
+            self.cfg.get('parameters/tmp_dir')
         )
         self.actdist_file = os.path.join(self.tmp_dir, "actdist.hdf5")
         self.cfg['runtime']['Hi-C']["actdist_file"] = self.actdist_file

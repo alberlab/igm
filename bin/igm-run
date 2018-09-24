@@ -59,18 +59,23 @@ while True:
     iter_steps = []
     if 'Hi-C' in cfg['restraints']:
         iter_steps.append(igm.ActivationDistanceStep)
-        
+
     if 'FISH' in cfg['restraints']:
         iter_steps.append(igm.FishAssignmentStep)
-        
+
     if 'sprite' in cfg['restraints']:
         iter_steps.append(igm.SpriteAssignmentStep)
-        
+
     if 'DamID' in cfg['restraints']:
         iter_steps.append(igm.DamidActivationDistanceStep)
 
     # always run a modeling step
     iter_steps.append(igm.ModelingStep)
+
+    # setup the required steps for evaluations
+
+    if cfg.get("restraints/Hi-C/run_evaluation_step", False):
+        iter_steps.append(igm.HicEvaluationStep)
 
     # run the required steps
     for StepClass in iter_steps:
@@ -78,23 +83,36 @@ while True:
         step.run()
 
     # check the violations
-    if ((opt_iter == 0) or (opt_iter >= min_iter)) and (cfg.get("runtime/violation_score") < cfg.get("optimization/max_violations")):
-        # no violations, go to next step or finish
-        opt_iter = 0
-        if 'Hi-C' in cfg['restraints'] and len( cfg["runtime"]["Hi-C"]["sigma_list"] ) != 0:
+
+    # the population is acceptable if the violations are under a certain value
+    is_acceptable = cfg.get("runtime/violation_score") < cfg.get("optimization/max_violations")
+
+    # the step is potentially the last one unless there are more sigmas in HiC sigma list
+    is_hic_incomplete = ( 'Hi-C' in cfg['restraints'] ) and ( len( cfg.get("runtime/Hi-C/sigma_list") ) != 0 )
+    is_hic_done = not is_hic_incomplete
+    force_next_iteration = (opt_iter < min_iter) and ( opt_iter != 0 )
+    if cfg.get('optimization/force_last_iteration', False) and is_hic_done and ( opt_iter == 0 ):
+        force_next_iteration = True
+
+    if is_acceptable and not force_next_iteration:
+        if is_hic_incomplete:
             # we are done with this sigma but still have more to go
             del cfg["runtime"]["Hi-C"]["sigma"]
+            opt_iter = 0
         else:
-            # no violations, no more work to do
+            # we are done
             igm.logger.info('Pipeline completed')
             break
     else:
-        # if there are violations, try to optimize again
         opt_iter += 1
         if max_iter is not None:
             if opt_iter >= max_iter:
                 igm.logger.critical('Maximum number of iterations reached (%d)' % max_iter)
                 break
+
+        if is_acceptable:
+            igm.logger.info('Forcing next iteration')
         igm.logger.info('iteration # %d' % opt_iter)
+
 
 

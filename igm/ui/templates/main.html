@@ -15,74 +15,311 @@
 <script type="text/javascript" src="{{ static_url("js/igm-edit-config.js") }}"></script>
 <script type="text/javascript" src="{{ static_url("js/main.js") }}"></script>
 
+<!--
+<script src="js/bootstrap-slider.min.js"></script>
+<script src="libs/jszip.min.js"></script>
+<script src="libs/FileSaver.min.js"></script>
+ -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/96/three.min.js"></script>
+<script src="http://threejs.org/examples/js/controls/TrackballControls.js"></script>
+<script src="http://threejs.org/examples/js/utils/BufferGeometryUtils.js"></script>
+
+<script src="{{ static_url("js/genome_visualizer/util.js") }}"></script>
+
+<script src="{{ static_url("js/genome_visualizer/filebrowser.js") }}"></script>
+<link href="{{ static_url("css/filebrowser.css") }}" rel="stylesheet">
+
+<script src="{{ static_url("js/genome_visualizer/interface.js") }}"></script>
+<script src="{{ static_url("js/genome_visualizer/viewer.js") }}"></script>
+<script src="{{ static_url("js/genome_visualizer/genomeapp.js") }}"></script>
+
+
+<script src="{{ static_url("js/genome_visualizer/main.js") }}"></script>
+
 {% end %}
 
 {% block title %}IGM{% end %}
 
 {% block body %}
 
+
 <div class="row">
   <div class="col">
-    <h1>
+    <h1 id='main-header'>
       IGM
     </h1>
 
-    <ul class="nav nav-tabs" id="myTab" role="tablist">
-      <li class="nav-item">
-        <a class="nav-link active" id="home-tab" data-toggle="tab" href="#home" role="tab" aria-controls="home" aria-selected="true">Home</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" id="options-tab" data-toggle="tab" href="#options" role="tab" aria-controls="options" aria-selected="false">Run Options</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" id="log-tab" data-toggle="tab" href="#log" role="tab" aria-controls="log" aria-selected="false">Log</a>
-      </li>
-    </ul>
-    <div class="tab-content" id="myTabContent">
-
-      <!-- HOME -->
-      <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
-        
-        <div id="main-div">
-          Working directory: {% raw root_directory %}
-
-          <div id="config-status">
-          </div>
-
-          <div id="running-status">
-          </div>
-
-          <div id="step-history">
-          </div>
-
-          <div id="data-analysis">
+    <div id="left-menu">
+      <button class="btn btn-outline-warning" id="left-menu-btn"> <i class="fas fa-angle-right"></i> </button>
+      <div class="rotation-wrapper-outer">
+        <div class="rotation-wrapper-inner">
+          <div class="left-rotated">
+            <span style="margin:1em;">IGM&nbsp;Folders</span>
           </div>
         </div>
-
       </div>
 
-      <!-- PARAMETERS -->
-      <div class="tab-pane fade" id="options" role="tabpanel" aria-labelledby="options-tab">
-        <div id="cfg-form-content"></div>
-        <div style="text-align: right;">
-          <button name="savecfg" id="btn-save-cfg" class="btn btn-primary btn-lg">Save</button>
-        </div>
-      </div>
-
-      <!-- LOG -->
-      <div class="tab-pane fade" id="log" role="tabpanel" aria-labelledby="log-tab">
-        <textarea id="log-ta" rows=100 cols=100 readonly></textarea>
-      </div>
-
-    </div> <!-- tab-content -->
-    <div id="bottom-spacer">&nbsp;</div>
-    <div id="help-wrapper">
-      <div id="dragbar"></div>
-      <button type="button" class="close" aria-label="Close" id="btn-help-close">
-        <span aria-hidden="true">&times;</span>
-      </button>
-      <div id="help-content"></div>
     </div>
+
+    <div class="row" style="height: 100%; min-height: 100vh;" id="central-content">
+        <div id="folder-navigator" class="col">
+          <h3>IGM folders</h3> <small><a href="javascript:updateFolders();"> (reload) </a></small>
+          <div id="igm-folders-div table-responsive">
+            <table class="table">
+              <thead id="igm-folders-thead"></thead>
+              <tbody id="igm-folders-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="igm-content" class="col">
+
+          <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item">
+              <a class="nav-link active" id="home-tab" data-toggle="tab" href="#home" role="tab" aria-controls="home" aria-selected="true">Overview</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" id="step-history-view-tab" data-toggle="tab" href="#step-history-view" role="tab" aria-controls="step-history-view" aria-selected="false">Performance</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" id="options-tab" data-toggle="tab" href="#options" role="tab" aria-controls="options" aria-selected="false">Parameters</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" id="log-tab" data-toggle="tab" href="#log" role="tab" aria-controls="log" aria-selected="false">Log</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" id="structure-visualizer-tab" data-toggle="tab" href="#structure-visualizer" role="tab" aria-controls="structure-visualizer" aria-selected="false">Visualizer</a>
+            </li>
+          </ul>
+          <div class="tab-content" id="myTabContent">
+
+
+             <!-- STEP HISTORY -->
+            <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
+
+              <div id="main-div">
+
+                <div id="config-status">
+                </div>
+
+                <div id="running-status">
+                </div>
+
+                <div id="igm-metadata">
+                  <div class="form-group">
+                    <label class="form-label">Folder Alias</label>
+                    <input type="text" name="folder-name" class="form-control" id="folder-name-edt">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Cell Line</label>
+                    <input type="text" name="cell-line" class="form-control" id="cell-line-edt">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Resolution</label>
+                    <input type="text" name="resolution" class="form-control" id="resolution-edt">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea name="folder-notes" class="form-control" id="folder-notes-edt"></textarea>
+                  </div>
+                  <div style="text-align: right;">
+                    <button id="save-folder-data-btn" class="btn btn-outline-primary ">Save</button>
+                  </div>
+                </div>
+
+                <div id="data-analysis">
+                </div>
+              </div>
+
+            </div>
+
+
+            <!-- STEP HISTORY -->
+            <div class="tab-pane fade" id="step-history-view" role="tabpanel" aria-labelledby="step-history-view-tab">
+
+
+              <div id="step-history">
+              </div>
+
+
+            </div>
+
+            <!-- PARAMETERS -->
+            <div class="tab-pane fade" id="options" role="tabpanel" aria-labelledby="options-tab">
+              <div id="cfg-form-content"></div>
+              <div style="text-align: right;">
+                <button name="savecfg" id="btn-save-cfg" class="btn btn-primary btn-lg">Save</button>
+              </div>
+            </div>
+
+            <!-- LOG -->
+            <div class="tab-pane fade" id="log" role="tabpanel" aria-labelledby="log-tab">
+              <textarea id="log-ta" rows="25" cols="80" readonly></textarea>
+            </div>
+
+
+      <!-- ################################### -->
+
+
+            <div class="tab-pane fade" id="structure-visualizer" role="tabpanel" aria-labelledby="structure-visualizer-tab">
+              <style>
+              .slider-selection {
+              -webkit-box-shadow: none;
+              box-shadow: none;
+              }
+              </style>
+              <div class="row">
+                <div class="col">
+                  <ul class="nav">
+                    <li class="nav-item">
+                      <a class="nav-link toolbar-link load-link" href="#" data-toggle="modal" data-target="#upload-dialog">
+                        <i class="fa fa-folder-open text-success" aria-hidden="true"></i> Select population
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link toolbar-link disabled" href="#" id="download-link">
+                        <i class="fa fa-cloud-download text-info" aria-hidden="true"></i> Download PDB
+                      </a>
+                    </li>
+                    <!-- <li class="nav-item">
+                      <a class="nav-link toolbar-link disabled" href="#" data-toggle="modal" data-target="#log-dialog">
+                        <i class="fa fa-file-text text-warning" aria-hidden="true"></i> Show logs
+                      </a>
+                    </li> -->
+                  </ul>
+                </div>
+              </div>
+
+              <div class="row">
+
+                <div class="col-12 col-md-8 text-center">
+                  <div id="viewer" style="width:100%;"></div>
+                  <div id="trajectory-controls" style="text-align: center;">
+                    <button id="traj-prev" class="btn btn-outline-secondary"><i class="fa fa-chevron-left" aria-hidden="true"></i> Previous Structure</button>
+                    <span id="traj-frame" style='margin-right: 2em; margin-left: 2em;'></span>
+                    <button id="traj-next" class="btn btn-outline-secondary">Next Structure <i class="fa fa-chevron-right" aria-hidden="true"></i></button>
+                  </div>
+                </div>
+
+                <div class="col-12 col-md-4" id="control-window">
+                  <div class="row">
+                    <div class="col col-sm">
+                      <form id="jobform" action="#" method="post" enctype="multipart/form-data">
+                        <div class="row mb-4" id="chain-selector-form">
+                          <div class="col col-4">
+                            Load track (BED format)
+                          </div>
+                          <div class="col col-8">
+                            <input type="file" class="form-control" id="track-upload">
+                            <button type="button" class="btn btn-outline-primary" id="track-upload-btn">Load </button>
+                          </div>
+                        </div>
+
+                        <div class="row mb-4">
+                          <div class="col col-4">
+                            View
+                          </div>
+                          <div class="col col-4">
+                            <div class="form-check form-check-inline">
+                              <label class="form-check-label">
+                                <input type="checkbox" name="viewtype" id="tube-box" class="form-check-input" checked>
+                                Tube
+                              </label>
+                            </div>
+                          </div>
+                          <div class="col col-4">
+                            <div class="form-check form-check-inline">
+                              <label class="form-check-label">
+                                <input type="checkbox" name="viewtype" id="sphere-box" class="form-check-input">
+                                Sphere
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="row mb-4">
+                          <div class="col col-4">
+                            Select structure
+                          </div>
+
+                          <div class="col col-8">
+                            <input type="number" class="form-control" id="structure-select-ctrl">
+
+                          </div> <!-- col col-8 -->
+                        </div> <!-- row mb-4 -->
+
+                        <div class="row mb-4">
+                          <div class="col col-4">
+                            Select chromosome
+                          </div>
+
+                          <div class="col col-8">
+                            <select class="form-control" id="chromosome-ctrl">
+
+                            </select>
+
+                          </div> <!-- col col-8 -->
+                        </div> <!-- row mb-4 -->
+
+                        <a class="" data-toggle="collapse" href="#chromosome-ctrl-div" role="button" aria-expanded="true" aria-controls="chromosome-ctrl-div">
+                          <i class="fa fa-chevron-right" aria-hidden="true"></i> Fine chromosome control
+                        </a>
+
+                        <div id="chromosome-ctrl-div"></div>
+
+                        <div id="submission_status" class="collapse">
+
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                  <hr>
+                  <div class="row">
+                    <div class="col">
+                      <div id="result-info">&nbsp;</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="modal fade" id="upload-dialog" tabindex="-1" role="dialog" aria-labelledby="upload-dialog-label" aria-hidden="true">
+                <form id="upload-form">
+                  <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="upload-dialog-label"><i class="fa fa-folder-open" aria-hidden="true"></i>  Select a hss file</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                          <span aria-hidden="true">&times;</span>
+                        </button>
+                      </div>
+                      <div class="modal-body">
+                        <div class="form-group">
+                          <div id="file-browser"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+             </div>
+      <!-- ################################### -->
+            </div>
+
+
+          </div> <!-- tab-content -->
+          <div id="bottom-spacer">&nbsp;</div>
+          <div id="help-wrapper">
+            <div id="dragbar"></div>
+            <button type="button" class="close" aria-label="Close" id="btn-help-close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <div id="help-content"></div>
+          </div>
+        </div> <!-- igm-content -->
+
+    </div> <!-- central-content (right of the left menu) -->
   </div>
 </div>
 {% end %}

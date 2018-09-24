@@ -50,8 +50,9 @@ class ModelingStep(StructGenStep):
             'violations': 0.0
         }
 
-        self.hssfilename = self.cfg["optimization"]["structure_output"] + '.tmp'
-        self.hss = HssFile(self.hssfilename, 'a', driver='core')
+        #self.hssfilename = self.cfg["optimization"]["structure_output"] + '.tmp'
+        self.hssfilename = self.cfg["optimization"]["structure_output"] + '.T'
+        self.hss = HssFile(self.hssfilename, 'a')
         self.file_poller = None
 
     def _run_poller(self):
@@ -124,14 +125,14 @@ class ModelingStep(StructGenStep):
         model.addRestraint(ex)
 
         #add nucleus envelop restraint
-        if cfg['model']['restraints']['envelope']['nucleus_shape'] == 'sphere':
-            ev = Envelope(cfg['model']['restraints']['envelope']['nucleus_shape'],
-                          cfg['model']['restraints']['envelope']['nucleus_radius'],
-                          cfg['model']['restraints']['envelope']['nucleus_kspring'])
+        shape = cfg.get('model/restraints/envelope/nucleus_shape')
+        envelope_k = cfg.get('model/restraints/envelope/nucleus_kspring')
+        if shape == 'sphere':
+            radius = cfg.get('model/restraints/envelope/nucleus_radius')
+            ev = Envelope(shape, radius, envelope_k)
         elif cfg['model']['restraints']['envelope']['nucleus_shape'] == 'ellipsoid':
-            ev = Envelope(cfg['model']['restraints']['envelope']['nucleus_shape'],
-                          cfg['model']['restraints']['envelope']['nucleus_semiaxes'],
-                          cfg['model']['restraints']['envelope']['nucleus_kspring'])
+            semiaxes = cfg.get('model/restraints/envelope/nucleus_semiaxes')
+            ev = Envelope(shape, semiaxes, envelope_k)
         model.addRestraint(ev)
 
         #add consecutive polymer restraint
@@ -145,10 +146,9 @@ class ModelingStep(StructGenStep):
 
         #add Hi-C restraint
         if "Hi-C" in cfg['restraints']:
-            dictHiC = cfg['restraints']['Hi-C']
-            actdist_file = cfg['runtime']['Hi-C']['actdist_file']
-            contact_range = dictHiC.get( 'contact_range', 2.0 )
-            k = dictHiC.get( 'contact_kspring', 0.05)
+            actdist_file = cfg.get('runtime/Hi-C/actdist_file')
+            contact_range = cfg.get( 'restraints/Hi-C/contact_range', 2.0 )
+            k = cfg.get( 'restraints/Hi-C/contact_kspring', 0.05)
 
             hic = HiC(actdist_file, contact_range, k)
             model.addRestraint(hic)
@@ -172,7 +172,7 @@ class ModelingStep(StructGenStep):
         model.optimize(cfg)
 
         tol = cfg.get('optimization/violation_tolerance', 0.01)
-        
+
         ofname = os.path.join(tmp_dir, 'mstep_%d.hms' % struct_id)
         with HmsFile(ofname, 'w') as hms:
             hms.saveModel(struct_id, model)
@@ -193,11 +193,11 @@ class ModelingStep(StructGenStep):
     def set_structure(self, hss, i, data):
         fname = "{}_{}.hms".format(self.tmp_file_prefix, i)
         # dammit, some times the nfs is not in sync, no matter the poller
-        hms = HmsFile( os.path.join( self.tmp_dir, fname ), 'r' )
-        crd = hms.get_coordinates()
-        hss.set_struct_crd(i, crd)
-        data['restraints'] += hms.get_total_restraints()
-        data['violations'] += hms.get_total_violations()
+        with HmsFile( os.path.join( self.tmp_dir, fname ), 'r' ) as hms:
+            crd = hms.get_coordinates()
+            hss.set_struct_crd(i, crd)
+            data['restraints'] += hms.get_total_restraints()
+            data['violations'] += hms.get_total_violations()
 
 
     def reduce(self):
@@ -233,19 +233,31 @@ class ModelingStep(StructGenStep):
             violation_score = total_violations / total_restraints
 
         self.hss.set_violation(violation_score)
+        n_struct = self.hss.nstruct
 
         self.hss.close()
 
         # swap temporary and current hss files
-        os.rename(self.hssfilename, self.hssfilename + '.swap')
-        os.rename(self.cfg["optimization"]["structure_output"], self.hssfilename)
-        os.rename(self.hssfilename + '.swap', self.cfg["optimization"]["structure_output"])
+        # os.rename(self.hssfilename, self.hssfilename + '.swap')
+        # os.rename(self.cfg["optimization"]["structure_output"], self.hssfilename)
+        # os.rename(self.hssfilename + '.swap', self.cfg["optimization"]["structure_output"])
+
+        PACK_SIZE = 1e6
+        pack_beads = max(1, int( PACK_SIZE / n_struct / 3 ) )
+
+        logger.info('repacking...')
+        cmd = 'h5repack -l coordinates:CHUNK={:d}x{:d}x3 {:s} {:s}'.format(
+            pack_beads, n_struct, self.hssfilename, self.hssfilename + '.swap'
+        )
+        os.system(cmd)
+        logger.info('done.')
+        os.rename(self.hssfilename + '.swap', self.cfg.get("optimization/structure_output"))
 
         # save the output file with a unique file name if requested
         if self.keep_intermediate_structures:
             copyfile(
                 self.cfg["optimization"]["structure_output"],
-                self.intermediate_name()
+                self.intermediate_name() + '.hss'
             )
 
         # finally set the violation score in the runtime
@@ -274,5 +286,9 @@ class ModelingStep(StructGenStep):
             self.cfg["optimization"]["structure_output"],
         ] + additional_data )
 
-
+    def __del__(self):
+        try:
+            self.hss.close()
+        except:
+            pass
 #==

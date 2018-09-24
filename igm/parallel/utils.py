@@ -5,11 +5,13 @@ def batch(sequence, n=1):
 
 def split_evenly(sequence, n=1):
     l = len(sequence)
+    if l == 0:
+        return []
     n = min(l, n)
 
     k = l // n
-    if n % l != 0:
+    if l % n != 0:
         k += 1
 
     for ndx in range(0, l, k):
-        yield sequence[ndx:min(ndx + n, l)]
+        yield sequence[ndx:min(ndx + k, l)]

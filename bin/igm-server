@@ -17,8 +17,9 @@ import atexit
 
 import igm.ui
 from igm.ui.config_parse import save_cfg, schema
-from igm.ui.communication import history, igm_is_running, kill_igm, readlog
+from igm.ui.communication import history, igm_is_running, kill_igm, readlog, get_structure, save_metadata
 from igm.ui.navigation import list_directory
+from igm.ui.folders_database import folder_info, register_folder, unregister_folder
 
 template_dir = os.path.join( os.path.dirname( os.path.abspath(igm.ui.__file__) ),  'templates' )
 loader = template.Loader(template_dir)
@@ -35,16 +36,14 @@ class BaseHandler(tornado.web.RequestHandler):
 class AjaxHandler(BaseHandler):
     def post(self):
 
+        global cwd
+
         if not self.current_user:
             return
 
         reqdata = json.loads(self.get_argument('data'))
-        if reqdata['request'] == 'navigate':
-            self.write(
-                json.dumps(
-                    list_directory(reqdata['path'], cwd)
-                )
-            )
+
+
         if reqdata['request'] == 'get_tree':
             self.write(
                 { root.replace(cwd, '') : {'dirs': dirs, 'files': files}
@@ -52,42 +51,43 @@ class AjaxHandler(BaseHandler):
             )
         if reqdata['request'] == 'save_cfg':
             try:
-                r = save_cfg(reqdata['cfgdata'])
+                r = save_cfg(reqdata['cfgdata'], cwd)
                 self.write(json.dumps(r))
             except:
                 self.write({'status': 'failed', 'reason': traceback.format_exc()})
 
         if reqdata['request'] == 'get_cfg':
             try:
-                current_cfg = json.load(open('igm-config.json'))
+                cfgf = os.path.join(cwd, 'igm-config.json')
+                current_cfg = json.load(open(cfgf))
             except:
                 current_cfg = None;
             self.write(json.dumps(current_cfg))
 
         if reqdata['request'] == 'get_log':
             try:
-                log = readlog()
+                log = readlog(cwd)
             except:
                 log = None;
             self.write(json.dumps({'log' : log}))
 
         if reqdata['request'] == 'is_running':
             try:
-                status = igm_is_running()
+                status = igm_is_running(cwd)
             except:
                 status = 'fail';
             self.write(json.dumps({'status' : status}))
 
         if reqdata['request'] == 'get_history':
             try:
-                h = history()
+                h = history(cwd)
             except:
                 h = []
             self.write(json.dumps({'history' : h}))
 
         if reqdata['request'] == 'start_pipeline':
             try:
-                if igm_is_running() == 'yes':
+                if igm_is_running(cwd) == 'yes':
                     raise RuntimeError('IGM is already running')
                 import subprocess
                 subprocess.Popen(['nohup igm-run igm-config.json &> igm-log.txt < /dev/null &'], shell=True)
@@ -98,11 +98,50 @@ class AjaxHandler(BaseHandler):
 
         if reqdata['request'] == 'kill_pipeline':
             try:
-                kill_igm()
+                kill_igm(cwd)
                 out = 'ok'
             except:
                 out = traceback.format_exc()
             self.write(json.dumps({'status' : out}))
+
+        if reqdata['request'] == 'get_structure':
+            try:
+                r = get_structure(reqdata['path'], reqdata['n'], cwd)
+                self.write(json.dumps(r))
+            except:
+                self.write({'status': 'failed', 'reason': traceback.format_exc()})
+
+        if reqdata['request'] == 'listhss':
+            try:
+                r = list_directory(reqdata['path'], root=cwd, ext=['.hss', '.hss.T'])
+                self.write(json.dumps(r))
+            except:
+                self.write({'status': 'failed', 'reason': traceback.format_exc()})
+
+        if reqdata['request'] == 'igm_folders':
+            try:
+                r = folder_info()
+                self.write(json.dumps({'status': 'ok', 'folders': r, 'current': cwd}))
+            except:
+                self.write({'status': 'failed', 'reason': traceback.format_exc()})
+
+        if reqdata['request'] == 'save_metadata':
+            try:
+                save_metadata(reqdata['metadata'], cwd)
+                self.write(json.dumps({'status': 'ok', 'folder': cwd}))
+            except:
+                self.write({'status': 'failed', 'reason': traceback.format_exc()})
+
+        if reqdata['request'] == 'chdir':
+            try:
+                info = folder_info()
+                folders = { i['folder'] for i in info }
+                if reqdata['path'] in folders:
+                    cwd = reqdata['path']
+                    os.chdir(cwd)
+                    self.write({'status': 'ok', 'path': reqdata['path']})
+            except:
+                self.write({'status': 'failed', 'reason': traceback.format_exc()})
 
 
 class MainHandler(BaseHandler):
@@ -252,6 +291,19 @@ if __name__ == "__main__":
     print('The secure token for this session is:', token)
 
     print ('##### IGM server starting #####')
+
+    # check if we need to register the current directory
+    # we use the realpath to compare them, and if we find it, we use the registered path
+    folders = [f['folder'] for f in folder_info()]
+    cwd_in_folders = False
+    for f in folders:
+        if os.path.realpath(cwd) == os.path.realpath(f):
+            cwd_in_folders = True
+            cwd = f
+
+    if not cwd_in_folders:
+        register_folder(cwd)
+
     application.listen(args.port)
     tornado.ioloop.IOLoop.current().start()
 

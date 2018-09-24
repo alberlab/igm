@@ -54,7 +54,7 @@ schema = json.load(open(schema_file, 'r'))
 
 #]
 
-##TODO 
+##TODO
 #use walk_schema to validate user args
 def walk_schema(n, w, group_callback, post_group_callback,
                 item_callback):
@@ -86,7 +86,7 @@ class Config(dict):
         self['optimization'] = dict()
         self['optimization']['optimizer_options'] = dict()
         self['parameters'] = dict()
-        
+
         if cfg is not None:
             if isinstance(cfg, string_types):
                 with open(cfg) as f:
@@ -113,9 +113,9 @@ class Config(dict):
             self['runtime'][k] = dict()
     #-
     def get(self, keypath, default=None):
-        
+
         split_path = keypath.split("/")
-        
+
         try:
             d = self
             for p in split_path:
@@ -131,7 +131,7 @@ class Config(dict):
                     raise KeyError("{} does not exist".format(keypath))
             d = d.get("default")
         return d
-            
+
     def igm_parameter_abspath(self):
         # if a working directory is not specified, we set it to the
         # current directory.
@@ -141,8 +141,8 @@ class Config(dict):
         # directories.
         self['parameters']['tmp_dir'] = make_absolute_path( self.get("parameters/tmp_dir", 'tmp'), self['parameters']['workdir'] )
         self['parameters']['log']     = make_absolute_path( self.get("parameters/log", 'igm.log'), self['parameters']['workdir'] )
-        #self['optimization']['structure_output'] = make_absolute_path( self['optimization']['structure_output'], self['parameters']['workdir'])
-        
+        self['optimization']['structure_output'] = make_absolute_path( self['optimization']['structure_output'], self['parameters']['workdir'])
+
     def preprocess_optimization_arguments(self):
 
         #if self['model']['nucleus_shape'] == 'sphere':

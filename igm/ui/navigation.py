@@ -1,24 +1,34 @@
-import os, os.path, glob
+import glob
+from os.path import basename, normpath, abspath, isdir, isfile
 
-def list_directory(path, root):
+def list_directory(path, root='/', ext=None):
 
-    dname = root + '/' + path
+    root = normpath(root)
+    dname = normpath( abspath(root + '/' + path) )
 
-    if not os.path.abspath(dname).startswith(root) or not os.path.isdir(dname):
+    if not dname.startswith(root) or not isdir(dname):
         return {}
 
-    dname = os.path.abspath(dname)
-
     content = glob.glob(dname + '/*')
-    if os.path.abspath(dname) != os.path.abspath(root):
-        dirs = [ path + '/..']
-    else:
-        dirs = []
-    n = len(root)
-    dirs += [c[n:] for c in content if os.path.isdir(c)]
-    files = [c[n:] for c in content if os.path.isfile(c)]
+    dirs = []
+
+    if abspath(dname) != abspath(root):
+        dirs += [ '..' ]
+
+    rootlen = len(root)+1
+    dirs += [basename( normpath(c) ) for c in content if isdir(c)]
+    files = [basename( normpath(c) ) for c in content if isfile(c)]
+
+    if ext is not None:
+        if not isinstance(ext, list):
+            ext = [ext]
+        nfiles = []
+        for e in ext:
+            nfiles += [c for c in files if c.endswith(e)]
+        files = nfiles
+
     return {
-        'path': dname,
+        'path': dname[rootlen:],
         'dirs': dirs,
         'files': files,
     }

@@ -4,6 +4,7 @@ import time
 import json
 
 from ..utils.log import logger
+from .config import Config
 
 class StepDB(object):
 
@@ -22,10 +23,24 @@ class StepDB(object):
 
     def __init__(self, cfg, mode='a'):
         self.db = None
+        if isinstance(cfg, str):
+            try:
+                cfg = Config(cfg)
+            except:
+                pass
+        elif isinstance(cfg, Config):
+            pass
+        elif isinstance(cfg, dict):
+            cfg = Config(cfg)
+        else:
+            raise ValueError('Invalid argument (needs to be Config, dict or string, got %s)' % type(cfg) )
         self.prepare_db(cfg, mode=mode)
 
     def prepare_db(self, cfg, mode='a'):
-        self.db = cfg["parameters"].get('step_db', None)
+        if isinstance(cfg, str):
+            self.db = cfg
+        else:
+            self.db = cfg.get('parameters/step_db', None)
         if self.db:
             if os.path.isfile(self.db):
                 logger.debug('db file found')

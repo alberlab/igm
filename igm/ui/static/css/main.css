@@ -1,5 +1,7 @@
+html,body { height:100%; }
+
 #help-wrapper {
-    background-color: #eeeeee;
+    background-color: white;
     position: fixed;
     width: 100%;
     height: 30%;
@@ -17,7 +19,7 @@
 }
 
 #dragbar{
-   background-color: #bbbbbb;
+   background-color: #cccccc;
    width: :100%;
    height: 4px;
    cursor: row-resize;
@@ -28,4 +30,88 @@
     font-weight: bold;
     color: #eeeeee;
     background-color: black;
+    -webkit-box-sizing: border-box;
+       -moz-box-sizing: border-box;
+            box-sizing: border-box;
+    width: 100%;
+    height: 80vh;
+}
+
+#load-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 90;
+}
+
+#load-screen > .transparent-background {
+    position: relative;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background:white;
+    opacity:.3;
+}
+
+
+#load-screen > span {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    -webkit-transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%);
+    color: darkgrey;
+}
+/*
+.vertical-left-text {
+    -ms-transform: rotate(-90deg);
+    -webkit-transform: rotate(-90deg);
+    transform: rotate(-90deg);
+}
+*/
+#left-menu {
+    height: 100%;
+    float: left;
+    padding-left: 0.5em;
+}
+
+#left-menu > button {
+    clear:both;
+}
+
+#folder-navigator {
+    background: cornsilk;
+    height: 100%;
+}
+
+.rotation-wrapper-outer {
+  display: table;
+}
+.rotation-wrapper-inner {
+  padding: 50% 0;
+  height: 0;
+}
+.left-rotated {
+  display: block;
+  transform-origin: top left;
+  /* Note: for a CLOCKWISE rotation, use the commented-out
+     transform instead of this one. */
+  transform: rotate(-90deg) translate(-100%);
+  /* transform: rotate(90deg) translate(0, -100%); */
+  margin-top: -50%;
+
+  /* Not vital, but possibly a good idea if the element you're rotating contains
+     text and you want a single long vertical line of text and the pre-rotation
+     width of your element is small enough that the text wraps: */
+  white-space: nowrap;
+}
+
+#folder-notes-edt {
+    font-family: Inconsolata, Consolas, Monaco, monospace;
+}
+
+#igm-content {
 }

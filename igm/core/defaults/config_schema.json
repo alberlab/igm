@@ -4,7 +4,7 @@
     "genome" : {
         "label" : "Genome specifications",
         "role" : "group",
-        
+
         "assembly" : {
             "label" : "Genome assembly",
             "dtype" : ["str", "path"],
@@ -12,15 +12,15 @@
             "default" : "hg38",
             "required" : true,
             "description" : "The genome assembly. Can be a string for an available assembly (mm9, hg19, hg38, etc) or the path of an hdf5 file containing genomic information (see alabtools.Genome objects)"
-        }, 
-        
+        },
+
         "ploidy" : {
             "label" : "Ploidy",
             "dtype" : ["dict", "str"],
             "default" : "male",
             "description" : "This parameter controls the number of copies for each chromosome. Valid values are `haploid`, `diploid`, `male` (two copies for each autosome, one X and one Y), or a dictionary of chromosome, number of copies pairs. The character `#` is a shortcut for autosomes. Es: {\"#\" : 4, \"X\" : 3, \"Y\": 2} will create a model with 4 copies for each autosome, 3 copies for X, 2 copies for Y"
         },
-        
+
         "usechr" : {
             "label" : "Chromosomes considered",
             "dtype" : "list",
@@ -38,9 +38,9 @@
             "required" : true
         }
     },
-    
-    
-    
+
+
+
     "model" : {
         "label" : "Model parameters",
         "role" : "group",
@@ -51,7 +51,7 @@
             "min" : 1,
             "description" : "Number of structures in the population"
         },
-        
+
         "starting_coordinates" : {
             "label" : "Initial coordinates",
             "dtype" : "path",
@@ -67,14 +67,14 @@
             "min" : 0.0,
             "description" : "Fraction of volume occupied by the hard core of the beads"
         },
-        
+
         "restraints" : {
             "label" : "Prime model restraints",
             "role" : "group",
             "excluded" : {
                 "label" : "Chromatin bead excluded volume restraint",
                 "role" : "group",
-                
+
                 "evfactor" : {
                     "label" : "Scale factor for excluded volume",
                     "dtype" : "float",
@@ -82,11 +82,11 @@
                     "description" : "Scale excluded volume interactions. Smaller values correspond to weaker interactions"
                 }
             },
-            
+
             "envelope" : {
                 "label" : "Nucleus envelope restraints",
                 "role" : "group",
-                
+
                 "nucleus_shape" : {
                     "label" : "Nucleus shape",
                     "dtype" : "str",
@@ -114,7 +114,7 @@
                     "description" : "",
                     "depends_on" : "model__restraints__envelope__nucleus_shape=ellipsoid"
                 },
-                
+
                 "nucleus_kspring" : {
                     "label" : "Nucleus shape restraint force constant",
                     "dtype" : "float",
@@ -123,11 +123,11 @@
                     "description" : "The force constant for nucleus shape"
                 }
             },
-            
+
             "polymer" : {
                 "label" : "polymer restraints",
                 "role" : "group",
-                
+
                 "contact_range" : {
                     "label" : "Contact range",
                     "dtype" : "float",
@@ -135,7 +135,7 @@
                     "min" : 0.0,
                     "description" : "Two beads are considered in contact when their distance is `contact_range` times the sum of their hard-core radiuses"
                 },
-                
+
                 "polymer_bonds_style" : {
                     "label" : "Polymer bond style",
                     "dtype" : "str",
@@ -143,7 +143,7 @@
                     "default" : "simple",
                     "description" : "The polymeric bond style to apply. If set to `simple` (the default), successive beads in a chromosome are restrained to be closer than the `contact_range` distance. If set to `hic`, it will use Hi-C information to set distances accordingly to the probability values. If set to `none`, successive bead contacts are not imposed"
                 },
-                
+
                 "polymer_kspring" : {
                     "label" : "polymeric bond restraint force constant",
                     "dtype" : "float",
@@ -156,7 +156,7 @@
 
     },
 
-    
+
 
     "restraints" : {
         "label" : "Additional restraints",
@@ -217,6 +217,13 @@
                 "dtype" : "bool",
                 "default" : false,
                 "description" : ""
+            },
+
+            "run_evaluation_step" : {
+                "label" : "Run evaluation step",
+                "dtype" : "bool",
+                "default" : true,
+                "description" : "Run a detailed evaluation step after every modeling cycle"
             }
 
         },
@@ -431,19 +438,26 @@
 
     },
 
-    
-    
+
+
     "optimization" : {
 
         "label" : "Optimization options",
         "role" : "group",
-        
+
         "min_iterations" : {
             "label" : "Minimum optimization iterations",
             "dtype" : "int",
             "default" : 5,
             "min" : 0,
             "description" : "Minimum number of optimization iterations. The 0th iteration is special: if it succeeds, the pipeline skips to the next step ignoring this parameter."
+        },
+
+        "force_last_iteration" : {
+            "label" : "Force minimum iterations before end",
+            "dtype" : "bool",
+            "default" : false,
+            "description" : "Ensure that at least min_iterations are performed before finishing the pipeline."
         },
 
         "max_iterations" : {
@@ -465,13 +479,13 @@
         },
 
         "max_violations" : {
-            "label" : "Violation tolerance",
+            "label" : "Max number of violations",
             "dtype" : "float",
             "default" : 0.01,
             "min" : 0.0,
             "description" : "Fraction of allowed restraint violations on the total number of imposed restraints. Note that excluded volume is not considered in this computation."
         },
-        
+
         "structure_output" : {
             "label" : "Output file name",
             "dtype" : "path",
@@ -479,14 +493,14 @@
             "description" : "File name of the output model file (hss format)",
             "role" : "output"
         },
-        
+
         "keep_intermediate_structures" : {
             "label" : "Keep Intermediate Structures",
             "dtype" : "bool",
             "default" : false,
             "description" : "Keep a copy of the population for each optimization iteration"
         },
-        
+
         "kernel" : {
             "label" : "Optimization Kernel",
             "dtype" : "str",
@@ -626,7 +640,7 @@
                 "default" : 500,
                 "description" : ""
             },
-            
+
             "thermo" : {
                 "label" : "Dhermodynamic steps",
                 "dtype" : "int",
@@ -634,7 +648,7 @@
                 "description" : "Output thermodynamic info every <thermo> MD timesteps",
                 "hidden" : true
             },
-            
+
             "write" : {
                 "label" : "Dump MD timesteps",
                 "dtype" : "int",
@@ -646,9 +660,9 @@
         }
 
     },
-    
-    
-    
+
+
+
     "parameters" : {
         "label" : "IGM parameters",
         "role" : "group",
@@ -681,8 +695,8 @@
             "description" : "Log level (debug, info, warning)"
         }
     },
-    
-    
+
+
     "parallel" : {
 
         "label" : "Parallel mapping options",
@@ -772,8 +786,15 @@
                     "dtype" : "str",
                     "default" : "{}",
                     "description" : "A json dictionary with additional variables to insert in the script"
-                }
+                },
 
+                "tmp_dir" : {
+                    "label" : "Slurm temporary directory",
+                    "dtype" : "path-dir",
+                    "role" : "output",
+                    "default" : "tmp",
+                    "description" : "Directory for temporary slurm files"
+                }
 
             }
 

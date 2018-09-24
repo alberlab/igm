@@ -27,8 +27,8 @@ class RandomInit(StructGenStep):
         crd = generate_territories(index, nucleus_radius)
 
         ofname = os.path.join(tmp_dir, 'random_%d.hms' % struct_id)
-        hms = HmsFile(ofname, 'w')
-        hms.saveCoordinates(struct_id, crd)
+        with HmsFile(ofname, 'w') as hms:
+            hms.saveCoordinates(struct_id, crd)
 
     def intermediate_name(self):
         return '.'.join([

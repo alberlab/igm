@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+import os.path
+import argparse
+import sys
+from igm.ui.folders_database import register_folder
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description='Register a directory in the IGM database')
+    parser.add_argument('folder', nargs='?', default=os.getcwd(), help='Optional. Directory to register. If not specified, it register the current directory.')
+    parser.add_argument('--cell-line', default='', help='(Optional) Cell line')
+    parser.add_argument('--resolution', default='', help='(Optional) Model resolution')
+    parser.add_argument('--notes', default='', help='(Optional) Additional notes')
+    parser.add_argument('--tags', default='', help='(Optional) Comma separated list of tags')
+
+    #ssh -f -N -T -M -S <path-to-socket> -R <post>:<host>:<port> <server>
+
+    args = parser.parse_args()
+
+    try:
+        register_folder(**vars(args))
+    except RuntimeError as e:
+        sys.stderr.write(str(e))
+        exit(1)
+
+    sys.stdout.write('ok: ' + args.folder + '\n')
+
+
+
+
+
+
+
+
+
+
+
+
