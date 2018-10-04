@@ -18,6 +18,8 @@ class RandomInit(StructGenStep):
         """
         generate one random structure with territories
         """
+        k = np.random.randint(0, 2**32)
+        np.random.seed( (k*struct_id) % (2**32) )
         hssfilename    = cfg["optimization"]["structure_output"]
         nucleus_radius = cfg.get("model/restraints/envelope/nucleus_radius")
 

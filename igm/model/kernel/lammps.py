@@ -138,7 +138,13 @@ def create_lammps_data(model, user_args):
 def create_lammps_script(model, user_args):
 
     # get a seed, different for each minimization and run but deterministic
-    seed = ( ( user_args.get('seed', 9007991) * model.id ) % 9190037 ) + 1
+    seed = (
+                (
+                    user_args.get('seed', np.random.randint(1, 9007991))
+                    * model.id
+                    * user_args.get('step_no', np.random.randint(1, 4325237))
+                ) % 9190037
+            ) + 1
     if model.envelope.shape == 'sphere' or model.envelope.shape == 'ellipsoid':
         boxdim = np.max(model.envelope.semiaxes)*1.5
 
@@ -339,6 +345,7 @@ def optimize(model, cfg):
         io_opts = {'out': traj_fname, 'data': data_fname, 'lmp': script_fname}
         run_opts.update(io_opts)
         run_opts.update(cfg['optimization']['kernel_opts']['lammps'])
+        run_opts.update({'step_no': cfg.get('runtime/step_no', 1) + 2}) # this is to set the random seed
         m = LammpsModel(model)
 
         create_lammps_data(m, run_opts)

@@ -70,6 +70,22 @@ def PrepareGenomeIndex(cfg):
 
     return genome, index
 
+def prepareHss(fname, nbead, nstruct, genome, index, radii, nucleus_shape='sphere', nucleus_parameters=5000.0, nucleus_volume=0, coord_chunks=None):
+    with HssFile(fname, 'a') as hss:
+        #put everything into hssFile
+        hss.set_nbead(nbead)
+        hss.set_nstruct(nstruct)
+        hss.set_genome(genome)
+        hss.set_index(index)
+        hss.set_radii(radii)
+        if coord_chunks is None:
+            hss.set_coordinates(np.zeros((nbead,nstruct,3)))
+        else:
+            hss.create_dataset('coordinates', shape=(nbead, nstruct, 3), dtype=COORD_DTYPE, chunks=coord_chunks)
+        env = hss.create_group('envelope')
+        env.create_dataset('shape', data=nucleus_shape)
+        env.create_dataset('volume', data=nucleus_volume)
+        env.create_dataset('params', data=nucleus_parameters)
 
 def Preprocess(cfg):
 
@@ -83,12 +99,15 @@ def Preprocess(cfg):
     _43pi = 4./3*np.pi
 
     # compute volume of the nucleus
-    if cfg.get('model/restraints/envelope/nucleus_shape') == 'sphere':
+    nucleus_shape = cfg.get('model/restraints/envelope/nucleus_shape')
+    if nucleus_shape == 'sphere':
         nucleus_radius = cfg.get('model/restraints/envelope/nucleus_radius')
         nucleus_volume = _43pi * (nucleus_radius**3)
-    elif cfg.get('model/restraints/envelope/nucleus_shape') == 'ellipsoid':
+        nucleus_parameters = nucleus_radius
+    elif nucleus_shape == 'ellipsoid':
         sx = cfg.get('model/restraints/envelope/nucleus_semiaxes')
         nucleus_volume = _43pi * sx[0] * sx[1] * sx[2]
+        nucleus_parameters = sx
     else:
         raise NotImplementedError(
             "Cannot compute volume for shape %s" % cfg.get('model/restraints/envelope/nucleus_shape')
@@ -105,35 +124,18 @@ def Preprocess(cfg):
 
     # prepare Hss
     if not os.path.isfile(cfg['optimization']['structure_output']):
-        hss = HssFile(cfg['optimization']['structure_output'], 'a')
-
-        #put everything into hssFile
-        hss.set_nbead(nbead)
-        hss.set_nstruct(nstruct)
-        hss.set_genome(genome)
-        hss.set_index(index)
-        hss.set_radii(radii)
-        hss.set_coordinates(np.zeros((nbead,nstruct,3)))
-        hss.close()
+        prepareHss(cfg['optimization']['structure_output'], nbead, nstruct, genome, index, radii, nucleus_shape, nucleus_parameters, nucleus_volume)
 
     # now create a temporary struct-major file for runtime use
     if not os.path.isfile(cfg['optimization']['structure_output'] + '.T'):
-        hss = HssFile(cfg['optimization']['structure_output'] + '.T', 'a')
-
-        #put everything into hssFile
-        hss.set_nbead(nbead)
-        hss.set_nstruct(nstruct)
-        hss.set_genome(genome)
-        hss.set_index(index)
-        hss.set_radii(radii)
 
         PACK_SIZE = 1e6
         pack_struct = max(1, int( PACK_SIZE / nbead / 3 ) )
 
-        hss.create_dataset('coordinates', shape=(nbead, nstruct, 3), dtype=COORD_DTYPE, chunks=(nbead, pack_struct, 3))
-        hss.close()
-
-        #copyfile( cfg['optimization']['structure_output'], cfg['optimization']['structure_output'] + '.tmp' )
+        prepareHss(cfg['optimization']['structure_output'] + '.T' , nbead,
+                   nstruct, genome, index, radii, nucleus_shape,
+                   nucleus_parameters, nucleus_volume,
+                   coord_chunks=(nbead, pack_struct, 3))
 
     # prepare tmp file dir
     if not os.path.exists(cfg['parameters']['tmp_dir']):

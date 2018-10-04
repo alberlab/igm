@@ -338,33 +338,37 @@ class StructGenStep(Step):
         """
 
         # create a temporary file if does not exist.
-        hssfilename = self.cfg["optimization"]["structure_output"] + '.tmp'
-        hss = HssFile(hssfilename, 'a', driver='core')
+        hssfilename = self.cfg["optimization"]["structure_output"] + '.T'
+        with HssFile(hssfilename, 'a', driver='core') as hss:
+            n_struct = hss.nstruct
+            #iterate all structure files and
+            total_restraints = 0.0
+            total_violations = 0.0
 
-        #iterate all structure files and
-        total_restraints = 0.0
-        total_violations = 0.0
+            for i in tqdm(range(hss.nstruct), desc='(REDUCE)'):
+                fname = "{}_{}.hms".format(self.tmp_file_prefix, i)
+                hms = HmsFile( os.path.join( self.tmp_dir, fname ) )
+                crd = hms.get_coordinates()
+                total_restraints += hms.get_total_restraints()
+                total_violations += hms.get_total_violations()
 
-        for i in tqdm(range(hss.nstruct), desc='(REDUCE)'):
-            fname = "{}_{}.hms".format(self.tmp_file_prefix, i)
-            hms = HmsFile( os.path.join( self.tmp_dir, fname ) )
-            crd = hms.get_coordinates()
-            total_restraints += hms.get_total_restraints()
-            total_violations += hms.get_total_violations()
+                hss.set_struct_crd(i, crd)
+            #-
+            if (total_violations == 0) and (total_restraints == 0):
+                hss.set_violation(np.nan)
+            else:
+                hss.set_violation(total_violations / total_restraints)
 
-            hss.set_struct_crd(i, crd)
-        #-
-        if (total_violations == 0) and (total_restraints == 0):
-            hss.set_violation(np.nan)
-        else:
-            hss.set_violation(total_violations / total_restraints)
+        PACK_SIZE = 1e6
+        pack_beads = max(1, int( PACK_SIZE / n_struct / 3 ) )
 
-        hss.close()
-
-        # swap files
-        os.rename(hssfilename, hssfilename + '.swap')
-        os.rename(self.cfg["optimization"]["structure_output"], hssfilename)
-        os.rename(hssfilename + '.swap', self.cfg["optimization"]["structure_output"])
+        logger.info('repacking...')
+        cmd = 'h5repack -l coordinates:CHUNK={:d}x{:d}x3 {:s} {:s}'.format(
+            pack_beads, n_struct, hssfilename, hssfilename + '.swap'
+        )
+        os.system(cmd)
+        logger.info('done.')
+        os.rename(hssfilename + '.swap', self.cfg.get("optimization/structure_output"))
 
         if self.keep_intermediate_structures:
             copyfile(
