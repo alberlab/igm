@@ -5,3 +5,5 @@ from .polymer import Polymer
 from .steric import Steric
 from .hic import HiC
 from .sprite import Sprite
+from .damid import Damid
+

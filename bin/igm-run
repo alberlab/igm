@@ -89,8 +89,10 @@ while True:
 
     # the step is potentially the last one unless there are more sigmas in HiC sigma list
     is_hic_incomplete = ( 'Hi-C' in cfg['restraints'] ) and ( len( cfg.get("runtime/Hi-C/sigma_list") ) != 0 )
+    is_damid_incomplete = ( 'DamID' in cfg['restraints'] ) and ( len( cfg.get("runtime/DamID/sigma_list") ) != 0 )
     is_hic_done = not is_hic_incomplete
-    force_next_iteration = (opt_iter < min_iter) and ( opt_iter != 0 )
+    is_damid_done = not is_damid_incomplete
+    force_next_iteration = (opt_iter < min_iter - 1) and ( opt_iter != 0 )
     if cfg.get('optimization/force_last_iteration', False) and is_hic_done and ( opt_iter == 0 ):
         force_next_iteration = True
 
@@ -99,7 +101,12 @@ while True:
             # we are done with this sigma but still have more to go
             del cfg["runtime"]["Hi-C"]["sigma"]
             opt_iter = 0
-        else:
+
+        if is_damid_incomplete:
+            del cfg["runtime"]["DamID"]["sigma"]
+            opt_iter = 0
+
+        if is_hic_done and is_damid_done:
             # we are done
             igm.logger.info('Pipeline completed')
             break

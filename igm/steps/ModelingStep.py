@@ -10,7 +10,7 @@ from alabtools.analysis import HssFile
 
 from ..core import StructGenStep
 from ..model import Model, Particle
-from ..restraints import Polymer, Envelope, Steric, HiC, Sprite
+from ..restraints import Polymer, Envelope, Steric, HiC, Sprite, Damid
 from ..utils import HmsFile
 from ..parallel.async_file_operations import FilePoller
 from ..utils.log import logger
@@ -29,6 +29,14 @@ class ModelingStep(StructGenStep):
                     self.cfg['runtime']['Hi-C']['sigma'] * 100.0
                 )
             )
+
+        if "DamID" in self.cfg['restraints']:
+            additional_data .append(
+                'damid={:.2f}'.format(
+                    self.cfg.get('runtime/DamID/sigma', -1.0)
+                )
+            )
+
         if 'opt_iter' in self.cfg['runtime']:
             additional_data.append(
                 'iter={}'.format(
@@ -47,7 +55,11 @@ class ModelingStep(StructGenStep):
 
         self.out_data = {
             'restraints': 0.0,
-            'violations': 0.0
+            'violations': 0.0,
+            'violation_hist': np.zeros(101),
+            'total_energies': np.zeros(self.cfg["model"]["population_size"], dtype=np.float32),
+            'pair_energies': np.zeros(self.cfg["model"]["population_size"], dtype=np.float32),
+            'bond_energies': np.zeros(self.cfg["model"]["population_size"], dtype=np.float32),
         }
 
         #self.hssfilename = self.cfg["optimization"]["structure_output"] + '.tmp'
@@ -154,6 +166,16 @@ class ModelingStep(StructGenStep):
             model.addRestraint(hic)
             monitored_restraints.append(hic)
 
+        if "DamID" in cfg['restraints']:
+            actdist_file = cfg.get('runtime/DamID/damid_actdist_file')
+            contact_range = cfg.get('restraints/DamID/contact_range', 2.0 )
+            k = cfg.get( 'restraints/DamID/contact_kspring', 0.05)
+
+            damid = Damid(actdist_file, contact_range, k)
+            model.addRestraint(damid)
+            monitored_restraints.append(damid)
+
+
         if "sprite" in cfg['restraints']:
             sprite_opt = cfg['restraints']['sprite']
             sprite = Sprite(
@@ -169,7 +191,7 @@ class ModelingStep(StructGenStep):
         #========Optimization
         #optimize model
         cfg['runtime']['run_name'] = cfg['runtime']['step_hash'] + '_' + str(struct_id)
-        model.optimize(cfg)
+        optinfo = model.optimize(cfg)
 
         tol = cfg.get('optimization/violation_tolerance', 0.01)
 
@@ -179,6 +201,11 @@ class ModelingStep(StructGenStep):
 
             for r in monitored_restraints:
                 hms.saveViolations(r, tolerance=tol)
+
+            if isinstance(optinfo, dict):
+                grp = hms.create_group('opt_info')
+                for k, v in optinfo.items():
+                    grp.create_dataset(k, data=v)
 
         # double check it has been written correctly
         with HmsFile(ofname, 'r') as hms:
@@ -198,6 +225,12 @@ class ModelingStep(StructGenStep):
             hss.set_struct_crd(i, crd)
             data['restraints'] += hms.get_total_restraints()
             data['violations'] += hms.get_total_violations()
+            try:
+                data['total_energies'][i] = hms['opt_info']['final-energy'][()]
+                data['pair_energies'][i] = hms['opt_info']['pair-energy'][()]
+                data['bond_energies'][i] = hms['opt_info']['bond_energy'][()]
+            except:
+                pass
 
 
     def reduce(self):
@@ -224,6 +257,8 @@ class ModelingStep(StructGenStep):
 
         for i in tqdm(self.file_poller.enumerate(), desc='(REDUCE)'):
             pass
+
+
 
         total_violations, total_restraints = self.out_data['violations'], self.out_data['restraints']
 
@@ -268,6 +303,12 @@ class ModelingStep(StructGenStep):
     def intermediate_name(self):
 
         additional_data = []
+        if "DamID" in self.cfg['runtime']:
+            additional_data .append(
+                'damid_{:.4f}'.format(
+                    self.cfg.get('runtime/DamID/sigma', -1.0)
+                )
+            )
         if "Hi-C" in self.cfg['runtime']:
             additional_data .append(
                 'sigma_{:.4f}'.format(
@@ -292,3 +333,4 @@ class ModelingStep(StructGenStep):
         except:
             pass
 #==
+
