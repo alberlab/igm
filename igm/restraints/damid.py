@@ -103,5 +103,8 @@ class DamidActivationDistanceDB(object):
         self._chk_i = 0
 
     def __del__(self):
-        self.h5f.close()
+        try:
+            self.h5f.close()
+        except:
+            pass
 

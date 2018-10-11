@@ -171,7 +171,7 @@ class ModelingStep(StructGenStep):
             contact_range = cfg.get('restraints/DamID/contact_range', 2.0 )
             k = cfg.get( 'restraints/DamID/contact_kspring', 0.05)
 
-            damid = Damid(actdist_file, contact_range, k)
+            damid = Damid(damid_file=actdist_file, contactRange=contact_range, nuclear_radius=radius, k=k)
             model.addRestraint(damid)
             monitored_restraints.append(damid)
 
@@ -269,7 +269,7 @@ class ModelingStep(StructGenStep):
 
         self.hss.set_violation(violation_score)
         n_struct = self.hss.nstruct
-
+        n_beads = self.hss.nbead
         self.hss.close()
 
         # swap temporary and current hss files
@@ -279,6 +279,7 @@ class ModelingStep(StructGenStep):
 
         PACK_SIZE = 1e6
         pack_beads = max(1, int( PACK_SIZE / n_struct / 3 ) )
+        pack_beads = min(pack_beads, n_beads)
 
         logger.info('repacking...')
         cmd = 'h5repack -l coordinates:CHUNK={:d}x{:d}x3 {:s} {:s}'.format(

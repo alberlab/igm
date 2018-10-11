@@ -131,6 +131,7 @@ def Preprocess(cfg):
 
         PACK_SIZE = 1e6
         pack_struct = max(1, int( PACK_SIZE / nbead / 3 ) )
+        pack_struct = min(pack_struct, nstruct)
 
         prepareHss(cfg['optimization']['structure_output'] + '.T' , nbead,
                    nstruct, genome, index, radii, nucleus_shape,

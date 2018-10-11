@@ -341,6 +341,7 @@ class StructGenStep(Step):
         hssfilename = self.cfg["optimization"]["structure_output"] + '.T'
         with HssFile(hssfilename, 'a', driver='core') as hss:
             n_struct = hss.nstruct
+            n_beads = hss.nbead
             #iterate all structure files and
             total_restraints = 0.0
             total_violations = 0.0
@@ -361,6 +362,7 @@ class StructGenStep(Step):
 
         PACK_SIZE = 1e6
         pack_beads = max(1, int( PACK_SIZE / n_struct / 3 ) )
+        pack_beads = min(pack_beads, n_beads)
 
         logger.info('repacking...')
         cmd = 'h5repack -l coordinates:CHUNK={:d}x{:d}x3 {:s} {:s}'.format(
