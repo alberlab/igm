@@ -145,8 +145,6 @@ def create_lammps_script(model, user_args):
                     * user_args.get('step_no', np.random.randint(1, 4325237))
                 ) % 9190037
             ) + 1
-    if model.envelope.shape == 'sphere' or model.envelope.shape == 'ellipsoid':
-        boxdim = np.max(model.envelope.semiaxes)*1.5
 
 
     maxrad = max([at.radius for at in model.atom_types if
@@ -214,22 +212,17 @@ def create_lammps_script(model, user_args):
         print('fix 3 nonfixed langevin', user_args['tstart'], user_args['tstop'],
               user_args['damp'], seed, file=f)
 
-        if model.envelope is not None:
-            if model.envelope.shape == 'ellipsoid':
-                # print(
-                #     'group envelope type',
-                #     ' '.join([str(x) for x in model.envelope.particle_ids ]),
-                #     file=f
-                # )
+        for j, envelope in enumerate(model.envelopes):
+            if envelope.shape == 'ellipsoid':
                 print(
-                    'fix envelope beads ellipsoidalenvelope',
-                    ' '.join([str(x) for x in model.envelope.semiaxes]),
-                    model.envelope.k,
+                    'fix envelope{} beads ellipsoidalenvelope'.format(j),
+                    ' '.join([str(x) for x in envelope.semiaxes]),
+                    envelope.k,
                     file=f
                 )
-                print('fix_modify envelope energy yes', file=f)
+                print('fix_modify envelope{} energy yes'.format(j), file=f)
             else:
-                raise NotImplementedError('Envelope (%s) not implemented' % model.envelope.shape)
+                raise NotImplementedError('Envelope (%s) not implemented' % envelope.shape)
 
         print('timestep', user_args['timestep'], file=f)
 
@@ -248,7 +241,9 @@ def create_lammps_script(model, user_args):
               'id type x y z fx fy fz', file=f)
 
         # Thermodynamic info style for output
-        print('thermo_style custom step temp epair ebond f_envelope', file=f)
+        print('thermo_style custom step temp epair ebond ' + ' '.join([
+                'f_envelope%d' %i for i in range(len(model.envelopes))
+            ]), file=f)
         print('thermo_modify norm no', file=f)
         print('thermo', user_args['thermo'], file=f)
 

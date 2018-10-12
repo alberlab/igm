@@ -20,13 +20,13 @@ class Envelope(Restraint):
         spring constant
     """
 
-    def __init__(self, shape="sphere", nucRadius=5000.0, k=1.0):
+    def __init__(self, shape="sphere", nuclear_radius=5000.0, k=1.0):
         self.shape = unicode(shape)
 
         if self.shape == u"sphere":
-            self.a = self.b = self.c = nucRadius
+            self.a = self.b = self.c = nuclear_radius
         elif self.shape == u"ellipsoid":
-            self.a, self.b, self.c = nucRadius
+            self.a, self.b, self.c = nuclear_radius
 
         self.k = k
         self.forceID = []

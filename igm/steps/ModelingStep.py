@@ -139,6 +139,8 @@ class ModelingStep(StructGenStep):
         #add nucleus envelop restraint
         shape = cfg.get('model/restraints/envelope/nucleus_shape')
         envelope_k = cfg.get('model/restraints/envelope/nucleus_kspring')
+        radius = 0
+        semiaxes = (0, 0, 0)
         if shape == 'sphere':
             radius = cfg.get('model/restraints/envelope/nucleus_radius')
             ev = Envelope(shape, radius, envelope_k)
@@ -148,13 +150,14 @@ class ModelingStep(StructGenStep):
         model.addRestraint(ev)
 
         #add consecutive polymer restraint
-        contact_probabilities = cfg['runtime'].get('consecutive_contact_probabilities', None)
-        pp = Polymer(index,
-                     cfg['model']['restraints']['polymer']['contact_range'],
-                     cfg['model']['restraints']['polymer']['polymer_kspring'],
-                     contact_probabilities=contact_probabilities)
-        model.addRestraint(pp)
-        monitored_restraints.append(pp)
+        if cfg.get('model/restraints/polymer/polymer_bonds_style') != 'none':
+            contact_probabilities = cfg['runtime'].get('consecutive_contact_probabilities', None)
+            pp = Polymer(index,
+                         cfg['model']['restraints']['polymer']['contact_range'],
+                         cfg['model']['restraints']['polymer']['polymer_kspring'],
+                         contact_probabilities=contact_probabilities)
+            model.addRestraint(pp)
+            monitored_restraints.append(pp)
 
         #add Hi-C restraint
         if "Hi-C" in cfg['restraints']:
@@ -171,7 +174,8 @@ class ModelingStep(StructGenStep):
             contact_range = cfg.get('restraints/DamID/contact_range', 2.0 )
             k = cfg.get( 'restraints/DamID/contact_kspring', 0.05)
 
-            damid = Damid(damid_file=actdist_file, contactRange=contact_range, nuclear_radius=radius, k=k)
+            damid = Damid(damid_file=actdist_file, contact_range=contact_range, nuclear_radius=radius, k=k,
+                          shape=shape, semiaxes=semiaxes)
             model.addRestraint(damid)
             monitored_restraints.append(damid)
 

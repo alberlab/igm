@@ -245,7 +245,7 @@ class LammpsModel(object):
         self.bond_types = {}
         self.nmol = 1
         self.id = uid
-        self.envelope = None
+        self.envelopes = []
         if model is not None:
             self.imap = []
             self.from_model(model)
@@ -271,7 +271,7 @@ class LammpsModel(object):
 
         for f in model.forces:
             if f.ftype == f.ENVELOPE:
-                self.envelope = f
+                self.envelopes.append(f)
             elif f.ftype == f.EXCLUDED_VOLUME:
                 self.evfactor = f.k
 
