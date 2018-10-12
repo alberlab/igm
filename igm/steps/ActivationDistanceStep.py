@@ -144,6 +144,8 @@ class ActivationDistanceStep(Step):
         for i in tqdm(self.argument_list, desc='(REDUCE)'):
             fname = os.path.join(self.tmp_dir, '%d.out.tmp' % i)
             partial_actdist = np.genfromtxt( fname, dtype=actdist_shape )
+            if partial_actdist.ndim == 0:
+                partial_actdist = np.array([partial_actdist], dtype=actdist_shape)
             row.append(partial_actdist['row'])
             col.append(partial_actdist['col'])
             dist.append(partial_actdist['dist'])
