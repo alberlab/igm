@@ -109,6 +109,7 @@ while True:
         if is_hic_done and is_damid_done:
             # we are done
             igm.logger.info('Pipeline completed')
+            open('completed', 'w').close()
             break
     else:
         opt_iter += 1
