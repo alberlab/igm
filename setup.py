@@ -16,7 +16,7 @@ install_requires = [
     'scipy>=0.16', 
     'h5py>=2.5', 
     'alabtools>=0.0.1',
-    'tqdm'
+    'tqdm', 'tornado'
 ]
 
 tests_require = [
@@ -53,5 +53,5 @@ setup(
         
         ext_modules=extensions,
         include_dirs=[numpy.get_include()],
-        scripts=['bin/igm-run', 'bin/igm-server',],
+        scripts=['bin/igm-run', 'bin/igm-server', 'bin/igm-register-dir', 'bin/igm-info-dir', 'bin/igm-unregister-dir',],
 )
