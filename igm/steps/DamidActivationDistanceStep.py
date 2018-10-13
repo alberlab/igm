@@ -75,6 +75,11 @@ class DamidActivationDistanceStep(Step):
         ii      = np.where(mask)[0]
         pwish   = profile[mask]
 
+        # rescale pwish considering the number of beads for multiploid cells
+        with HssFile(self.cfg.get("optimization/structure_output"), 'r') as hss:
+            num_beads = hss.nbead
+        pwish *= num_beads / len(profile)
+
         try:
             with h5py.File(self.cfg.get("runtime/DamID/damid_actdist_file")) as h5f:
                 last_prob = {i : p for i, p in zip(h5f["loc"], h5f["prob"])}
@@ -199,6 +204,11 @@ def get_damid_actdist(locid, pwish, plast, hss, contact_range=2, shape="sphere",
             file containing coordinates
         contact_range : int
             contact range of sum of radius of beads
+        shape : str
+            shape of the envelope
+        nucleus_param : variable
+            parameters for the envelope (probably this will need restructuring in the future)
+
     Returns
     -------
         locid (int): the locus index
@@ -217,6 +227,9 @@ def get_damid_actdist(locid, pwish, plast, hss, contact_range=2, shape="sphere",
 
     r = hss.get_radii()[ ii[0] ]
 
+    # rescale pwish considering the number of copies
+    pwish = np.clip(pwish/n_copies, 0, 1)
+
     d_sq = np.empty(n_copies*n_struct)
 
     for i in range(n_copies):
@@ -230,7 +243,7 @@ def get_damid_actdist(locid, pwish, plast, hss, contact_range=2, shape="sphere",
     contact_count = np.count_nonzero(d_sq >= rcutsq)
     # pnow        = float(contact_count) / (n_copies * n_struct)
     # approx 1 when at least one contact is there in each cell
-    pnow = np.clip(float(contact_count) / n_struct, 0, 1)
+    pnow = float(contact_count) / n_struct / n_copies
 
     t = cleanProbability(pnow, plast)
     p = cleanProbability(pwish, t)
