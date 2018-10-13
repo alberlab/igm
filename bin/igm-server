@@ -274,7 +274,7 @@ if __name__ == "__main__":
     print('The way to connect to the server depends on your platform.')
     print('The list of ips for this machine is: \n', ips, '\n')
 
-    if (args.tunnel):
+    if args.tunnel:
         print ('A tunnel has been estabilished. To access the server you need to connect to:')
         print ('     %s:%d' % (args.tunnel, args.port))
         print ('If you are not working directly on %s, you may want to create a tunnel from your workstation to it with:' % args.tunnel )
@@ -291,18 +291,6 @@ if __name__ == "__main__":
     print('The secure token for this session is:', token)
 
     print ('##### IGM server starting #####')
-
-    # check if we need to register the current directory
-    # we use the realpath to compare them, and if we find it, we use the registered path
-    folders = [f['folder'] for f in folder_info()]
-    cwd_in_folders = False
-    for f in folders:
-        if os.path.realpath(cwd) == os.path.realpath(f):
-            cwd_in_folders = True
-            cwd = f
-
-    if not cwd_in_folders:
-        register_folder(cwd)
 
     application.listen(args.port)
     tornado.ioloop.IOLoop.current().start()

@@ -144,7 +144,7 @@ def Preprocess(cfg):
 
     # if we have a Hi-C probability matrix, use it to determine the consecutive
     # beads distances
-    pbs = cfg.get('model/polymer/polymer_bonds_style', 'simple')
+    pbs = cfg.get('model/restraints/polymer/polymer_bonds_style')
     if pbs == 'hic':
         if "Hi-C" not in cfg['restraints']:
             raise RuntimeError('Hi-C restraints specifications are missing in the cfg, but "polymer_bond_style" is set to "hic"')

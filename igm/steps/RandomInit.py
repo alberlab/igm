@@ -12,6 +12,7 @@ class RandomInit(StructGenStep):
 
     def setup(self):
         self.tmp_file_prefix = "random"
+        self.argument_list = range(self.cfg["model"]["population_size"])
 
     @staticmethod
     def task(struct_id, cfg, tmp_dir):

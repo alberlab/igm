@@ -118,7 +118,7 @@
                 "nucleus_kspring" : {
                     "label" : "Nucleus shape restraint force constant",
                     "dtype" : "float",
-                    "default" : 0.05,
+                    "default" : 1,
                     "min" : 0.0,
                     "description" : "The force constant for nucleus shape"
                 }
@@ -250,11 +250,11 @@
             },
 
             "contact_range" : {
-                "label" : "Contact range",
+                "label" : "Contact range (radius fraction)",
                 "dtype" : "float",
-                "default" : 2.0,
+                "default" : 0.05,
                 "min" : 0.0,
-                "description" : "A bead is considered in contact with the envelope when the center to envelope distance is `contact_range` times its hard-core radius"
+                "description" : "Envelope contacts are imposed inserting a rescaled envelope, pushing affected beads outwards. This parameters controls the rescaling linearly, so that for example a value of 0.05 will place a rescaled envelope with radius 1-0.05 = 0.95 times the radius of the nuclear envelope."
             },
 
             "contact_kspring" : {
@@ -595,7 +595,7 @@
             "tstop" : {
                 "label" : "Final temperature for simulated annealing",
                 "dtype" : "float",
-                "default" : 2,
+                "default" : 0.01,
                 "description" : ""
             },
 

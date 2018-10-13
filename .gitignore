@@ -111,4 +111,11 @@ ENV/
 # mac temporary
 ._*
 
+# cython auto generated
 igm/cython_compiled/sprite.cpp
+
+# pycharm
+
+# pycharm
+.idea/
+
