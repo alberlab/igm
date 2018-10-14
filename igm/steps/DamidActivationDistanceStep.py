@@ -33,7 +33,7 @@ def snormsq_ellipse(x, semiaxes):
 
 snormsq = {
     'sphere': snormsq_sphere,
-    'ellipse': snormsq_ellipse
+    'ellipsoid': snormsq_ellipse
 }
 
 
@@ -112,8 +112,10 @@ class DamidActivationDistanceStep(Step):
         shape = cfg.get('model/restraints/envelope/nucleus_shape')
         if shape == 'sphere':
             nucleus_parameters = cfg.get('model/restraints/envelope/nucleus_radius')
-        elif shape == 'ellipse':
+        elif shape == 'ellipsoid':
             nucleus_parameters = cfg.get('model/restraints/envelope/nucleus_semiaxes')
+        else:
+            raise NotImplementedError('shape %s has not been implemented yet.' % shape)
 
         with HssFile(cfg.get("optimization/structure_output"), 'r') as hss:
 
