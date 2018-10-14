@@ -213,9 +213,16 @@ def create_lammps_script(model, user_args):
               user_args['damp'], seed, file=f)
 
         for j, envelope in enumerate(model.envelopes):
+            print(
+                'group envgrp{} id {}'.format(
+                    j,
+                    ' '.join([ str(k+1) for k in envelope.particle_ids ])
+                ),
+                file=f
+            )
             if envelope.shape == 'ellipsoid':
                 print(
-                    'fix envelope{} beads ellipsoidalenvelope'.format(j),
+                    'fix envelope{0} envgrp{0} ellipsoidalenvelope'.format(j),
                     ' '.join([str(x) for x in envelope.semiaxes]),
                     envelope.k,
                     file=f
