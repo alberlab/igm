@@ -90,7 +90,7 @@ class AjaxHandler(BaseHandler):
                 if igm_is_running(cwd) == 'yes':
                     raise RuntimeError('IGM is already running')
                 import subprocess
-                subprocess.Popen(['nohup igm-run igm-config.json &> igm-log.txt < /dev/null &'], shell=True)
+                subprocess.Popen(['nohup igm-run igm-config.json > igm-log.txt 2>&1 < /dev/null &'], shell=True)
                 out = 'ok'
             except:
                 out = traceback.format_exc()
