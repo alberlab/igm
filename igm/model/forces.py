@@ -18,6 +18,7 @@ class Force(object):
         self.particles = particles
         self.parameters = para
         self.note = note
+        self.rnum = 0
 
     def __str__(self):
         return "FORCE: {} {}".format(Force.FTYPES[self.ftype],
@@ -95,6 +96,7 @@ class HarmonicUpperBound(Force):
         self.d = d
         self.k = k
         self.note = note
+        self.rnum = 1
 
     def __str__(self):
         return "FORCE: {} {} {} {}".format(Force.FTYPES[self.ftype],
@@ -141,6 +143,7 @@ class HarmonicLowerBound(Force):
         self.d = d
         self.k = k
         self.note = note
+        self.rnum = 1
 
     def __str__(self):
         return "FORCE: {} {} {} {}".format(Force.FTYPES[self.ftype],
@@ -173,13 +176,17 @@ class EllipticEnvelope(Force):
         self.particle_ids = particle_ids
         self.k = k
         self.note = note
+        self.rnum = len(particle_ids)
 
     def getScore(self, particles):
 
         E = 0
         for i in self.particle_ids:
             p = particles[i]
-            s2 = np.square(self.semiaxes - p.r)
+            if self.k > 0:
+                s2 = np.square(self.semiaxes - p.r)
+            else:
+                s2 = np.square(self.semiaxes + p.r)
             x = p.pos
             x2 = x**2
             k2 = np.sum(x2 / s2)
@@ -188,7 +195,35 @@ class EllipticEnvelope(Force):
                 E += 0.5 * (t**2) * self.k
         return E
 
+    def getScores(self, particles):
+
+        scores = np.array(len(particles))
+        for i in self.particle_ids:
+            p = particles[i]
+            if self.k > 0:
+                s2 = np.square(self.semiaxes - p.r)
+            else:
+                s2 = np.square(self.semiaxes + p.r)
+            x = p.pos
+            x2 = x**2
+            k2 = np.sqrt(np.sum(x2 / s2))
+
+            # note that those scores are somewhat approximate
+            if k2 > 1 and self.k > 0:
+                t = ( 1.0 - 1.0/np.sqrt(k2) )*np.linalg.norm(x) - p.r
+            elif k2 < 1 and self.k < 0:
+                t = ( 1.0 - 1.0/np.sqrt(k2) )*np.linalg.norm(x) + p.r
+            else:
+                t = 0
+
+            scores[i] = t * self.k
+
+        return scores
+
     def getViolationRatio(self, particles):
         ave_t = np.sqrt(2 * self.getScore(particles) / self.k)
         ave_ax = np.sqrt(np.sum(np.square(self.semiaxes)))
         return ave_t/ave_ax
+
+    def getViolationRatios(self, particles):
+        return self.getScores(particles) / (self.k * np.sqrt(np.sum(np.square(self.semiaxes))))
