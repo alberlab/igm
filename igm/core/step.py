@@ -339,7 +339,7 @@ class StructGenStep(Step):
 
         # create a temporary file if does not exist.
         hssfilename = self.cfg["optimization"]["structure_output"] + '.T'
-        with HssFile(hssfilename, 'a', driver='core') as hss:
+        with HssFile(hssfilename, 'r+') as hss:
             n_struct = hss.nstruct
             n_beads = hss.nbead
             #iterate all structure files and

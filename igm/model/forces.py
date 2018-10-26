@@ -18,7 +18,7 @@ class Force(object):
         self.particles = particles
         self.parameters = para
         self.note = note
-        self.rnum = 0
+        self.rnum = 1 # rnum is used in case of "collective" forces
 
     def __str__(self):
         return "FORCE: {} {}".format(Force.FTYPES[self.ftype],
@@ -40,6 +40,7 @@ class ExcludedVolume(Force):
         self.particles = particles
         self.k = k
         self.note = note
+        self.rnum = len(particles) * len(particles)
 
     def __str__(self):
         return "FORCE: {} (NATOMS: {}) {}".format(Force.FTYPES[self.ftype],
@@ -47,23 +48,20 @@ class ExcludedVolume(Force):
                                                   self.note)
 
     def getScore(self, particles):
+        return self.getScores(particles).sum()
+
+    def getScores(self, particles):
         from scipy.spatial import distance
 
         crd = np.array([particles[i].pos for i in self.particles])
-        rad = np.array([[particles[i].r  for i in self.particles]]).T
+        rad = np.array([[particles[i].r for i in self.particles]]).T
 
         dist = distance.pdist(crd)
-        cap  = distance.pdist(rad, lambda u, v: u+v)
+        cap = distance.pdist(rad, lambda u, v: u + v)
 
-        s = (cap - dist).clip(min=0).sum()
+        s = (cap - dist).clip(min=0)
 
-        #for i in range(len(self.particles)):
-            #for j in range(i):
-                #pi, pj = particles[self.particles[i]], particles[self.particles[j]]
-                #ri, rj = pi.r, pj.r
-                #dist = np.linalg.norm(pi.pos - pj.pos)
-                #s += 0 if dist >= ri + rj else self.k*(ri + rj - dist)
-        return s
+        return s.ravel()
 
 #-
 
@@ -191,14 +189,14 @@ class EllipticEnvelope(Force):
             x2 = x**2
             k2 = np.sum(x2 / s2)
             if k2 > 1:
-                t = ( 1.0 - 1.0/np.sqrt(k2) )*np.linalg.norm(x) - p.r
+                t = ( 1.0 - 1.0/np.sqrt(k2) )*np.linalg.norm(x)
                 E += 0.5 * (t**2) * self.k
         return E
 
     def getScores(self, particles):
 
-        scores = np.array(len(particles))
-        for i in self.particle_ids:
+        scores = np.zeros(len(self.particle_ids))
+        for k, i in enumerate(self.particle_ids):
             p = particles[i]
             if self.k > 0:
                 s2 = np.square(self.semiaxes - p.r)
@@ -210,13 +208,13 @@ class EllipticEnvelope(Force):
 
             # note that those scores are somewhat approximate
             if k2 > 1 and self.k > 0:
-                t = ( 1.0 - 1.0/np.sqrt(k2) )*np.linalg.norm(x) - p.r
+                t = ( 1.0 - 1.0/np.sqrt(k2) )*np.linalg.norm(x)
             elif k2 < 1 and self.k < 0:
-                t = ( 1.0 - 1.0/np.sqrt(k2) )*np.linalg.norm(x) + p.r
+                t = ( 1.0 - 1.0/np.sqrt(k2) )*np.linalg.norm(x)
             else:
                 t = 0
 
-            scores[i] = t * self.k
+            scores[k] = max(0, t * self.k)
 
         return scores
 

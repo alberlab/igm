@@ -262,11 +262,11 @@ def create_lammps_script(model, user_args):
                       user_args['ev_start'] + ev_val_step*step,
                       file=f)
                 #'ramp(%f,%f)' % (user_args['ev_start'], user_args['ev_stop']),
-                print('fix %d all adapt 0',
+                print('fix exVolAdapt%d all adapt 0',
                       'pair soft a * * v_evprefactor scale yes',
-                      'reset yes' % 4 + step, file=f)
+                      'reset yes' % step, file=f)
                 print('run', user_args['mdsteps'], file=f)
-                print('unfix 4', file=f)
+                print('unfix exVolAdapt%d' % step, file=f)
         else:
         # Run MD
             print('run', user_args['mdsteps'], file=f)

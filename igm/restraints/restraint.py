@@ -79,8 +79,11 @@ class Restraint(object):
         v = self.get_violations(tolerance=epsilon)
         over = len(v>vmax)
         inner = v[v<=vmax]
-        H, edges = np.histogram(inner)
+        H, edges = np.histogram(inner, bins=nbins)
         H = np.concatenate([H, [over]])
         edges.append(np.array([vmax, float('inf')]))
         return H, edges
+
+    def __repr__(self):
+        return type(self).__name__
 

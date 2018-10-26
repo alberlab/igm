@@ -5,6 +5,7 @@ import os.path
 import numpy as np
 from copy import deepcopy
 from shutil import copyfile
+import json
 
 from alabtools.analysis import HssFile
 
@@ -12,11 +13,13 @@ from ..core import StructGenStep
 from ..model import Model, Particle
 from ..restraints import Polymer, Envelope, Steric, HiC, Sprite, Damid
 from ..utils import HmsFile
+from ..utils.files import h5_create_group_if_not_exist, h5_create_or_replace_dataset
 from ..parallel.async_file_operations import FilePoller
 from ..utils.log import logger
 from .RandomInit import generate_random_in_sphere
 from tqdm import tqdm
 
+DEFAULT_HIST_BINS = 100
 
 class ModelingStep(StructGenStep):
 
@@ -54,12 +57,18 @@ class ModelingStep(StructGenStep):
         self.argument_list = range(self.cfg["model"]["population_size"])
 
         self.out_data = {
-            'restraints': 0.0,
-            'violations': 0.0,
-            'violation_hist': np.zeros(101),
-            'total_energies': np.zeros(self.cfg["model"]["population_size"], dtype=np.float32),
-            'pair_energies': np.zeros(self.cfg["model"]["population_size"], dtype=np.float32),
-            'bond_energies': np.zeros(self.cfg["model"]["population_size"], dtype=np.float32),
+            'n_imposed': 0.0,
+            'n_violations': 0.0,
+            'violation_hist': np.zeros(DEFAULT_HIST_BINS + 1),
+
+            'bystructure': {
+                'n_imposed': np.zeros(self.cfg["model"]["population_size"], dtype=np.float32),
+                'n_violations': np.zeros(self.cfg["model"]["population_size"], dtype=np.float32),
+                'total_energies': np.zeros(self.cfg["model"]["population_size"], dtype=np.float32),
+                'pair_energies': np.zeros(self.cfg["model"]["population_size"], dtype=np.float32),
+                'bond_energies': np.zeros(self.cfg["model"]["population_size"], dtype=np.float32),
+            },
+            'byrestraint': {}
         }
 
         #self.hssfilename = self.cfg["optimization"]["structure_output"] + '.tmp'
@@ -148,6 +157,7 @@ class ModelingStep(StructGenStep):
             semiaxes = cfg.get('model/restraints/envelope/nucleus_semiaxes')
             ev = Envelope(shape, semiaxes, envelope_k)
         model.addRestraint(ev)
+        monitored_restraints.append(ev)
 
         #add consecutive polymer restraint
         if cfg.get('model/restraints/polymer/polymer_bonds_style') != 'none':
@@ -203,13 +213,36 @@ class ModelingStep(StructGenStep):
         with HmsFile(ofname, 'w') as hms:
             hms.saveModel(struct_id, model)
 
+            # create violations statistics
+            vstat = {}
             for r in monitored_restraints:
-                hms.saveViolations(r, tolerance=tol)
+                vs = []
+                n_imposed = 0
+                for fid in r.forceID:
+                    f = model.forces[fid]
+                    n_imposed += f.rnum
+                    if f.rnum > 1:
+                        vs += f.getViolationRatios(model.particles).tolist()
+                    else:
+                        vs.append(f.getViolationRatio(model.particles))
+                vs = np.array(vs)
+                H, edges = get_violation_histogram(vs)
+                num_violations = np.count_nonzero(vs > tol)
+                vstat[repr(r)] = {
+                    'histogram': {
+                        'edges' : edges.tolist(),
+                        'counts' : H.tolist()
+                    },
+                    'n_violations' : num_violations,
+                    'n_imposed':  n_imposed
+                }
+
+            h5_create_or_replace_dataset(hms, 'violation_stats', json.dumps(vstat))
 
             if isinstance(optinfo, dict):
-                grp = hms.create_group('opt_info')
+                grp = h5_create_group_if_not_exist(hms, 'opt_info')
                 for k, v in optinfo.items():
-                    grp.create_dataset(k, data=v)
+                    h5_create_or_replace_dataset(grp, k, data=v)
 
         # double check it has been written correctly
         with HmsFile(ofname, 'r') as hms:
@@ -221,21 +254,53 @@ class ModelingStep(StructGenStep):
 
     #-
 
-    def set_structure(self, hss, i, data):
+    def set_structure(self, hss, i, summary_data):
         fname = "{}_{}.hms".format(self.tmp_file_prefix, i)
-        # dammit, some times the nfs is not in sync, no matter the poller
         with HmsFile( os.path.join( self.tmp_dir, fname ), 'r' ) as hms:
+
+            # set coordinates
             crd = hms.get_coordinates()
             hss.set_struct_crd(i, crd)
-            data['restraints'] += hms.get_total_restraints()
-            data['violations'] += hms.get_total_violations()
+
+            # collect violation statistics
             try:
-                data['total_energies'][i] = hms['opt_info']['final-energy'][()]
-                data['pair_energies'][i] = hms['opt_info']['pair-energy'][()]
-                data['bond_energies'][i] = hms['opt_info']['bond_energy'][()]
+                vstat = json.loads(hms['violation_stats'][()])
+            except:
+                vstat = {}
+
+            n_tot = 0
+            n_vio = 0
+            hist_tot = np.zeros(DEFAULT_HIST_BINS + 1)
+            for k, cstat in vstat.items():
+                if k not in summary_data['byrestraint']:
+                    summary_data['byrestraint'][k] = {
+                        'histogram': {
+                            'counts': np.zeros(DEFAULT_HIST_BINS + 1)
+                        },
+                        'n_violations': 0,
+                        'n_imposed': 0
+                    }
+
+                n_tot += cstat.get('n_imposed', 0)
+                n_vio += cstat.get('n_violations', 0)
+                hist_tot += cstat['histogram']['counts']
+                summary_data['byrestraint'][k]['n_violations'] += cstat.get('n_violations', 0)
+                summary_data['byrestraint'][k]['n_imposed'] += cstat.get('n_imposed', 0)
+                summary_data['byrestraint'][k]['histogram']['counts'] += cstat['histogram']['counts']
+
+            summary_data['n_imposed'] += n_tot
+            summary_data['n_violations'] += n_vio
+            summary_data['violation_hist'] += hist_tot
+            summary_data['bystructure']['n_imposed'] = n_tot
+            summary_data['bystructure']['n_violations'] = n_tot
+
+            # collect optimization statistics
+            try:
+                summary_data['bystructure']['total_energies'][i] = hms['opt_info']['final-energy'][()]
+                summary_data['bystructure']['pair_energies'][i] = hms['opt_info']['pair-energy'][()]
+                summary_data['bystructure']['bond_energies'][i] = hms['opt_info']['bond_energy'][()]
             except:
                 pass
-
 
     def reduce(self):
         """
@@ -259,12 +324,12 @@ class ModelingStep(StructGenStep):
         #     hss.set_struct_crd(i, crd)
         # #-
 
-        for i in tqdm(self.file_poller.enumerate(), desc='(REDUCE)'):
+        for _ in tqdm(self.file_poller.enumerate(), desc='(REDUCE)'):
             pass
 
 
 
-        total_violations, total_restraints = self.out_data['violations'], self.out_data['restraints']
+        total_violations, total_restraints = self.out_data['n_violations'], self.out_data['n_imposed']
 
         if (total_violations == 0) and (total_restraints == 0):
             violation_score = 0
@@ -272,6 +337,9 @@ class ModelingStep(StructGenStep):
             violation_score = total_violations / total_restraints
 
         self.hss.set_violation(violation_score)
+
+        h5_create_or_replace_dataset(self.hss, 'summary', data=json.dumps(self.out_data, default=lambda a: a.tolist()))
+
         n_struct = self.hss.nstruct
         n_beads = self.hss.nbead
         self.hss.close()
@@ -339,3 +407,11 @@ class ModelingStep(StructGenStep):
             pass
 #==
 
+def get_violation_histogram(v, nbins=DEFAULT_HIST_BINS, vmax=1):
+    v = np.array(v)
+    over = np.count_nonzero(v>vmax)
+    inner = v[v<=vmax]
+    H, edges = np.histogram(inner, bins=nbins, range=(0, vmax))
+    H = np.concatenate([H, [over]])
+    edges = np.concatenate([edges, [np.inf]])
+    return H, edges

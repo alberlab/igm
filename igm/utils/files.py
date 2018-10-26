@@ -119,3 +119,16 @@ def make_absolute_path(path, basedir='.'):
     if os.path.isabs(path):
         return path
     return os.path.abspath( os.path.join(basedir, path) )
+
+def h5_create_group_if_not_exist(root, groupname):
+    if groupname in root:
+        return root[groupname]
+    else:
+        return root.create_group(groupname)
+
+def h5_create_or_replace_dataset(root, dataname, data, **kwargs):
+    if dataname in root:
+        root[dataname][...] = data
+    else:
+        root.create_dataset(dataname, data=data, **kwargs)
+    return root[dataname]

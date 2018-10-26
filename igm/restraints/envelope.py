@@ -63,4 +63,7 @@ class Envelope(Restraint):
     def _apply(self, model):
 
         self._apply_sphere_envelop(model)
+
+    def __repr__(self):
+        return 'Envelope[shape={},k={},a={},b={},c={}]'.format(self.shape, self.k, self.a, self.b, self.c)
     #=
