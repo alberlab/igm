@@ -20,6 +20,7 @@ from .RandomInit import generate_random_in_sphere
 from tqdm import tqdm
 
 DEFAULT_HIST_BINS = 100
+DEFAULT_HIST_MAX = 1
 
 class ModelingStep(StructGenStep):
 
@@ -59,8 +60,10 @@ class ModelingStep(StructGenStep):
         self.out_data = {
             'n_imposed': 0.0,
             'n_violations': 0.0,
-            'violation_hist': np.zeros(DEFAULT_HIST_BINS + 1),
-
+            'histogram': {
+                'counts': np.zeros(DEFAULT_HIST_BINS + 1),
+                'edges': np.arange(0, DEFAULT_HIST_MAX, DEFAULT_HIST_MAX/DEFAULT_HIST_BINS).tolist() + [DEFAULT_HIST_MAX, np.inf]
+            },
             'bystructure': {
                 'n_imposed': np.zeros(self.cfg["model"]["population_size"], dtype=np.float32),
                 'n_violations': np.zeros(self.cfg["model"]["population_size"], dtype=np.float32),
@@ -290,7 +293,7 @@ class ModelingStep(StructGenStep):
 
             summary_data['n_imposed'] += n_tot
             summary_data['n_violations'] += n_vio
-            summary_data['violation_hist'] += hist_tot
+            summary_data['histogram']['counts'] += hist_tot
             summary_data['bystructure']['n_imposed'] = n_tot
             summary_data['bystructure']['n_violations'] = n_tot
 
