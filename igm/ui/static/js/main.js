@@ -287,7 +287,7 @@ function updateFolders(sortby='folder', reverse=false) {
           }
           $('#igm-folders-tbody').append(row);
         }
-        $('.igm-folder').on('click', function() {
+        $('.igm-folder').on('dblclick', function() {
           chdir($(this).attr('path'));
         });
 
@@ -315,7 +315,9 @@ function chdir(folder) {
     success: (data) => {
       if (data.status == 'ok') {
         clearAll();
+        current_cfg = data.current_cfg;
         updateFolders();
+        cui.update(current_cfg);
       }
     },
     error: (x, e, s) => { console.log(x, e, s); }
@@ -394,7 +396,7 @@ $(document).ready( function() {
     var bs = $("#bottom-spacer");
 
     // create the form controls
-    cui = new ConfigUI($('#cfg-form-content'), schema);
+    cui = new ConfigUI($('#cfg-form-content'), schema, current_cfg);
 
     // give form controls Bootstrap look
     $.each( $('.igm-option'), function(i, item){
@@ -420,6 +422,8 @@ $(document).ready( function() {
     // bind save on button
 
     const showAlerts = (errors, warnings) => {
+      if (errors.length === 0 && warnings.length === 0)
+        return;
       var html = '';
       for (var i = 0; i < errors.length; i++) {
         html += `<div class="alert alert-danger" role="alert">ERROR: ${errors[i]}</div>`;
@@ -592,7 +596,7 @@ $(document).ready( function() {
         dataType: 'json',
         success: (data) => {
           current_cfg = data;
-          cui.setDependencies();
+          cui.update(current_cfg);
         }
       });
     };

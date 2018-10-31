@@ -3,6 +3,17 @@ const getNestedObject = (nestedObj, pathArr) => {
         (obj && obj[key] !== 'undefined') ? obj[key] : undefined, nestedObj);
 }
 
+const setNestedObject = (nestedObj, pathArr, value) => {
+  var k = pathArr.shift();
+  if (pathArr.length == 0) {
+    nestedObj[k] = value;
+  } else {
+    if ( nestedObj[k] === undefined )
+      nestedObj[k] = {};
+    setNestedObject(nestedObj[k], pathArr, value);
+  }
+}
+
 function namesToPaths(data, path, obj) {
 
   if ( obj === undefined ) {
@@ -34,7 +45,7 @@ function randomInt(max) {
   return Math.floor(Math.random() * Math.floor(max));
 }
 
-function ConfigUI(root_element, schema) {
+function ConfigUI(root_element, schema, current_cfg) {
 
   self = this;
   self.schema = schema;
@@ -43,6 +54,8 @@ function ConfigUI(root_element, schema) {
   self.inputs = {};
   self.groups = {};
   self.optional_groups = {}
+  self.defaults = {}
+  self.optpaths = [];
 
   self.parseItem = function(item, el, path, level, item_id){
 
@@ -61,14 +74,16 @@ function ConfigUI(root_element, schema) {
 
     if ( item.role && item.role == 'optional-group' ) {
       // handle optional groups
+      self.optpaths.push(curr_path);
       var div = $(`<div id="grp-${curr_path}" class="igm-group igm-optional-group igm-group-${level}"></div>`);
       var checkdiv = $('<div></div>');
       div.append(checkdiv);
       var label = $(`<label><h${level}> ${item.label} </h${level}></label>`);
       var checkbox = $(`<input type="checkbox" class="igm-opt-grp-checkbox" name="${curr_path}"></input>`);
-      if ( current_cfg !== undefined &&
-           getNestedObject(current_cfg, curr_path.split('__')) !== undefined )
-        checkbox.prop('checked', true);
+//      if ( current_cfg !== undefined &&
+//           getNestedObject(current_cfg, curr_path.split('__')) !== undefined )
+//        checkbox.prop('checked', true);
+      checkbox.prop('checked', false); // optional are not selected by default
       var inner_div = $('<div class="igm-optional-group-inner"></div>');
 
       checkbox.on('change', () => inner_div.toggle(checkbox.prop('checked')));
@@ -99,6 +114,7 @@ function ConfigUI(root_element, schema) {
       self.optional_groups[ curr_path || 'root' ] = div;
 
     } else if ( item.role && item.role == 'group' ) {
+      // handle normal groups - only labels
 
       var div = $(`<div id="grp-${curr_path}" class="igm-group igm-group-${level}"></div>`);
       var label = $(`<h${level}> ${item.label} </h${level}>`);
@@ -129,6 +145,8 @@ function ConfigUI(root_element, schema) {
       self.groups[ curr_path || 'root' ] = div;
 
     } else {
+      // handle key/values
+      setNestedObject( self.defaults, curr_path.split('__'), item.default );
 
       var div = $('<div class="igm-option"></div>');
 
@@ -272,24 +290,53 @@ function ConfigUI(root_element, schema) {
     }
   }
 
-  self.parseItem(self.schema, self.root, '', 1, '');
-  self.setDependencies();
 
-  if (current_cfg !== undefined) {
-    $.each( namesToPaths(current_cfg, ''), function(key, value) {
+  self.update = function(current_cfg) {
+    // reset to default
+    if (current_cfg !== self.defaults)
+        self.update(self.defaults);
 
-        el = $( `[name=${key}]` );
-        if ( el.is(':checkbox') ) {
-            el.prop('checked', value);
-        } else if ( el.hasClass('igm-array-edit') ) {
+    if (current_cfg) {
+
+      // update with new values
+      var paths = namesToPaths(current_cfg, '');
+
+      $.each( paths, function(key, value) {
+
+          el = $( `[name=${key}]` );
+          if ( el.is(':checkbox') ) {
+              el.prop('checked', value);
+          } else if ( el.hasClass('igm-array-edit') ) {
+            // fixed array edits have sub-edits
             for (var i = 0; i < value.length; i++) {
-                sel = el = $( '#' + key + '-' + i);
-                sel.val(value[i])
+              sel = el = $( '#' + key + '-' + i);
+              sel.val(value[i])
             }
-        } else {
-            el.val(typeof value == "string" ? value : JSON.stringify(value).replace(/,/g, ', '));
-        }
-    });
+          } else {
+            // normal edits
+            if ( value === undefined )
+              value = "";
+            el.val(typeof value === "string" ? value : JSON.stringify(value).replace(/,/g, ', '));
+          }
+
+      });
+
+      // fix optional groups visibility
+      $.each(self.optpaths, function(idx, optpath) {
+        var isInConfig = false;
+        $.each(paths, function(path, value){
+          if (path.startsWith(optpath)) {
+            isInConfig = true;
+            return false;
+          }
+        });
+        $( `[name=${optpath}]` ).prop('checked', isInConfig).trigger('change');
+      });
+
+    }
+
+    self.setDependencies();
+
   }
 
   self.walkInputs = function(item, path, level, item_id, output){
@@ -357,5 +404,9 @@ function ConfigUI(root_element, schema) {
     return output;
 
   }
+
+  // prepare the ui
+  self.parseItem(self.schema, self.root, '', 1, '');
+  self.update(current_cfg);
 
 }

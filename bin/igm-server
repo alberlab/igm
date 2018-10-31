@@ -139,7 +139,12 @@ class AjaxHandler(BaseHandler):
                 if reqdata['path'] in folders:
                     cwd = reqdata['path']
                     os.chdir(cwd)
-                    self.write({'status': 'ok', 'path': reqdata['path']})
+                    try:
+                        cfgf = os.path.join(cwd, 'igm-config.json')
+                        current_cfg = json.load(open(cfgf))
+                    except:
+                        current_cfg = None;
+                    self.write({'status': 'ok', 'path': reqdata['path'], 'current_cfg': current_cfg})
             except:
                 self.write({'status': 'failed', 'reason': traceback.format_exc()})
 

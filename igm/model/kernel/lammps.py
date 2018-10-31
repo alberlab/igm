@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-'''
+"""
 The **lammps** module provides function to interface
 with LAMMPS in order to perform the modeling
 of the chromosome structures.
@@ -27,7 +27,7 @@ of the chromosome structures.
 To perform a full modeling step, you may
 want to check out the higher level wrappers
 in the wrappers module.
-'''
+"""
 
 
 from __future__ import print_function, division
@@ -35,7 +35,6 @@ import os
 import os.path
 import errno
 import math
-from io import StringIO
 from itertools import groupby
 from copy import deepcopy
 

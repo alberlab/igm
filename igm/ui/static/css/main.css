@@ -83,7 +83,8 @@ html,body { height:100%; }
 }
 
 #folder-navigator {
-    background: cornsilk;
+    border-right: solid 1px #cccccc;
+    font-size: 13px;
     height: 100%;
 }
 
