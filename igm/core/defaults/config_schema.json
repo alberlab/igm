@@ -599,6 +599,14 @@
                 "description" : ""
             },
 
+            "annealing_protocol" : {
+                "label" : "Temperature steps for simulated annealing",
+                "dtype" : "list",
+                "subdtype": "list",
+                "default" : "",
+                "description" : "If specified, the simulated annealing protocol will follow this parameter as a json list of [temp, nsteps] pairs."
+            },
+
             "damp" : {
                 "label" : "Damping parameter of thermostat",
                 "dtype" : "float",

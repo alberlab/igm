@@ -208,9 +208,7 @@ def create_lammps_script(model, user_args):
         # Integration
         # select the integrator
         print('fix 2 nonfixed nve/limit', user_args['max_velocity'], file=f)
-        # Impose a thermostat - Tstart Tstop tau_decorr seed
-        print('fix 3 nonfixed langevin', user_args['tstart'], user_args['tstop'],
-              user_args['damp'], seed, file=f)
+
 
         for j, envelope in enumerate(model.envelopes):
             print(
@@ -269,7 +267,17 @@ def create_lammps_script(model, user_args):
                 print('unfix exVolAdapt%d' % step, file=f)
         else:
         # Run MD
-            print('run', user_args['mdsteps'], file=f)
+            if user_args['annealing_protocol'] is None:
+                # Impose a thermostat - Tstart Tstop tau_decorr seed
+
+
+                print('run', user_args['mdsteps'], file=f)
+            else:
+                for i, (temp, steps) in enumerate(user_args['annealing_protocol']):
+                    print('fix termostat%d nonfixed langevin' % i, temp, temp,
+                          user_args['damp'], seed + i, file=f)
+                    print('run', steps, file=f)
+                    print('unfix termostat%d' % i, file=f)
 
         # Run CG
         print('min_style cg', file=f)

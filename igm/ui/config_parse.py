@@ -51,7 +51,11 @@ def validate_value(value, dtype, subdtype=None, alen=None):
     elif dtype == 'list':
         sval = type_or_json(list, value)
         for i in range(len(sval)):
-            sval[i] = validate_value(sval[i], subdtype)
+            if subdtype == 'list':
+                if not isinstance(sval[i], list):
+                    raise ValueError()
+            else:
+                sval[i] = validate_value(sval[i], subdtype)
         return sval
     elif dtype == 'array':
         sval = type_or_json(list, value)
