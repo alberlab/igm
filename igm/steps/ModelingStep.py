@@ -295,7 +295,7 @@ class ModelingStep(StructGenStep):
             summary_data['n_violations'] += n_vio
             summary_data['histogram']['counts'] += hist_tot
             summary_data['bystructure']['n_imposed'][i] = n_tot
-            summary_data['bystructure']['n_violations'][i] = n_tot
+            summary_data['bystructure']['n_violations'][i] = n_vio
 
             # collect optimization statistics
             try:

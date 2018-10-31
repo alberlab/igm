@@ -18,9 +18,9 @@ def get_info_from_log(output):
     for l in generator:
         if l[:4] == 'Loop':
             ll = next(generator)
-            _, _, epair, ebond = [float(s) for s in ll.split()]
-            info['pair-energy'] = epair
-            info['bond-energy'] = ebond
+            vals = [float(s) for s in ll.split()]
+            info['pair-energy'] = vals[2]
+            info['bond-energy'] = vals[3]
             break
 
     for l in generator:

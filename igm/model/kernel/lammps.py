@@ -348,6 +348,7 @@ def optimize(model, cfg):
     data_fname = os.path.join(tmp_files_dir, run_name + '.data')
     script_fname = os.path.join(tmp_files_dir, run_name + '.lam')
     traj_fname = os.path.join(tmp_files_dir, run_name + '.lammpstrj')
+    log_fname = os.path.join(tmp_files_dir, run_name + '.log')
 
     try:
 
@@ -363,7 +364,7 @@ def optimize(model, cfg):
 
         # run the lammps minimization
         with open(script_fname, 'r') as lamfile:
-            proc = Popen([lammps_executable, '-log', '/dev/null'],
+            proc = Popen([lammps_executable, '-log', log_fname],
                          stdin=lamfile,
                          stdout=PIPE,
                          stderr=PIPE)
@@ -376,7 +377,8 @@ def optimize(model, cfg):
                                output) )
 
         # get results
-        info = get_info_from_log(StringIO(unicode(output)))
+        with open(log_fname, 'r') as lf:
+            info = get_info_from_log(lf)
 
         with open(traj_fname, 'r') as fd:
             new_crd = get_last_frame(fd)
@@ -392,6 +394,8 @@ def optimize(model, cfg):
                 os.remove(script_fname)
             if os.path.isfile(traj_fname):
                 os.remove(traj_fname)
+            if os.path.isfile(log_fname):
+                os.remove(log_fname)
 
     except:
         if not keep_temporary_files:
@@ -401,8 +405,9 @@ def optimize(model, cfg):
                 os.remove(script_fname)
             if os.path.isfile(traj_fname):
                 os.remove(traj_fname)
+            if os.path.isfile(log_fname):
+                os.remove(log_fname)
         raise
-
 
     return info
 
