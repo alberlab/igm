@@ -272,7 +272,7 @@ class Step(object):
                 self._db.record(**dbdata)
 
             else:
-                self.cfg.update(past_substeps['mapped'])
+                self.cfg['runtime'].update(past_substeps['mapped']['runtime'])
 
             if 'reduced' not in past_substeps:
 
@@ -284,7 +284,7 @@ class Step(object):
                 self._db.record(**dbdata)
 
             else:
-                self.cfg.update(past_substeps['reduced'])
+                self.cfg['runtime'].update(past_substeps['reduced']['runtime'])
 
             if 'cleanup' not in past_substeps:
 
@@ -294,7 +294,7 @@ class Step(object):
                 self._db.record(**dbdata)
 
             else:
-                self.cfg.update(past_substeps['cleanup'])
+                self.cfg['runtime'].update(past_substeps['cleanup']['runtime'])
 
             logger.info('%s - completed' % self.name())
             dbdata['status'] = 'completed'

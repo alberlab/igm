@@ -266,10 +266,8 @@ def create_lammps_script(model, user_args):
                 print('unfix exVolAdapt%d' % step, file=f)
         else:
         # Run MD
-            if user_args['annealing_protocol'] is None:
+            if user_args.get('annealing_protocol') is None:
                 # Impose a thermostat - Tstart Tstop tau_decorr seed
-
-
                 print('run', user_args['mdsteps'], file=f)
             else:
                 for i, (temp, steps) in enumerate(user_args['annealing_protocol']):

@@ -85,7 +85,7 @@ def save_cfg(data, folder='.'):
             continue
 
         if sitem.get('blank', False):
-            if value is None or value == '':
+            if value is None or (isinstance(value, str) and value.strip() == ''):
                 continue
 
         dtypes = sitem['dtype']
