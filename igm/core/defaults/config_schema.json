@@ -599,61 +599,12 @@
                 "description" : ""
             },
 
-            "custom_annealing_protocol" : {
-
-                "label" : "Custom Annealing Protocol (under development, do not use yet)",
-                "role" : "optional-group",
-
-                "num_steps" : {
-                    "label" : "Number of SA steps",
-                    "dtype" : "int",
-                    "default" : 3,
-                    "description" : "Number of temperature steps in a simulated annealing run"
-                },
-
-                "tstarts": {
-                    "label": "Initial temperatures",
-                    "dtype": "list",
-                    "subdtype": "float",
-                    "default": [5000, 500, 1],
-                    "description": "A list of floats indicating the starting temperature of each SA step"
-                },
-
-                "tstops": {
-                    "label": "Final temperatures",
-                    "dtype": "list",
-                    "subdtype": "float",
-                    "blank": true,
-                    "default": [5000, 500, 1],
-                    "description": "A list of floats indicating the final temperature of each SA step. If not specified, the temperature is kept constant during each step."
-                },
-
-                "evfactors": {
-                    "label": "Excluded volume scale factors",
-                    "dtype": "list",
-                    "subdtype": "float",
-                    "blank": true,
-                    "default": [1.0, 1.0, 1.0],
-                    "description": "A list of floats indicating the excluded volume scale factor of each SA step. If not specified, it defaults to `model/restraints/exclude/evfactor`"
-                },
-
-                "envelopescales" : {
-                    "label": "Envelope size scale factors",
-                    "dtype": "list",
-                    "subdtype": "float",
-                    "blank": true,
-                    "default": [1.0, 1.0, 1.0],
-                    "description": "A list of floats indicating the envelope scale factor of each SA step. If not specified, it defaults to 1. Specified semiaxes are scaled by this factor at the beginning of each step."
-                }
-
-            },
-
             "annealing_protocol" : {
                 "label" : "Temperature steps for simulated annealing",
-                "dtype" : ["list"],
+                "dtype" : "list",
                 "subdtype": "list",
                 "blank": true,
-                "default" : null,
+                "default" : "",
                 "description" : "If specified, the simulated annealing protocol will follow this parameter as a json list of [temp, nsteps] pairs."
             },
 
