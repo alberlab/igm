@@ -601,8 +601,9 @@
 
             "custom_annealing_protocol" : {
 
-                "label" : "Custom Annealing Protocol (under development, do not use yet)",
+                "label" : "Enforce a custom annealing protocol",
                 "role" : "optional-group",
+                "description": "Default protocol linearly lower temperature from tstart to tstop in a single run. Here one can specify an additional protocol, including rescaling for potentials",
 
                 "num_steps" : {
                     "label" : "Number of SA steps",
@@ -611,11 +612,19 @@
                     "description" : "Number of temperature steps in a simulated annealing run"
                 },
 
+                "mdsteps": {
+                    "label": "Number of MD steps",
+                    "dtype": "list",
+                    "subdtype": "int",
+                    "default": [5000, 5000, 5000],
+                    "description": "A list of ints indicating the number of MD steps of each SA step"
+                },
+
                 "tstarts": {
                     "label": "Initial temperatures",
                     "dtype": "list",
                     "subdtype": "float",
-                    "default": [5000, 500, 1],
+                    "default": [5000.0, 500.0, 1.0],
                     "description": "A list of floats indicating the starting temperature of each SA step"
                 },
 
@@ -624,7 +633,7 @@
                     "dtype": "list",
                     "subdtype": "float",
                     "blank": true,
-                    "default": [5000, 500, 1],
+                    "default": [5000.0, 500.0, 1.0],
                     "description": "A list of floats indicating the final temperature of each SA step. If not specified, the temperature is kept constant during each step."
                 },
 
@@ -637,24 +646,43 @@
                     "description": "A list of floats indicating the excluded volume scale factor of each SA step. If not specified, it defaults to `model/restraints/exclude/evfactor`"
                 },
 
-                "envelopescales" : {
+                "envelope_factors" : {
                     "label": "Envelope size scale factors",
                     "dtype": "list",
                     "subdtype": "float",
                     "blank": true,
                     "default": [1.0, 1.0, 1.0],
                     "description": "A list of floats indicating the envelope scale factor of each SA step. If not specified, it defaults to 1. Specified semiaxes are scaled by this factor at the beginning of each step."
+                },
+
+                "relax" : {
+                    "label" : "Perform a relaxation run after each SA step",
+                    "role" : "optional-group",
+                    "description": "At very high temperatures, the system could end up in a very frustrated configuration, and the termostat may not be able to termalize the system during next steps. A short relaxation heavily limiting the velocities is usually able to fix this problem.",
+
+                    "mdsteps": {
+                        "label": "Relaxation MD steps",
+                        "dtype": "int",
+                        "default": 1,
+                        "description": "Relaxation run number of steps"
+                    },
+
+                    "temperature": {
+                        "label": "Relaxation temperature",
+                        "dtype": "float",
+                        "default": 1.0,
+                        "description": "Relaxation run temperature"
+                    },
+
+                    "max_velocity": {
+                        "label": "Relaxation Maximum Velocity",
+                        "dtype": "float",
+                        "default": 10.0,
+                        "description": "Limit velocity of the particles during relaxation"
+                    }
+
                 }
 
-            },
-
-            "annealing_protocol" : {
-                "label" : "Temperature steps for simulated annealing",
-                "dtype" : "list",
-                "subdtype": "list",
-                "blank": true,
-                "default" : "",
-                "description" : "If specified, the simulated annealing protocol will follow this parameter as a json list of [temp, nsteps] pairs."
             },
 
             "damp" : {

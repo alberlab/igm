@@ -194,6 +194,15 @@ def create_lammps_script(model, user_args):
         print('group nonfixed type', ' '.join(centroid_types
                                             + bead_types), file=f)
 
+        for j, envelope in enumerate(model.envelopes):
+            print(
+                'group envgrp{} id {}'.format(
+                    j,
+                    ' '.join([str(k + 1) for k in envelope.particle_ids])
+                ),
+                file=f
+            )
+
         print('neighbor', maxrad, 'bin', file=f)  # skin size
         print('neigh_modify every 1 check yes', file=f)
         print('neigh_modify one', user_args['max_neigh'],
@@ -206,7 +215,7 @@ def create_lammps_script(model, user_args):
 
         # Integration
         # select the integrator
-        print('fix 2 nonfixed nve/limit', user_args['max_velocity'], file=f)
+        print('fix integrator nonfixed nve/limit', user_args['max_velocity'], file=f)
 
 
         for j, envelope in enumerate(model.envelopes):
@@ -251,33 +260,68 @@ def create_lammps_script(model, user_args):
         print('thermo_modify norm no', file=f)
         print('thermo', user_args['thermo'], file=f)
 
-        # ramp excluded volume
-        if user_args['ev_step'] > 1:
-            ev_val_step = float(user_args['ev_stop'] - user_args['ev_start']) / (user_args['ev_step'] - 1)
-            for step in range(user_args['ev_step']):
-                print('variable evprefactor equal ',
-                      user_args['ev_start'] + ev_val_step*step,
-                      file=f)
-                #'ramp(%f,%f)' % (user_args['ev_start'], user_args['ev_stop']),
-                print('fix exVolAdapt%d all adapt 0',
-                      'pair soft a * * v_evprefactor scale yes',
-                      'reset yes' % step, file=f)
-                print('run', user_args['mdsteps'], file=f)
-                print('unfix exVolAdapt%d' % step, file=f)
-        else:
         # Run MD
-            if user_args.get('annealing_protocol') is None:
-                # Impose a thermostat - Tstart Tstop tau_decorr seed
 
-                print('fix termostat nonfixed langevin', user_args['tstart'], user_args['tstop'],
-                      user_args['damp'], seed, file=f)
-                print('run', user_args['mdsteps'], file=f)
-            else:
-                for i, (temp, steps) in enumerate(user_args['annealing_protocol']):
-                    print('fix termostat%d nonfixed langevin' % i, temp, temp,
-                          user_args['damp'], seed + i, file=f)
-                    print('run', steps, file=f)
-                    print('unfix termostat%d' % i, file=f)
+        # prepare protocol
+        protocol = user_args.get('custom_annealing_protocol', None)
+        if protocol is None:
+            # default protocol is 1 step, tstart to tstop
+            protocol = {
+                'num_steps': 1,
+                'mdsteps': [user_args['mdsteps']],
+                'tstarts': [user_args['tstart']],
+                'tstops': [user_args['tstop']],
+                'evfactors': [1],
+                'envelope_scales': [1]
+            }
+
+        nsteps = protocol.get('num_steps')
+        mdsteps = protocol.get('mdsteps', [user_args['mdsteps']] * nsteps)
+        tstarts = protocol.get('tstarts', [user_args['tstart']] * nsteps)
+        tstops = protocol.get('tstops', tstarts)
+        evfs = protocol.get('evfactors', [1] * nsteps)
+        envelopesf = protocol.get('envelope_factors', [1] * nsteps)
+
+        assert(len(mdsteps) == len(tstarts) == len(tstops) == len(evfs) == len(envelopesf) == nsteps)
+
+        print('# factors: ', envelopesf, file=f)
+
+        for step, (md, t0, t1, evf, envf) in enumerate(zip(mdsteps, tstarts, tstops, evfs, envelopesf)):
+
+            print('variable evprefactor equal ', evf,  file=f)
+            print('fix exVolAdapt%d all adapt 0' % step,
+                  'pair soft a * * v_evprefactor scale yes',
+                  'reset yes', file=f)
+
+            for j, envelope in enumerate(model.envelopes):
+                if envelope.shape == 'ellipsoid':
+                    print(
+                        'fix envelope{0} envgrp{0} ellipsoidalenvelope'.format(j),
+                        ' '.join([str(x * envf) for x in envelope.semiaxes]),
+                        envelope.k,
+                        file=f
+                    )
+                    print('fix_modify envelope{} energy yes'.format(j), file=f)
+                else:
+                    raise NotImplementedError('Envelope (%s) not implemented' % envelope.shape)
+
+            relax = protocol.get('relax', None)
+
+            if relax is not None:
+                print('fix termostat nonfixed langevin', relax['temperature'], relax['temperature'], user_args['damp'],
+                      seed + step, file=f)
+                print('fix integrator nonfixed nve/limit', relax['max_velocity'], file=f)
+                print('run', relax['mdsteps'], file=f)
+                # reset original integrator
+                print('fix integrator nonfixed nve/limit', user_args['max_velocity'], file=f)
+
+            print('fix termostat nonfixed langevin', t0, t1, user_args['damp'], seed + step, file=f)
+
+            print('run', md, file=f)
+
+            print('unfix exVolAdapt%d' % step, file=f)
+
+
 
         # Run CG
         print('min_style cg', file=f)
