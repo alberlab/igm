@@ -23,6 +23,8 @@ var FileBrowser = function(dom_element, onFileSelect, root_path='') {
   self.content_div = $('<div id="fb_u_content"></div>');
   self.dom_element.append(self.content_div);
 
+  self.dom_element.append($('<div style="text-align:right"><a id="fb_u_reload_btn" href="#">update</a></div>'));
+
   self.updateView = function(path, dirs, files) {
 
     self.current_path = path;
@@ -83,5 +85,9 @@ var FileBrowser = function(dom_element, onFileSelect, root_path='') {
   }
 
   self.navigate(root_path);
+
+  $("#fb_u_reload_btn").click( function() {
+    self.navigate(self.current_path);
+  });
 
 }

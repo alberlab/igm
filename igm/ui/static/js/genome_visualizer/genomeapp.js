@@ -62,6 +62,7 @@ var GenomeApp = function(){
 
     if (data.status === 'failed') {
         alert('ERROR:\n' + data.reason);
+        interface.activate();
         return false;
     }
     status.coordinates = data.crd;

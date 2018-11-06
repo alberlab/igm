@@ -113,6 +113,7 @@ $(document).ready(function() {
 
     app.setFile(path);
     return false;
+
   });
 
 });

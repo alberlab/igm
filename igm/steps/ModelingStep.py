@@ -101,7 +101,7 @@ class ModelingStep(StructGenStep):
             os.path.join(self.tmp_dir, '%s.%d.ready' % (self.cfg.runtime_hash(), struct_id))
             for struct_id in self.argument_list
         ]
-        if self.cfg.get('optimization/clean_restart', True):
+        if self.cfg.get('optimization/clean_restart', False):
             for f in readyfiles:
                 if os.path.isfile(f):
                     os.remove(f)
@@ -133,7 +133,7 @@ class ModelingStep(StructGenStep):
         readyfile = os.path.join(tmp_dir, '%s.%d.ready' % (step_id, struct_id))
 
         # if the ready file exists it does nothing, unless it is a clear run
-        if not cfg.get('optimization/clean_restart', True):
+        if not cfg.get('optimization/clean_restart', False):
             if os.path.isfile(readyfile):
                 return
 
