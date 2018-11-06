@@ -20,7 +20,7 @@ from .RandomInit import generate_random_in_sphere
 from tqdm import tqdm
 
 DEFAULT_HIST_BINS = 100
-DEFAULT_HIST_MAX = 1
+DEFAULT_HIST_MAX = 0.1
 
 class ModelingStep(StructGenStep):
 
@@ -92,16 +92,27 @@ class ModelingStep(StructGenStep):
         self.file_poller.watch_async()
 
     def before_map(self):
-        '''
+        """
         This runs only if map step is not skipped
-        '''
+        """
+
+        # clean up ready files if we want a clean restart of the modeling step
+        readyfiles = [
+            os.path.join(self.tmp_dir, '%s.%d.ready' % (self.cfg.runtime_hash(), struct_id))
+            for struct_id in self.argument_list
+        ]
+        if self.cfg.get('optimization/clean_restart', True):
+            for f in readyfiles:
+                if os.path.isfile(f):
+                    os.remove(f)
+
         self._run_poller()
 
 
     def before_reduce(self):
-        '''
+        """
         This runs only if reduce step is not skipped
-        '''
+        """
         # if we don't have a poller, set it up
         if self.file_poller is None:
             self._run_poller()
@@ -118,6 +129,13 @@ class ModelingStep(StructGenStep):
 
         #extract structure information
         step_id = cfg.runtime_hash()
+
+        readyfile = os.path.join(tmp_dir, '%s.%d.ready' % (step_id, struct_id))
+
+        # if the ready file exists it does nothing, unless it is a clear run
+        if not cfg.get('optimization/clean_restart', True):
+            if os.path.isfile(readyfile):
+                return
 
         hssfilename    = cfg["optimization"]["structure_output"]
 

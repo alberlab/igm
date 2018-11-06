@@ -468,8 +468,6 @@
             "description" : "Maximum number of unsuccessful optimization iterations before giving up"
         },
 
-
-
         "violation_tolerance" : {
             "label" : "Violation tolerance",
             "dtype" : "float",
@@ -516,6 +514,13 @@
             "role" : "output",
             "default" : "opt",
             "description" : "Directory for temporary optimization files"
+        },
+
+        "clean_restart" : {
+            "label" : "Clear files from previous runs",
+            "dtype" : "bool",
+            "default" : false,
+            "description" : "If the IGM run is interrupted, files from the last modeling step may still be present. If selected, IGM will make sure to clean them up and re-attempt the modeling step from scratch. By default, it will avoid re-running additional jobs and use the files found in the temporary directory instead."
         },
 
         "keep_temporary_files" : {

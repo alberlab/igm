@@ -60,7 +60,10 @@ var GenomeApp = function(){
 
   self.gotFileData = function(data) {
 
-    console.log(data);
+    if (data.status === 'failed') {
+        alert('ERROR:\n' + data.reason);
+        return false;
+    }
     status.coordinates = data.crd;
 
     if (newFileFlag) {

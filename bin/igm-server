@@ -113,7 +113,7 @@ class AjaxHandler(BaseHandler):
 
         if reqdata['request'] == 'listhss':
             try:
-                r = list_directory(reqdata['path'], root=cwd, ext=['.hss', '.hss.T'])
+                r = list_directory(reqdata['path'], root=cwd)
                 self.write(json.dumps(r))
             except:
                 self.write({'status': 'failed', 'reason': traceback.format_exc()})
