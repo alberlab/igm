@@ -302,12 +302,17 @@ class Step(object):
                 del self.cfg['runtime']['step_hash']
             self._db.record(**dbdata)
 
-        except:
+        except KeyboardInterrupt:
+            dbdata['status'] = 'failed'
+            dbdata['data'] = {'exception': 'KeyboardInterrupt'}
+            self._db.record(**dbdata)
+            raise
 
+        except:
             dbdata['status'] = 'failed'
             dbdata['data'] = { 'exception' : traceback.format_exc() }
             self._db.record(**dbdata)
-            logger.error( '%s\n%s - failed' % ( self.name(), traceback.format_exc() ) )
+            logger.error( '%s- failed:\nTraceback:\n%s' % ( self.name(), traceback.format_exc() ) )
             raise
 
     def name(self):

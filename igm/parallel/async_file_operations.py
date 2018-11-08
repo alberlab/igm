@@ -3,7 +3,7 @@ import os.path
 import time
 import threading
 
-poll_interval = 0.5 # check every half second
+POLL_INTERVAL = 0.5 # check every half second
 
 
 class FileLock(object):
@@ -36,7 +36,7 @@ class FutureFile(object):
                 now = time.time()
                 if now - start > timeout:
                     raise RuntimeError('%s is not ready after %f seconds' % (self.name, timeout) )
-                time.sleep(poll_interval)
+                time.sleep(POLL_INTERVAL)
 
 
 class GeneratorLen(object):
@@ -69,7 +69,7 @@ class FutureFilePoller(object):
         self.remove_flag = remove_after_callback
         self.completed = []
 
-    def watch(self, timeout=None, interval=poll_interval):
+    def watch(self, timeout=None, interval=POLL_INTERVAL):
         start = time.time()
         self.running = True
         while True:
@@ -102,8 +102,8 @@ class FutureFilePoller(object):
             if delta < interval:
                 time.sleep(interval - delta)
 
-    def watch_async(self, timeout=None, interval=poll_interval):
-        self.th = threading.Thread(target=self.watch, args=(timeout, poll_interval), daemon=True)
+    def watch_async(self, timeout=None, interval=POLL_INTERVAL):
+        self.th = threading.Thread(target=self.watch, args=(timeout, POLL_INTERVAL), daemon=True)
         self.th.start()
 
     def wait(self, timeout=None):
@@ -118,7 +118,7 @@ class FutureFilePoller(object):
                 lastc += 1
                 yield self.completed[lastc-1]
             else:
-                time.sleep(poll_interval)
+                time.sleep(POLL_INTERVAL)
 
     def enumerate(self):
         return GeneratorLen(self._enumerate(), len(self.futures))
@@ -143,34 +143,37 @@ class FilePoller(object):
         self.remove_flag = remove_after_callback
         self.completed = []
 
-    def watch(self, timeout=None, interval=poll_interval):
-        start = time.time()
-        self.running = True
-        while True:
-            last_poll = time.time()
-            for i in list(self.to_poll):
-                if os.path.isfile(self.files[i]):
-                    self.callback(*self.args[i], **self.kwargs[i])
-                    if self.remove_flag:
-                        os.remove(self.files[i])
-                    self.to_poll.remove(i)
-                    self.completed.append(i)
-                
-            if len(self.to_poll) == 0:
-                self.running = False
-                return
+    def watch(self, timeout=None, interval=POLL_INTERVAL):
+        try:
+            start = time.time()
+            self.running = True
+            while True:
+                last_poll = time.time()
+                for i in list(self.to_poll):
+                    if os.path.isfile(self.files[i]):
+                        self.callback(*self.args[i], **self.kwargs[i])
+                        if self.remove_flag:
+                            os.remove(self.files[i])
+                        self.to_poll.remove(i)
+                        self.completed.append(i)
 
-            now = time.time()
-            if timeout is not None:
-                if now - start > timeout:
-                    raise RuntimeError('Timeout expired (%f seconds)' % (timeout,) )
-            
-            delta = now - last_poll
-            if delta < interval:
-                time.sleep(interval - delta)
+                if len(self.to_poll) == 0:
+                    self.running = False
+                    return
 
-    def watch_async(self, timeout=None, interval=poll_interval):
-        self.th = threading.Thread(target=self.watch, args=(timeout, poll_interval), daemon=True)
+                now = time.time()
+                if timeout is not None:
+                    if now - start > timeout:
+                        raise RuntimeError('Timeout expired (%f seconds)' % (timeout,) )
+
+                delta = now - last_poll
+                if delta < interval:
+                    time.sleep(interval - delta)
+        except KeyboardInterrupt:
+            print('Interrupt signal received. Poller stopping.')
+
+    def watch_async(self, timeout=None, interval=POLL_INTERVAL):
+        self.th = threading.Thread(target=self.watch, args=(timeout, interval), daemon=True)
         self.th.start()
 
     def wait(self, timeout=None):
@@ -185,7 +188,7 @@ class FilePoller(object):
                 lastc += 1
                 yield self.completed[lastc-1]
             else:
-                time.sleep(poll_interval)
+                time.sleep(POLL_INTERVAL)
 
     def enumerate(self):
         return GeneratorLen(self._enumerate(), len(self.files))
