@@ -103,26 +103,45 @@ def run_pipeline(cfgfile):
             is_damid_incomplete = ( 'DamID' in cfg['restraints'] ) and ( len( cfg.get("runtime/DamID/sigma_list") ) != 0 )
             is_hic_done = not is_hic_incomplete
             is_damid_done = not is_damid_incomplete
+
+            # force minimum restraint optimization iterations before going to next parameter set
             force_next_iteration = (opt_iter < min_iter - 1) and ( opt_iter != 0 )
-            if cfg.get('optimization/force_last_iteration', False) and is_hic_done and ( opt_iter == 0 ):
+
+            # force next iteration if it is the last step and only one restraint optimization iteration was run
+            if  (
+                    cfg.get('optimization/force_last_iteration', False) and
+                    is_hic_done and
+                    opt_iter == 0
+                ):
+                force_next_iteration = True
+
+            # force next iteration if below a certain treshold and only one restraint optimization iteration was run
+            if  (
+                    'Hi-C' in cfg['restraints'] and
+                    opt_iter == 0 and
+                    cfg.get("runtime/Hi-C/sigma") <= cfg.get('optimization/force_minimum_iterations_hic_cutoff', 0.0)
+                ):
                 force_next_iteration = True
 
             if is_acceptable and not force_next_iteration:
+                # all good, either go to the next parameter set or finish
                 if is_hic_incomplete:
-                    # we are done with this sigma but still have more to go
+                    # we are done with this Hi-C sigma but still have more to go
                     del cfg["runtime"]["Hi-C"]["sigma"]
                     opt_iter = 0
 
                 if is_damid_incomplete:
+                    # we are done with this damid sigma but still have more to go
                     del cfg["runtime"]["DamID"]["sigma"]
                     opt_iter = 0
 
                 if is_hic_done and is_damid_done:
-                    # we are done
+                    # we are actually done
                     igm.logger.info('Pipeline completed')
                     open('completed', 'w').close()
                     break
             else:
+                # gotta move to the next restraint optimization iteration
                 opt_iter += 1
                 if max_iter is not None:
                     if opt_iter >= max_iter:
@@ -132,6 +151,7 @@ def run_pipeline(cfgfile):
                 if is_acceptable:
                     igm.logger.info('Forcing next iteration')
                 igm.logger.info('iteration # %d' % opt_iter)
+
     except KeyboardInterrupt:
         igm.logger.error('Interrupt Signal received. Stopping IGM.')
 

@@ -78,7 +78,7 @@
                 "evfactor" : {
                     "label" : "Scale factor for excluded volume",
                     "dtype" : "float",
-                    "default" : 0.05,
+                    "default" : 1.0,
                     "description" : "Scale excluded volume interactions. Smaller values correspond to weaker interactions"
                 }
             },
@@ -147,7 +147,7 @@
                 "polymer_kspring" : {
                     "label" : "polymeric bond restraint force constant",
                     "dtype" : "float",
-                    "default" : 0.05,
+                    "default" : 1.0,
                     "min" : 0.0,
                     "description" : "The force constant for polymeric bond"
                 }
@@ -192,7 +192,7 @@
             "contact_kspring" : {
                 "label" : "Hi-C restraint force constant",
                 "dtype" : "float",
-                "default" : 0.05,
+                "default" : 1.0,
                 "min" : 0.0,
                 "description" : "The force constant for Hi-C restraints [F=-k(x - x0, where x is the distance, x0 the contact distance, and k the force constant]"
             },
@@ -260,7 +260,7 @@
             "contact_kspring" : {
                 "label" : "DamID restraint force constant",
                 "dtype" : "float",
-                "default" : 0.05,
+                "default" : 1.0,
                 "min" : 0.0,
                 "description" : "The force constant for DamID restraints [F=-k(x - x0, where x is the distance, x0 the contact distance, and k the force constant]"
             },
@@ -321,7 +321,7 @@
             "kspring" : {
                 "label" : "Sprite restraint force constant",
                 "dtype" : "float",
-                "default" : 0.05,
+                "default" : 1.0,
                 "min" : 0.0,
                 "description" : "The force constant for Sprite restraints [F=-k(x - x0), where x is the distance, x0 the target distance, and k the force constant]"
             },
@@ -406,7 +406,7 @@
             "kspring" : {
                 "label" : "FISH restraints force constant",
                 "dtype" : "float",
-                "default" : 0.05,
+                "default" : 1.0,
                 "min" : 0.0,
                 "description" : "The force constant for FISH restraints [F=-k(x - x0), where x is the distance, x0 the target distance, and k the force constant]"
             },
@@ -458,6 +458,13 @@
             "dtype" : "bool",
             "default" : false,
             "description" : "Ensure that at least min_iterations are performed before finishing the pipeline."
+        },
+
+        "force_minimum_iterations_hic_cutoff" : {
+            "label" : "Force minimum iterations below a Hi-C sigma treshold",
+            "dtype" : "float",
+            "default" : 0.0,
+            "description" : "Ensure that at least min_iterations are performed below a user specified Hi-C sigma treshold."
         },
 
         "max_iterations" : {
@@ -621,7 +628,7 @@
                     "label": "Number of MD steps",
                     "dtype": "list",
                     "subdtype": "int",
-                    "default": [5000, 5000, 5000],
+                    "default": [5000, 15000, 15000, 10000],
                     "description": "A list of ints indicating the number of MD steps of each SA step"
                 },
 
@@ -629,7 +636,7 @@
                     "label": "Initial temperatures",
                     "dtype": "list",
                     "subdtype": "float",
-                    "default": [5000.0, 500.0, 1.0],
+                    "default": [5000.0, 500.0, 50.0, 1.0],
                     "description": "A list of floats indicating the starting temperature of each SA step"
                 },
 
@@ -638,7 +645,7 @@
                     "dtype": "list",
                     "subdtype": "float",
                     "blank": true,
-                    "default": [5000.0, 500.0, 1.0],
+                    "default": [5000.0, 50.0, 1.0, 0.0],
                     "description": "A list of floats indicating the final temperature of each SA step. If not specified, the temperature is kept constant during each step."
                 },
 
@@ -647,7 +654,7 @@
                     "dtype": "list",
                     "subdtype": "float",
                     "blank": true,
-                    "default": [1.0, 1.0, 1.0],
+                    "default": [0.1, 1.0, 1.0, 1.0],
                     "description": "A list of floats indicating the excluded volume scale factor of each SA step. If not specified, it defaults to `model/restraints/exclude/evfactor`"
                 },
 
@@ -656,7 +663,7 @@
                     "dtype": "list",
                     "subdtype": "float",
                     "blank": true,
-                    "default": [1.0, 1.0, 1.0],
+                    "default": [1.2, 1.0, 1.0, 1.0],
                     "description": "A list of floats indicating the envelope scale factor of each SA step. If not specified, it defaults to 1. Specified semiaxes are scaled by this factor at the beginning of each step."
                 },
 
@@ -668,7 +675,7 @@
                     "mdsteps": {
                         "label": "Relaxation MD steps",
                         "dtype": "int",
-                        "default": 1,
+                        "default": 200,
                         "description": "Relaxation run number of steps"
                     },
 
@@ -683,7 +690,7 @@
                         "label": "Relaxation Maximum Velocity",
                         "dtype": "float",
                         "default": 10.0,
-                        "description": "Limit velocity of the particles during relaxation"
+                        "description": "Limit velocity of the particles during relaxation. This is the most important parameter to get the optimization to actually relax from very frustrated configurations. With default parameters, the high temperatures and long timesteps will \"break\" the trajectory integration, and a relaxing step may be necessary to obtain meaningful trajectory at low temperatures."
                     }
 
                 }
@@ -700,7 +707,7 @@
             "max_velocity": {
                 "label" : "Cap bead velocity",
                 "dtype" : "float",
-                "default" : 100.0,
+                "default" : 1000.0,
                 "description" : "In presence of extremely large forces, the velocity of beads will be capped to avoid explosion of the simulation"
             },
 
