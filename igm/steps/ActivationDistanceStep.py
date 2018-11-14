@@ -5,6 +5,7 @@ import scipy.io
 import scipy.sparse
 import os
 import os.path
+import shutil
 
 from alabtools import Contactmatrix
 from alabtools.analysis import HssFile
@@ -173,10 +174,10 @@ class ActivationDistanceStep(Step):
             h5f.create_dataset("dist", data=np.concatenate(dist))
             h5f.create_dataset("prob", data=np.concatenate(prob))
         #-
-        swapfile = '.'.join( [actdist_file,] + additional_data )
+        swapfile = os.path.realpath('.'.join( [actdist_file,] + additional_data ))
         if last_actdist_file is not None:
-            os.rename(last_actdist_file, swapfile)
-        os.rename(tmp_actdist_file, actdist_file)
+            shutil.move(last_actdist_file, swapfile)
+        shutil.move(tmp_actdist_file, actdist_file)
         self.cfg['runtime']['Hi-C']["actdist_file"] = actdist_file
 
     def skip(self):
