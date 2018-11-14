@@ -194,15 +194,6 @@ def create_lammps_script(model, user_args):
         print('group nonfixed type', ' '.join(centroid_types
                                             + bead_types), file=f)
 
-        for j, envelope in enumerate(model.envelopes):
-            print(
-                'group envgrp{} id {}'.format(
-                    j,
-                    ' '.join([str(k + 1) for k in envelope.particle_ids])
-                ),
-                file=f
-            )
-
         print('neighbor', maxrad, 'bin', file=f)  # skin size
         print('neigh_modify every 1 check yes', file=f)
         print('neigh_modify one', user_args['max_neigh'],
@@ -218,7 +209,8 @@ def create_lammps_script(model, user_args):
         print('fix integrator nonfixed nve/limit', user_args['max_velocity'], file=f)
 
 
-        for j, envelope in enumerate(model.envelopes):
+        valid_envelopes = [ envelope for envelope in model.envelopes if len(envelope.particle_ids) ]
+        for j, envelope in enumerate(valid_envelopes):
             print(
                 'group envgrp{} id {}'.format(
                     j,
@@ -226,16 +218,6 @@ def create_lammps_script(model, user_args):
                 ),
                 file=f
             )
-            if envelope.shape == 'ellipsoid':
-                print(
-                    'fix envelope{0} envgrp{0} ellipsoidalenvelope'.format(j),
-                    ' '.join([str(x) for x in envelope.semiaxes]),
-                    envelope.k,
-                    file=f
-                )
-                print('fix_modify envelope{} energy yes'.format(j), file=f)
-            else:
-                raise NotImplementedError('Envelope (%s) not implemented' % envelope.shape)
 
         print('timestep', user_args['timestep'], file=f)
 
@@ -255,7 +237,7 @@ def create_lammps_script(model, user_args):
 
         # Thermodynamic info style for output
         print('thermo_style custom step temp epair ebond ' + ' '.join([
-                'f_envelope%d' %i for i in range(len(model.envelopes))
+                'f_envelope%d' %i for i in range(len(valid_envelopes))
             ]), file=f)
         print('thermo_modify norm no', file=f)
         print('thermo', user_args['thermo'], file=f)
@@ -293,17 +275,18 @@ def create_lammps_script(model, user_args):
                   'pair soft a * * v_evprefactor scale yes',
                   'reset yes', file=f)
 
-            for j, envelope in enumerate(model.envelopes):
-                if envelope.shape == 'ellipsoid':
-                    print(
-                        'fix envelope{0} envgrp{0} ellipsoidalenvelope'.format(j),
-                        ' '.join([str(x * envf) for x in envelope.semiaxes]),
-                        envelope.k,
-                        file=f
-                    )
-                    print('fix_modify envelope{} energy yes'.format(j), file=f)
-                else:
-                    raise NotImplementedError('Envelope (%s) not implemented' % envelope.shape)
+            for j, envelope in enumerate(valid_envelopes):
+                if len(envelope.particle_ids):
+                    if envelope.shape == 'ellipsoid':
+                        print(
+                            'fix envelope{0} envgrp{0} ellipsoidalenvelope'.format(j),
+                            ' '.join([str(x * envf) for x in envelope.semiaxes]),
+                            envelope.k,
+                            file=f
+                        )
+                        print('fix_modify envelope{} energy yes'.format(j), file=f)
+                    else:
+                        raise NotImplementedError('Envelope (%s) not implemented' % envelope.shape)
 
             relax = protocol.get('relax', None)
 
