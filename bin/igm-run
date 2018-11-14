@@ -156,7 +156,7 @@ def run_pipeline(cfgfile):
         igm.logger.error('Interrupt Signal received. Stopping IGM.')
 
 # start the run as a subprocess
-
+print('[CONTROL] Starting IGM run...')
 p = Process(target=run_pipeline, args=(cfgfile, ), daemon=True)
 p.start()
 

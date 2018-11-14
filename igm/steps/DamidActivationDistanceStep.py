@@ -142,9 +142,11 @@ class DamidActivationDistanceStep(Step):
     def reduce(self):
         damid_actdist_file = os.path.join(self.tmp_dir, "damid_actdist.hdf5")
 
-        loc = []
-        dist = []
-        prob = []
+        # we start with one empty element to avoid errors in np.concatenate
+        # if argument_list is empty
+        loc = [[]]
+        dist = [[]]
+        prob = [[]]
 
         for i in self.argument_list:
             fname = os.path.join(self.tmp_dir, '%d.out.tmp' % i)

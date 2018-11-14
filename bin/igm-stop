@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+
+import socket, argparse, os, stat, sys
+
+
+def is_socket(path):
+    mode = os.stat(path).st_mode
+    return stat.S_ISSOCK(mode)
+
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description='Stop a running igm instance')
+    parser.add_argument('dir', nargs='?', default=os.getcwd(), help='Optional. Directory where the IGM instance is running.')
+
+    args = parser.parse_args()
+
+    if not os.path.isdir(args.dir):
+        sys.stderr.write('Cannot find directory {}\n'.format(args.dir))
+        exit(1)
+
+    socket_file = os.path.join(args.dir, '.igm-socket')
+
+    try:
+        if not is_socket(socket_file):
+            sys.stderr.write('File "{}" does not appear to be a valid socket.\n'.format(socket_file))
+            exit(1)
+    except FileNotFoundError:
+        sys.stderr.write('Cannot find socket file "{}"\nIs IGM running in {}?\n'.format(socket_file, args.dir))
+        exit(1)
+
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    s.connect(socket_file)
+    s.send(b'{"q": "kill"}')
+    s.close()
