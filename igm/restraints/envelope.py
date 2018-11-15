@@ -19,7 +19,6 @@ class Envelope(Restraint):
     k : float
         spring constant
     """
-
     def __init__(self, shape="sphere", nuclear_radius=5000.0, k=1.0):
         self.shape = unicode(shape)
 
@@ -31,8 +30,8 @@ class Envelope(Restraint):
         self.k = k
         self.forceID = []
 
-    def _apply_sphere_envelop(self, model):
 
+    def _apply_sphere_envelop(self, model):
         center = model.addParticle([0., 0., 0.], 0., Particle.DUMMY_STATIC)
 
         normal_particles = [
@@ -47,22 +46,12 @@ class Envelope(Restraint):
                 self.k
             )
         )
-        # for i, p in enumerate(model.particles):
-        #     if p.ptype != Particle.NORMAL:
-        #         continue
-
-        #     f = model.addForce(HarmonicUpperBound((i, center),
-        #                                           d=self.nucRadius - p.r,
-        #                                           k=self.k,
-        #                                           note=Restraint.ENVELOPE))
-
-        #     self.forceID.append(f)
         self.forceID.append(f)
-        # #-
+
 
     def _apply(self, model):
-
         self._apply_sphere_envelop(model)
+
 
     def __repr__(self):
         return 'Envelope[shape={},k={},a={},b={},c={}]'.format(self.shape, self.k, self.a, self.b, self.c)
