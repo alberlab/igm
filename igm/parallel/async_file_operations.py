@@ -2,6 +2,8 @@ import os
 import os.path
 import time
 import threading
+import multiprocessing
+
 
 POLL_INTERVAL = 0.5 # check every half second
 
@@ -52,6 +54,9 @@ class GeneratorLen(object):
 
 class FutureFilePoller(object):
     def __init__(self, files, callback, args=None, kwargs=None, remove_after_callback=False):
+
+        self._manager = multiprocessing.Manager()
+
         self.files = files
         self.args = args 
         if args is None:
@@ -67,7 +72,7 @@ class FutureFilePoller(object):
         self.running = False
         self.th = None
         self.remove_flag = remove_after_callback
-        self.completed = []
+        self.completed = self._manager.list()
 
     def watch(self, timeout=None, interval=POLL_INTERVAL):
         start = time.time()
@@ -96,14 +101,14 @@ class FutureFilePoller(object):
             now = time.time()
             if timeout is not None:
                 if now - start > timeout:
-                    raise RuntimeError('Timeoute expired (%f seconds)' % (timeout,) )
+                    raise RuntimeError('Timeout expired (%f seconds)' % (timeout,) )
             
             delta = now - last_poll
             if delta < interval:
                 time.sleep(interval - delta)
 
     def watch_async(self, timeout=None, interval=POLL_INTERVAL):
-        self.th = threading.Thread(target=self.watch, args=(timeout, POLL_INTERVAL), daemon=True)
+        self.th = multiprocessing.Process(target=self.watch, args=(timeout, POLL_INTERVAL), daemon=True)
         self.th.start()
 
     def wait(self, timeout=None):
@@ -125,6 +130,8 @@ class FutureFilePoller(object):
 
 class FilePoller(object):
     def __init__(self, files, callback, args=None, kwargs=None, remove_after_callback=False):
+        self._manager = multiprocessing.Manager()
+
         self.files = files
         self.args = args 
         if args is None:
@@ -141,7 +148,7 @@ class FilePoller(object):
         self.th = None
         
         self.remove_flag = remove_after_callback
-        self.completed = []
+        self.completed = self._manager.list()
 
     def watch(self, timeout=None, interval=POLL_INTERVAL):
         try:
@@ -169,11 +176,11 @@ class FilePoller(object):
                 delta = now - last_poll
                 if delta < interval:
                     time.sleep(interval - delta)
-        except KeyboardInterrupt:
-            print('Interrupt signal received. Poller stopping.')
+        except (KeyboardInterrupt, SystemExit):
+            return
 
     def watch_async(self, timeout=None, interval=POLL_INTERVAL):
-        self.th = threading.Thread(target=self.watch, args=(timeout, interval), daemon=True)
+        self.th = multiprocessing.Process(target=self.watch, args=(timeout, interval), daemon=True)
         self.th.start()
 
     def wait(self, timeout=None):
