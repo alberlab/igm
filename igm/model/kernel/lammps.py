@@ -235,12 +235,7 @@ def create_lammps_script(model, user_args):
               user_args['out'],
               'id type x y z fx fy fz', file=f)
 
-        # Thermodynamic info style for output
-        print('thermo_style custom step temp epair ebond ' + ' '.join([
-                'f_envelope%d' %i for i in range(len(valid_envelopes))
-            ]), file=f)
-        print('thermo_modify norm no', file=f)
-        print('thermo', user_args['thermo'], file=f)
+
 
         # Run MD
 
@@ -299,6 +294,13 @@ def create_lammps_script(model, user_args):
                 print('fix integrator nonfixed nve/limit', user_args['max_velocity'], file=f)
 
             print('fix termostat nonfixed langevin', t0, t1, user_args['damp'], seed + step, file=f)
+
+            # Thermodynamic info style for output
+            print('thermo_style custom step temp epair ebond ' + ' '.join([
+                    'f_envelope{}'.format(i) for i in range(len(valid_envelopes))
+                ]), file=f)
+            print('thermo_modify norm no', file=f)
+            print('thermo', user_args['thermo'], file=f)
 
             print('run', md, file=f)
 

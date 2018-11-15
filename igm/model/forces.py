@@ -181,10 +181,7 @@ class EllipticEnvelope(Force):
         E = 0
         for i in self.particle_ids:
             p = particles[i]
-            if self.k > 0:
-                s2 = np.square(self.semiaxes - p.r)
-            else:
-                s2 = np.square(self.semiaxes + p.r)
+            s2 = np.square(self.semiaxes - p.r)
             x = p.pos
             x2 = x**2
             k2 = np.sum(x2 / s2)
@@ -198,10 +195,7 @@ class EllipticEnvelope(Force):
         scores = np.zeros(len(self.particle_ids))
         for k, i in enumerate(self.particle_ids):
             p = particles[i]
-            if self.k > 0:
-                s2 = np.square(self.semiaxes - p.r)
-            else:
-                s2 = np.square(self.semiaxes + p.r)
+            s2 = np.square(self.semiaxes - p.r)
             x = p.pos
             x2 = x**2
             k2 = np.sqrt(np.sum(x2 / s2))

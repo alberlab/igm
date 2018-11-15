@@ -23,11 +23,16 @@ damid_actdist_shape = [
 damid_actdist_fmt_str = "%6d %10.2f %.5f"
 
 
-def snormsq_sphere(x, r):
-    return np.sum(np.square(x), axis=1) / r**2
+# radial position of of the bead surface in radius units
+# on 1 the surface contacts the envelope
+def snormsq_sphere(x, R, r):
+    # return np.square(
+    #     (np.linalg.norm(x, axis=1) + r) / R**2
+    # )
+    return np.sum(np.square(x), axis=1) / (R-r)**2
 
-def snormsq_ellipse(x, semiaxes):
-    a, b, c = semiaxes
+def snormsq_ellipse(x, semiaxes, r):
+    a, b, c = np.array(semiaxes) - r
     sq = np.square(x)
     return sq[:, 0]/(a**2) + sq[:, 1]/(b**2) + sq[:, 2]/(c**2)
 
@@ -76,9 +81,9 @@ class DamidActivationDistanceStep(Step):
         pwish   = profile[mask]
 
         # rescale pwish considering the number of beads for multiploid cells
-        with HssFile(self.cfg.get("optimization/structure_output"), 'r') as hss:
-            num_beads = hss.nbead
-        pwish *= num_beads / len(profile)
+        # with HssFile(self.cfg.get("optimization/structure_output"), 'r') as hss:
+        #     num_beads = hss.nbead
+        # pwish *= num_beads / len(profile)
 
         try:
             with h5py.File(self.cfg.get("runtime/DamID/damid_actdist_file")) as h5f:
@@ -192,7 +197,7 @@ def cleanProbability(pij, pexist):
         pclean = pij
     return max(0, pclean)
 
-def get_damid_actdist(locid, pwish, plast, hss, contact_range=2, shape="sphere", nucleus_param=5000.0):
+def get_damid_actdist(locid, pwish, plast, hss, contact_range=0.05, shape="sphere", nucleus_param=5000.0):
     """
     Serial function to compute the damid activation distance for a locus.
 
@@ -232,16 +237,17 @@ def get_damid_actdist(locid, pwish, plast, hss, contact_range=2, shape="sphere",
     r = hss.get_radii()[ ii[0] ]
 
     # rescale pwish considering the number of copies
-    pwish = np.clip(pwish/n_copies, 0, 1)
+    # pwish = np.clip(pwish/n_copies, 0, 1)
 
     d_sq = np.empty(n_copies*n_struct)
 
     for i in range(n_copies):
         x = hss.get_bead_crd( ii[ i ] )
-        d_sq[ i*n_struct:(i+1)*n_struct ] = snormsq[shape](x, nucleus_param)
+        R = np.array(nucleus_param)*(1 - contact_range)
+        d_sq[ i*n_struct:(i+1)*n_struct ] = snormsq[shape](x, R, r)
     #=
 
-    rcutsq = (1.0 - contact_range) ** 2
+    rcutsq = 1.0
     d_sq[::-1].sort()
 
     contact_count = np.count_nonzero(d_sq >= rcutsq)
@@ -260,5 +266,4 @@ def get_damid_actdist(locid, pwish, plast, hss, contact_range=2, shape="sphere",
         activation_distance = np.sqrt(d_sq[o])
 
     return [ (i, activation_distance, p) for i in ii ]
-
 

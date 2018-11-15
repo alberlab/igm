@@ -6,10 +6,26 @@ import h5py
 from .restraint import Restraint
 from ..model.forces import HarmonicLowerBound, EllipticEnvelope
 from ..model import Particle
+
 try:
     UNICODE_EXISTS = bool(type(unicode))
 except NameError:
     unicode = lambda s: str(s)
+
+
+# radial position of of the bead surface in radius units
+# on 1 the surface contacts the envelope
+def snormsq_sphere(x, R, r):
+    # return np.square(
+    #     (np.linalg.norm(x, axis=1) + r) / R**2
+    # )
+    return np.sum(np.square(x), axis=1) / (R-r)**2
+
+
+def snormsq_ellipsoid(x, semiaxes, r):
+    a, b, c = np.array(semiaxes) - r
+    sq = np.square(x)
+    return sq[0]/(a**2) + sq[1]/(b**2) + sq[2]/(c**2)
 
 
 def snorm(x, shape=u"sphere", **kwargs):
@@ -60,7 +76,11 @@ class Damid(Restraint):
 
         affected_particles = [
             i for i, d in self.damid_actdist
-            if snorm(model.particles[i].pos, shape=self.shape, a=self.a, b=self.b, c=self.c) >= d
+            if snormsq_ellipsoid(
+                model.particles[i].pos,
+                np.array([self.a, self.b, self.c]), 
+                model.particles[i].r
+            ) >= d**2
         ]
 
         f = model.addForce(
@@ -126,7 +146,7 @@ class DamidActivationDistanceDB(object):
             if self._chk_i >= self.chunk_size:
                 self._load_next_chunk()
 
-            return (self._chk_row[self._chk_i],
+            return (int(self._chk_row[self._chk_i]),
                     self._chk_data[self._chk_i])
         else:
             self._i = 0
