@@ -87,7 +87,7 @@ class DamidActivationDistanceStep(Step):
 
         try:
             with h5py.File(self.cfg.get("runtime/DamID/damid_actdist_file")) as h5f:
-                last_prob = {i : p for i, p in zip(h5f["loc"], h5f["prob"])}
+                last_prob = {int(i) : p for i, p in zip(h5f["loc"], h5f["prob"])}
         except KeyError:
             last_prob = {}
 
