@@ -208,7 +208,6 @@ def create_lammps_script(model, user_args):
         # select the integrator
         print('fix integrator nonfixed nve/limit', user_args['max_velocity'], file=f)
 
-
         valid_envelopes = [ envelope for envelope in model.envelopes if len(envelope.particle_ids) ]
         for j, envelope in enumerate(valid_envelopes):
             print(
@@ -234,8 +233,6 @@ def create_lammps_script(model, user_args):
               user_args['write'],
               user_args['out'],
               'id type x y z fx fy fz', file=f)
-
-
 
         # Run MD
 
@@ -305,8 +302,6 @@ def create_lammps_script(model, user_args):
             print('run', md, file=f)
 
             print('unfix exVolAdapt%d' % step, file=f)
-
-
 
         # Run CG
         print('min_style cg', file=f)

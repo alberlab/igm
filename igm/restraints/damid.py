@@ -49,7 +49,6 @@ class Damid(Restraint):
 
 
     """
-
     def __init__(self, damid_file, contact_range=0.05, nuclear_radius=5000.0, shape="sphere",
                  semiaxes=(5000, 5000, 5000), k=1.0):
         self.shape = unicode(shape)
@@ -66,8 +65,10 @@ class Damid(Restraint):
         self._load_actdist(damid_file)
     #-
 
+
     def _load_actdist(self,damid_actdist):
         self.damid_actdist = DamidActivationDistanceDB(damid_actdist)
+
 
     def _apply_envelope(self, model):
 
@@ -91,6 +92,9 @@ class Damid(Restraint):
                 -self.k
             )
         )
+
+        self.forceID.append(f)
+
 
     def _apply(self, model):
         return self._apply_envelope(model)
