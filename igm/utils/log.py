@@ -8,12 +8,22 @@ FORMAT = '(%(name)s) %(asctime)-15s [%(levelname)s] %(message)s'
 logging.basicConfig(format=FORMAT, level=logging.INFO)
 logger = logging.getLogger('IGM')
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 def SetupLogging(cfg):
     if 'log' in cfg['parameters']:
         loglevel=logging.INFO
         set_log(cfg['parameters']['log'], loglevel=loglevel)
-    
-    
+
+
 def set_log(fname, loglevel=logging.INFO):
 
     fname = os.path.abspath(fname)

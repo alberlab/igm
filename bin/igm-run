@@ -157,7 +157,7 @@ def run_pipeline(cfgfile):
 
 # start the run as a subprocess
 print('[CONTROL] Starting IGM run...')
-p = Process(target=run_pipeline, args=(cfgfile, ), daemon=True)
+p = Process(target=run_pipeline, args=(cfgfile, ))
 p.start()
 
 
@@ -214,6 +214,7 @@ while 1:
     except:
         print('[CONTROL] Invalid data received:', str(data))
 
+p.join()
 
 try:
     os.remove(".igm-socket")

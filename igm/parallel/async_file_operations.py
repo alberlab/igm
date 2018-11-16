@@ -10,8 +10,8 @@ POLL_INTERVAL = 0.5 # check every half second
 
 class FileLock(object):
     def __init__(self, name):
-        
-        self.lockname = os.path.abspath( name + '.lock') 
+
+        self.lockname = os.path.abspath( name + '.lock')
         open(self.lockname,  'w').close()
 
     def __enter__(self):
@@ -46,7 +46,7 @@ class GeneratorLen(object):
         self.gen = gen
         self.length = length
 
-    def __len__(self): 
+    def __len__(self):
         return self.length
 
     def __iter__(self):
@@ -58,10 +58,10 @@ class FutureFilePoller(object):
         self._manager = multiprocessing.Manager()
 
         self.files = files
-        self.args = args 
+        self.args = args
         if args is None:
             self.args = [ list() ] * len(files)
-        
+
         self.kwargs = kwargs
         if kwargs is None:
             self.kwargs = [ dict() ] * len(files)
@@ -92,7 +92,7 @@ class FutureFilePoller(object):
                         # hate to do this, but sometimes the nfs
                         # is not in sync and the callbacks may fail
                         # TODO: set a max_error or something?
-                        pass 
+                        pass
 
             if len(self.to_poll) == 0:
                 self.running = False
@@ -102,7 +102,7 @@ class FutureFilePoller(object):
             if timeout is not None:
                 if now - start > timeout:
                     raise RuntimeError('Timeout expired (%f seconds)' % (timeout,) )
-            
+
             delta = now - last_poll
             if delta < interval:
                 time.sleep(interval - delta)
@@ -133,39 +133,37 @@ class FilePoller(object):
         self._manager = multiprocessing.Manager()
 
         self.files = files
-        self.args = args 
+        self.args = args
         if args is None:
             self.args = [ list() ] * len(files)
-        
+
         self.kwargs = kwargs
         if kwargs is None:
             self.kwargs = [ dict() ] * len(files)
 
         self.callback = callback
-        self.to_poll = set( range( len(files) ) )
-        
-        self.running = False
+
         self.th = None
-        
+
         self.remove_flag = remove_after_callback
         self.completed = self._manager.list()
 
-    def watch(self, timeout=None, interval=POLL_INTERVAL):
+    def watch(self, completed, timeout=None, interval=POLL_INTERVAL):
         try:
+            to_poll = set( range( len(self.files) ) )
+            print('watching:', self.files[:3], '...')
             start = time.time()
-            self.running = True
             while True:
                 last_poll = time.time()
-                for i in list(self.to_poll):
+                for i in list(to_poll):
                     if os.path.isfile(self.files[i]):
                         self.callback(*self.args[i], **self.kwargs[i])
                         if self.remove_flag:
                             os.remove(self.files[i])
-                        self.to_poll.remove(i)
-                        self.completed.append(i)
+                        to_poll.remove(i)
+                        completed.append(i)
 
-                if len(self.to_poll) == 0:
-                    self.running = False
+                if len(to_poll) == 0:
                     return
 
                 now = time.time()
@@ -180,7 +178,7 @@ class FilePoller(object):
             return
 
     def watch_async(self, timeout=None, interval=POLL_INTERVAL):
-        self.th = multiprocessing.Process(target=self.watch, args=(timeout, interval), daemon=True)
+        self.th = multiprocessing.Process(target=self.watch, args=(self.completed, timeout, interval), daemon=True)
         self.th.start()
 
     def wait(self, timeout=None):

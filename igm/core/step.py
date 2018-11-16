@@ -16,6 +16,7 @@ from ..utils import HmsFile
 from alabtools.analysis import HssFile
 from .job_tracking import StepDB
 from ..utils.log import print_progress, logger
+from ..utils.log import bcolors as BC
 from ..parallel.async_file_operations import FutureFilePoller
 from ..utils.files import make_absolute_path
 from hashlib import md5
@@ -240,7 +241,7 @@ class Step(object):
         past_substeps = { x['status'] : x['cfg'] for x in past_history }
         if 'completed' in past_substeps:
             self.cfg['runtime'].update(past_substeps['completed']['runtime'])
-            logger.info('step %s already completed, skipping.' % self.name())
+            logger.info(BC.OKBLUE + 'step {} already completed, skipping.'.format(self.name()) + BC.ENDC)
             self.skip()
             return
 
@@ -312,7 +313,8 @@ class Step(object):
             dbdata['status'] = 'failed'
             dbdata['data'] = { 'exception' : traceback.format_exc() }
             self._db.record(**dbdata)
-            logger.error( '%s- failed:\nTraceback:\n%s' % ( self.name(), traceback.format_exc() ) )
+            logger.error(BC.FAIL + '{} - failed'.format( self.name() ) + BC.ENDC)
+            logger.error(BC.WARNING + 'Traceback:\n{}'.format(traceback.format_exc()) + BC.ENDC)
             raise
 
     def name(self):
@@ -342,9 +344,8 @@ class StructGenStep(Step):
         Collect all structure coordinates together to assemble a hssFile
         """
 
-        # create a temporary file if does not exist.
         hssfilename = self.cfg["optimization"]["structure_output"] + '.T'
-        with HssFile(hssfilename, 'r+') as hss:
+        with HssFile(hssfilename, 'a') as hss:
             n_struct = hss.nstruct
             n_beads = hss.nbead
             #iterate all structure files and

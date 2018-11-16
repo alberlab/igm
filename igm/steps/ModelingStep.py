@@ -5,7 +5,9 @@ import os.path
 import numpy as np
 from copy import deepcopy
 from shutil import copyfile
+import shutil
 import json
+from subprocess import Popen, PIPE, STDOUT
 
 from alabtools.analysis import HssFile
 
@@ -15,7 +17,7 @@ from ..restraints import Polymer, Envelope, Steric, HiC, Sprite, Damid
 from ..utils import HmsFile
 from ..utils.files import h5_create_group_if_not_exist, h5_create_or_replace_dataset
 from ..parallel.async_file_operations import FilePoller
-from ..utils.log import logger
+from ..utils.log import logger, bcolors
 from .RandomInit import generate_random_in_sphere
 from tqdm import tqdm
 
@@ -364,7 +366,17 @@ class ModelingStep(StructGenStep):
         n_struct = self.hss.nstruct
         n_beads = self.hss.nbead
         self.hss.close()
-
+        logger.info(
+            bcolors.HEADER + 'Average number of restraints per bead: %f' + bcolors.ENDC,
+            total_restraints / n_struct / n_beads
+        )
+        c = bcolors.WARNING if violation_score >= self.cfg.get('optimization/max_violations') else bcolors.OKGREEN
+        logger.info(
+            c + 'Violation score: %d / %d = ' + bcolors.BOLD + '%f' + bcolors.ENDC,
+            total_violations,
+            total_restraints,
+            violation_score
+        )
         # swap temporary and current hss files
         # os.rename(self.hssfilename, self.hssfilename + '.swap')
         # os.rename(self.cfg["optimization"]["structure_output"], self.hssfilename)
@@ -373,14 +385,26 @@ class ModelingStep(StructGenStep):
         PACK_SIZE = 1e6
         pack_beads = max(1, int( PACK_SIZE / n_struct / 3 ) )
         pack_beads = min(pack_beads, n_beads)
-
+        cmd = [
+            'h5repack',
+            '-i', self.hssfilename,
+            '-o', self.hssfilename + '.swap',
+            '-l', 'coordinates:CHUNK={:d}x{:d}x3'.format(pack_beads, n_struct),
+            '-v'
+        ]
+        sp = Popen(cmd, stderr=PIPE, stdout=PIPE)
+        # cmd = 'h5repack -l coordinates:CHUNK={:d}x{:d}x3 {:s} {:s}'.format(
+        #     pack_beads, n_struct, self.hssfilename, self.hssfilename + '.swap'
+        # )
         logger.info('repacking...')
-        cmd = 'h5repack -l coordinates:CHUNK={:d}x{:d}x3 {:s} {:s}'.format(
-            pack_beads, n_struct, self.hssfilename, self.hssfilename + '.swap'
-        )
-        os.system(cmd)
+        stdout, stderr = sp.communicate()
+        if sp.returncode != 0:
+            print(' '.join(cmd))
+            print('O:', stdout.decode('utf-8'))
+            print('E:', stderr.decode('utf-8'))
+            raise RuntimeError('repacking failed. error code: %d' % sp.returncode)
         logger.info('done.')
-        os.rename(self.hssfilename + '.swap', self.cfg.get("optimization/structure_output"))
+        shutil.move(self.hssfilename + '.swap', self.cfg.get("optimization/structure_output"))
 
         # save the output file with a unique file name if requested
         if self.keep_intermediate_structures:
@@ -391,7 +415,7 @@ class ModelingStep(StructGenStep):
 
         # finally set the violation score in the runtime
         self.cfg['runtime']['violation_score'] = violation_score
-        logger.info('Violation score: %d / %d = %f' % (total_violations, total_restraints, violation_score))
+
 
 
     def intermediate_name(self):
