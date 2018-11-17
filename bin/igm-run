@@ -2,6 +2,7 @@
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 import igm
+from igm.utils.emails import send_email
 import sys
 import atexit
 import os, os.path, time
@@ -9,7 +10,7 @@ from shutil import copyfile, SameFileError
 import socket
 import json
 from multiprocessing import Process
-
+import traceback
 
 cfgfile = os.path.abspath(sys.argv[1])
 
@@ -139,6 +140,12 @@ def run_pipeline(cfgfile):
                     # we are actually done
                     igm.logger.info('Pipeline completed')
                     open('completed', 'w').close()
+                    if cfg.get('email_notifications', False):
+                        send_email(
+                            cfg.get('email_notifications'),
+                            subject='IGM automatic notifications (Success)',
+                            content='IGM completed succesfully.\ncfg_file: ' + cfgfile
+                        )
                     break
             else:
                 # gotta move to the next restraint optimization iteration
@@ -146,6 +153,12 @@ def run_pipeline(cfgfile):
                 if max_iter is not None:
                     if opt_iter >= max_iter:
                         igm.logger.critical('Maximum number of iterations reached (%d)' % max_iter)
+                        if cfg.get('email_notifications', False):
+                            send_email(
+                                cfg.get('email_notifications'),
+                                subject='IGM automatic notifications (Maximum iterations reached)',
+                                content='IGM could not optimize fully.\ncfg_file: ' + cfgfile
+                            )
                         break
 
                 if is_acceptable:
@@ -154,6 +167,15 @@ def run_pipeline(cfgfile):
 
     except KeyboardInterrupt:
         igm.logger.error('Interrupt Signal received. Stopping IGM.')
+
+    except:
+        if cfg.get('email_notifications', False):
+            send_email(
+                cfg.get('email_notifications'),
+                subject='IGM automatic notifications (Failure)',
+                content='IGM got an exception.\n' + traceback.format_exc()
+            )
+        raise
 
 # start the run as a subprocess
 print('[CONTROL] Starting IGM run...')

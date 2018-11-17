@@ -345,7 +345,7 @@ class StructGenStep(Step):
         """
 
         hssfilename = self.cfg["optimization"]["structure_output"] + '.T'
-        with HssFile(hssfilename, 'a') as hss:
+        with HssFile(hssfilename, 'r+') as hss:
             n_struct = hss.nstruct
             n_beads = hss.nbead
             #iterate all structure files and

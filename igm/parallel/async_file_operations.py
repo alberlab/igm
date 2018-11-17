@@ -2,6 +2,7 @@ import os
 import os.path
 import time
 import threading
+import traceback
 import multiprocessing
 
 
@@ -129,7 +130,9 @@ class FutureFilePoller(object):
         return GeneratorLen(self._enumerate(), len(self.futures))
 
 class FilePoller(object):
-    def __init__(self, files, callback, args=None, kwargs=None, remove_after_callback=False):
+    def __init__(self, files, callback, args=None, kwargs=None, remove_after_callback=False,
+                 setup=None, setup_args=tuple(), setup_kwargs=dict(),
+                 teardown=None, teardown_args=tuple(), teardown_kwargs=dict()):
         self._manager = multiprocessing.Manager()
 
         self.files = files
@@ -147,11 +150,19 @@ class FilePoller(object):
 
         self.remove_flag = remove_after_callback
         self.completed = self._manager.list()
+        self.setup = setup
+        self.setup_args = setup_args
+        self.setup_kwargs = setup_kwargs
+        self.teardown = teardown
+        self.teardown_args = teardown_args
+        self.teardown_kwargs = teardown_kwargs
+        self._traceback = self._manager.list()
 
-    def watch(self, completed, timeout=None, interval=POLL_INTERVAL):
+    def watch(self, completed, tb, timeout=None, interval=POLL_INTERVAL):
         try:
+            if self.setup:
+                self.setup(*self.setup_args, **self.setup_kwargs)
             to_poll = set( range( len(self.files) ) )
-            print('watching:', self.files[:3], '...')
             start = time.time()
             while True:
                 last_poll = time.time()
@@ -164,37 +175,53 @@ class FilePoller(object):
                         completed.append(i)
 
                 if len(to_poll) == 0:
-                    return
+                    break
 
                 now = time.time()
                 if timeout is not None:
                     if now - start > timeout:
-                        raise RuntimeError('Timeout expired (%f seconds)' % (timeout,) )
+                        raise RuntimeError('Timeout expired (%f seconds)' % (timeout,))
 
                 delta = now - last_poll
                 if delta < interval:
                     time.sleep(interval - delta)
-        except (KeyboardInterrupt, SystemExit):
-            return
+
+        except:
+            try:
+                tb.append(traceback.format_exc())
+            except:
+                pass
+            pass
+
+        finally:
+            if self.teardown:
+                self.teardown(*self.teardown_args, **self.teardown_kwargs)
 
     def watch_async(self, timeout=None, interval=POLL_INTERVAL):
-        self.th = multiprocessing.Process(target=self.watch, args=(self.completed, timeout, interval), daemon=True)
+        self.th = multiprocessing.Process(target=self.watch, args=(self.completed, self._traceback, timeout, interval))
         self.th.start()
 
     def wait(self, timeout=None):
         self.th.join(timeout)
+        if len(self._traceback):
+            raise RuntimeError(self.traceback)
 
     def _enumerate(self):
         lastc = 0
         while True:
             if lastc == len(self.files):
+                if self.th:
+                    self.th.join()
                 break
+
             if len(self.completed) > lastc:
                 lastc += 1
-                yield self.completed[lastc-1]
+                yield self.completed[lastc - 1]
+
             else:
+                if len(self._traceback):
+                    raise RuntimeError(self.traceback)
                 time.sleep(POLL_INTERVAL)
 
     def enumerate(self):
         return GeneratorLen(self._enumerate(), len(self.files))
-

@@ -71,7 +71,7 @@ def PrepareGenomeIndex(cfg):
     return genome, index
 
 def prepareHss(fname, nbead, nstruct, genome, index, radii, nucleus_shape='sphere', nucleus_parameters=5000.0, nucleus_volume=0, coord_chunks=None):
-    with HssFile(fname, 'a') as hss:
+    with HssFile(fname, 'w') as hss:
         #put everything into hssFile
         hss.set_nbead(nbead)
         hss.set_nstruct(nstruct)

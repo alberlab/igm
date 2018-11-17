@@ -21,13 +21,17 @@ def get_info_from_log(output):
             vals = [float(s) for s in ll.split()]
             info['pair-energy'] = vals[2]
             info['bond-energy'] = vals[3]
+            while not ll.startswith('Step'):
+                ll = next(generator)
+            keys = ll.split()
+            info['thermo'] = {k: v for k, v in zip(keys[1:], vals[1:])}
             break
 
     for l in generator:
         if l[:4] == 'Loop':
             # MD minimization
             info['md-time'] = float(l.split()[3])
-    
+
     # EN=`grep -A 1 "Energy initial, next-to-last, final =" $LAMMPSLOGTMP \
     # | tail -1 | awk '{print $3}'`
     return info
