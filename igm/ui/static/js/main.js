@@ -190,11 +190,75 @@ function clearAll() {
   $('#step-history').html('');
 }
 
+function getIndicesOf(searchStr, str, caseSensitive) {
+    var searchStrLen = searchStr.length;
+    if (searchStrLen == 0) {
+        return [];
+    }
+    var startIndex = 0, index, indices = [];
+    if (!caseSensitive) {
+        str = str.toLowerCase();
+        searchStr = searchStr.toLowerCase();
+    }
+    while ((index = str.indexOf(searchStr, startIndex)) > -1) {
+        indices.push(index);
+        startIndex = index + searchStrLen;
+    }
+    return indices;
+}
+
+function substituteConsoleCodes(s) {
+
+  const tags = {
+    '\033[95m': ['<mark>', '</mark>'],
+    '\033[94m': ['<span class="text-primary">', '</span>'],
+    '\033[92m': ['<span class="text-success">', '</span>'],
+    '\033[93m': ['<span class="text-warning">', '</span>'],
+    '\033[91m': ['<span class="text-danger">', '</span>'],
+    '\033[1m': ['<b>', '</b>'],
+    '\033[4m': ['<u>', '</u>'],
+  }
+  HEADER = '\033[95m';
+  OKBLUE = '\033[94m';
+  OKGREEN = '\033[92m';
+  WARNING = '\033[93m';
+  FAIL = '\033[91m';
+  ENDC = '\033[0m';
+  BOLD = '\033[1m';
+  UNDERLINE = '\033[4m';
+
+  var batches = s.split(ENDC);
+  out = '';
+  for (var i = 0; i < batches.length; i++) {
+    var b = batches[i];
+    var q = (' ' + b).slice(1);
+    ccode = '\033';
+    var starts = getIndicesOf(ccode, b, 1);
+    var sub_items = [];
+    var closures = [];
+    for (var j = 0; j < starts.length; j++) {
+      var k = b.substr(starts[j]);
+      end = k.indexOf("m");
+      k = k.substr(0, end + 1);
+      q = q.replace(k, tags[k][0]);
+      closures.unshift(tags[k][1]);
+    }
+    out = out + q + closures.join("");
+  }
+
+  // also substitute \n with <br>
+  out = out.split("\n").join("<br>");
+  return out;
+
+}
+
 // ---- update the log view
 function updateLogView() {
   updateLogFlag = $('#log-ta').is(":visible");
-  if (updateLogFlag)
-    $('#log-ta').val(igm_log);
+
+  if (updateLogFlag) {
+    $('#log-ta').html(substituteConsoleCodes(igm_log));
+  }
 }
 
 function pad(num, size) {

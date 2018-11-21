@@ -27,14 +27,14 @@ html,body { height:100%; }
 
 #log-ta {
     font-family: Inconsolata, Consolas, Monaco, monospace;
-    font-weight: bold;
     color: #eeeeee;
-    background-color: black;
+    background-color: #282923;
     -webkit-box-sizing: border-box;
        -moz-box-sizing: border-box;
             box-sizing: border-box;
     width: 100%;
     height: 80vh;
+    overflow-y: scroll;
 }
 
 #load-screen {
