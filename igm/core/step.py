@@ -17,7 +17,6 @@ from alabtools.analysis import HssFile
 from .job_tracking import StepDB
 from ..utils.log import print_progress, logger
 from ..utils.log import bcolors as BC
-from ..parallel.async_file_operations import FutureFilePoller
 from ..utils.files import make_absolute_path
 from hashlib import md5
 

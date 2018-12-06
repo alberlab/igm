@@ -66,7 +66,7 @@ class ModelingStep(StructGenStep):
 
     def _run_poller(self):
         readyfiles = [
-            os.path.join(self.tmp_dir, '%s.%d.ready' % (self.cfg.runtime_hash(), struct_id))
+            os.path.join(self.tmp_dir, '%s.%d.ready' % (self.uid))
             for struct_id in self.argument_list
         ]
 
@@ -85,7 +85,7 @@ class ModelingStep(StructGenStep):
         """
         # clean up ready files if we want a clean restart of the modeling step
         readyfiles = [
-            os.path.join(self.tmp_dir, '%s.%d.ready' % (self.cfg.runtime_hash(), struct_id))
+            os.path.join(self.tmp_dir, '%s.%d.ready' % (self.uid, struct_id))
             for struct_id in self.argument_list
         ]
         if self.cfg.get('optimization/clean_restart', False):
@@ -113,7 +113,7 @@ class ModelingStep(StructGenStep):
         cfg = deepcopy(cfg)
 
         # extract structure information
-        step_id = cfg.runtime_hash()
+        step_id = cfg.get('runtime/step_hash', 'xxxx')
 
         readyfile = os.path.join(tmp_dir, '%s.%d.ready' % (step_id, struct_id))
 
@@ -208,7 +208,7 @@ class ModelingStep(StructGenStep):
             monitored_restraints.append(sprite)
 
         # ========Optimization
-        cfg['runtime']['run_name'] = cfg['runtime']['step_hash'] + '_' + str(struct_id)
+        cfg['runtime']['run_name'] = cfg.get('runtime/step_hash') + '_' + str(struct_id)
         optinfo = model.optimize(cfg)
 
         tol = cfg.get('optimization/violation_tolerance', 0.01)

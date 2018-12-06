@@ -35,6 +35,7 @@ html,body { height:100%; }
     width: 100%;
     height: 80vh;
     overflow-y: scroll;
+    white-space: pre;
 }
 
 #load-screen {

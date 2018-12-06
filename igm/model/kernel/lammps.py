@@ -48,13 +48,17 @@ try:
 except NameError:
     unicode = str
 
-__author__  = "Guido Polles"
+
+__author__ = "Guido Polles"
 __license__ = "GPL"
 __version__ = "0.0.1"
-__email__   = "polles@usc.edu"
+__email__ = "polles@usc.edu"
 
 
-INFO_KEYS = ['final-energy', 'pair-energy', 'bond-energy', 'md-time', 'n_restr', 'n_hic_restr']
+INFO_KEYS = ['final-energy', 'pair-energy',
+             'bond-energy', 'md-time', 'n_restr', 'n_hic_restr']
+EPS_TEMP = 0.001
+
 
 def create_lammps_data(model, user_args):
 
@@ -65,7 +69,7 @@ def create_lammps_data(model, user_args):
 
     boxdim = 0
     for atom in model.atoms:
-        boxdim = max( boxdim, np.max(np.abs(atom.xyz)) )
+        boxdim = max(boxdim, np.max(np.abs(atom.xyz)))
     boxdim *= 1.05
 
     with open(user_args['data'], 'w') as f:
@@ -110,18 +114,18 @@ def create_lammps_data(model, user_args):
             a1 = atom_types[i]
             for j in range(i, len(atom_types)):
                 a2 = atom_types[j]
-                id1 = min(a1.id+1, a2.id+1)
-                id2 = max(a1.id+1, a2.id+1)
+                id1 = min(a1.id + 1, a2.id + 1)
+                id2 = max(a1.id + 1, a2.id + 1)
                 if (a1.atom_category == AtomType.BEAD and
-                    a2.atom_category == AtomType.BEAD):
+                        a2.atom_category == AtomType.BEAD):
                     ri = a1.radius
                     rj = a2.radius
                     dc = (ri + rj)
-                    A = (dc/math.pi)**2
-                    #sigma = dc / 1.1224 #(2**(1.0/6.0))
+                    A = (dc / math.pi)**2
+                    # sigma = dc / 1.1224 #(2**(1.0/6.0))
                     #print(i+1, user_args['evfactor'], sigma, dc, file=f)
 
-                    print(id1, id2, A*model.evfactor, dc, file=f)
+                    print(id1, id2, A * model.evfactor, dc, file=f)
                 else:
                     print(id1, id2, 0.0, 0.0, file=f)
 
@@ -132,23 +136,22 @@ def create_lammps_data(model, user_args):
                 r = atom.atom_type.radius
             else:
                 r = 0
-            print(i+1, atom.mol_id, r, file=f)
+            print(i + 1, atom.mol_id, r, file=f)
+
 
 def create_lammps_script(model, user_args):
 
     # get a seed, different for each minimization and run but deterministic
     seed = (
-                (
-                    user_args.get('seed', np.random.randint(1, 9007991))
-                    * model.id
-                    * user_args.get('step_no', np.random.randint(1, 4325237))
-                ) % 9190037
-            ) + 1
-
+        (
+            user_args.get('seed', np.random.randint(1, 9007991))
+            * model.id
+            * user_args.get('step_no', np.random.randint(1, 4325237))
+        ) % 9190037
+    ) + 1
 
     maxrad = max([at.radius for at in model.atom_types if
                   at.atom_category == AtomType.BEAD])
-
 
     with open(user_args['lmp'], 'w') as f:
         print('units                 lj', file=f)
@@ -156,7 +159,7 @@ def create_lammps_script(model, user_args):
         print('bond_style  hybrid',
               'harmonic_upper_bound',
               'harmonic_lower_bound', file=f)
-        print('boundary              s s s', file=f) # non-periodic and adapts
+        print('boundary              s s s', file=f)  # non-periodic and adapts
 
         # Needed to avoid calculation of 3 neighs and 4 neighs
         print('special_bonds lj/coul 1.0 1.0 1.0', file=f)
@@ -175,30 +178,31 @@ def create_lammps_script(model, user_args):
         print('mass * 1.0', file=f)
 
         # groups atom types by atom_category
-        sortedlist = list(sorted(model.atom_types, key=lambda x: x.atom_category))
+        sortedlist = list(
+            sorted(model.atom_types, key=lambda x: x.atom_category))
         groupedlist = {k: list(v) for k, v in groupby(sortedlist,
-                                                key=lambda x: x.atom_category)}
+                                                      key=lambda x: x.atom_category)}
 
         bead_types = [str(x) for x in groupedlist[AtomType.BEAD]]
-        dummy_types = [str(x) for x in groupedlist.get(AtomType.FIXED_DUMMY, [])]
-        centroid_types = [str(x) for x in groupedlist.get(AtomType.CLUSTER_CENTROID, [])]
+        dummy_types = [str(x)
+                       for x in groupedlist.get(AtomType.FIXED_DUMMY, [])]
+        centroid_types = [str(x) for x in groupedlist.get(
+            AtomType.CLUSTER_CENTROID, [])]
         print('group beads type', ' '.join(bead_types), file=f)
 
         if dummy_types:
-            print('group dummy type', ' '.join(dummy_types) , file=f)
+            print('group dummy type', ' '.join(dummy_types), file=f)
             print('neigh_modify exclude group dummy all', file=f)
         if centroid_types:
             print('group centroid type', ' '.join(centroid_types), file=f)
             print('neigh_modify exclude group centroid all', file=f)
 
-        print('group nonfixed type', ' '.join(centroid_types
-                                            + bead_types), file=f)
+        print('group nonfixed type', ' '.join(centroid_types + bead_types), file=f)
 
         print('neighbor', maxrad, 'bin', file=f)  # skin size
         print('neigh_modify every 1 check yes', file=f)
         print('neigh_modify one', user_args['max_neigh'],
               'page', 20 * user_args['max_neigh'], file=f)
-
 
         # Freeze dummy atom
         if dummy_types:
@@ -206,14 +210,16 @@ def create_lammps_script(model, user_args):
 
         # Integration
         # select the integrator
-        print('fix integrator nonfixed nve/limit', user_args['max_velocity'], file=f)
+        print('fix integrator nonfixed nve/limit',
+              user_args['max_velocity'], file=f)
 
-        valid_envelopes = [ envelope for envelope in model.envelopes if len(envelope.particle_ids) ]
+        valid_envelopes = [
+            envelope for envelope in model.envelopes if len(envelope.particle_ids)]
         for j, envelope in enumerate(valid_envelopes):
             print(
                 'group envgrp{} id {}'.format(
                     j,
-                    ' '.join([ str(k+1) for k in envelope.particle_ids ])
+                    ' '.join([str(k + 1) for k in envelope.particle_ids])
                 ),
                 file=f
             )
@@ -226,7 +232,7 @@ def create_lammps_script(model, user_args):
         # print('fix wall beads wall/region mySphere harmonic 10.0 1.0 ',
         #       2 * maxrad, file=f)
 
-        #print('pair_modify shift yes mix arithmetic', file=f)
+        # print('pair_modify shift yes mix arithmetic', file=f)
 
         # outputs:
         print('dump   crd_dump all custom',
@@ -256,13 +262,14 @@ def create_lammps_script(model, user_args):
         evfs = protocol.get('evfactors', [1] * nsteps)
         envelopesf = protocol.get('envelope_factors', [1] * nsteps)
 
-        assert(len(mdsteps) == len(tstarts) == len(tstops) == len(evfs) == len(envelopesf) == nsteps)
+        assert(len(mdsteps) == len(tstarts) == len(tstops)
+               == len(evfs) == len(envelopesf) == nsteps)
 
         print('# factors: ', envelopesf, file=f)
 
         for step, (md, t0, t1, evf, envf) in enumerate(zip(mdsteps, tstarts, tstops, evfs, envelopesf)):
 
-            print('variable evprefactor equal ', evf,  file=f)
+            print('variable evprefactor equal ', evf, file=f)
             print('fix exVolAdapt%d all adapt 0' % step,
                   'pair soft a * * v_evprefactor scale yes',
                   'reset yes', file=f)
@@ -271,31 +278,47 @@ def create_lammps_script(model, user_args):
                 if len(envelope.particle_ids):
                     if envelope.shape == 'ellipsoid':
                         print(
-                            'fix envelope{0} envgrp{0} ellipsoidalenvelope'.format(j),
-                            ' '.join([str(x * envf) for x in envelope.semiaxes]),
+                            'fix envelope{0} envgrp{0} ellipsoidalenvelope'.format(
+                                j),
+                            ' '.join([str(x * envf)
+                                      for x in envelope.semiaxes]),
                             envelope.k,
                             file=f
                         )
                         print('fix_modify envelope{} energy yes'.format(j), file=f)
                     else:
-                        raise NotImplementedError('Envelope (%s) not implemented' % envelope.shape)
+                        raise NotImplementedError(
+                            'Envelope (%s) not implemented' % envelope.shape)
 
             relax = protocol.get('relax', None)
 
             if relax is not None:
-                print('fix termostat nonfixed langevin', relax['temperature'], relax['temperature'], user_args['damp'],
-                      seed + step, file=f)
-                print('fix integrator nonfixed nve/limit', relax['max_velocity'], file=f)
+                # print('fix termostat nonfixed langevin', relax['temperature'], relax['temperature'], user_args['damp'],
+                #       seed + step, file=f)
+                print('velocity nonfixed create', relax[
+                      'temperature'], seed + step, file=f)
+                # print('fix termostat nonfixed temp/berendsen', relax['temperature'], relax['temperature'], user_args['damp'], file=f)
+                print('fix termostat nonfixed temp/rescale 1 ',
+                      relax['temperature'], relax['temperature'], 0.1, 1, file=f)
+                print('fix integrator nonfixed nve/limit',
+                      relax['max_velocity'], file=f)
                 print('run', relax['mdsteps'], file=f)
                 # reset original integrator
-                print('fix integrator nonfixed nve/limit', user_args['max_velocity'], file=f)
+                print('fix integrator nonfixed nve/limit',
+                      user_args['max_velocity'], file=f)
 
-            print('fix termostat nonfixed langevin', t0, t1, user_args['damp'], seed + step, file=f)
+            # print('fix termostat nonfixed langevin', t0, t1, user_args['damp'], seed + step, file=f)
+            print('velocity nonfixed create', t0, seed + step, file=f)
+            # print('fix termostat nonfixed temp/berendsen', t0, t1, user_args['damp'], file=f)
+            print('fix termostat nonfixed temp/rescale 1 ',
+                  t0, t1, user_args['damp'], 0.1, 1, file=f)
 
             # Thermodynamic info style for output
-            print('thermo_style custom step temp epair ebond ' + ' '.join([
+            print(
+                'thermo_style custom step temp epair ebond ' + ' '.join([
                     'f_envelope{}'.format(i) for i in range(len(valid_envelopes))
-                ]), file=f)
+                ]), file=f
+            )
             print('thermo_modify norm no', file=f)
             print('thermo', user_args['thermo'], file=f)
 
@@ -359,7 +382,8 @@ def optimize(model, cfg):
 
     tmp_files_dir = cfg['optimization']['tmp_dir']
     if not os.path.isabs(cfg['optimization']['tmp_dir']):
-        tmp_files_dir = os.path.join(cfg['parameters']['tmp_dir'], tmp_files_dir)
+        tmp_files_dir = os.path.join(
+            cfg['parameters']['tmp_dir'], tmp_files_dir)
     try:
         os.makedirs(tmp_files_dir)
     except OSError as e:
@@ -368,7 +392,8 @@ def optimize(model, cfg):
 
     run_name = cfg['runtime']['run_name']
     keep_temporary_files = cfg['optimization']['keep_temporary_files']
-    lammps_executable = cfg['optimization']['kernel_opts']['lammps']['lammps_executable']
+    lammps_executable = cfg['optimization'][
+        'kernel_opts']['lammps']['lammps_executable']
     run_opts = deepcopy(cfg['optimization']['optimizer_options'])
 
     data_fname = os.path.join(tmp_files_dir, run_name + '.data')
@@ -382,7 +407,8 @@ def optimize(model, cfg):
         io_opts = {'out': traj_fname, 'data': data_fname, 'lmp': script_fname}
         run_opts.update(io_opts)
         run_opts.update(cfg['optimization']['kernel_opts']['lammps'])
-        run_opts.update({'step_no': cfg.get('runtime/step_no', 1) + 2}) # this is to set the random seed
+        # this is to set the random seed
+        run_opts.update({'step_no': cfg.get('runtime/step_no', 1) + 2})
         m = LammpsModel(model)
 
         create_lammps_data(m, run_opts)
@@ -400,7 +426,7 @@ def optimize(model, cfg):
             raise RuntimeError('LAMMPS exited with non-zero exit code: %d (modelid: %d)\nOutput:\n%s\n' % (
                                proc.returncode,
                                model.id,
-                               output) )
+                               output))
 
         # get results
         with open(log_fname, 'r') as lf:
@@ -436,5 +462,3 @@ def optimize(model, cfg):
         raise
 
     return info
-
-

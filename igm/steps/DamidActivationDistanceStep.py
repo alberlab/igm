@@ -7,6 +7,7 @@ import os.path
 from alabtools.analysis import HssFile
 
 from ..core import Step
+from ..utils.log import logger
 
 try:
     # python 2 izip
@@ -88,8 +89,10 @@ class DamidActivationDistanceStep(Step):
         try:
             with h5py.File(self.cfg.get("runtime/DamID/damid_actdist_file")) as h5f:
                 last_prob = {int(i) : p for i, p in zip(h5f["loc"], h5f["prob"])}
+                logger.info('Read {:d} probabilities from last step'.format(len(last_prob)))
         except KeyError:
             last_prob = {}
+            logger.info('Creating new damid actdist file...')
 
         batch_size = self.cfg.get('restraints/DamID/batch_size', 100)
         n_args_batches = len(ii) // batch_size
