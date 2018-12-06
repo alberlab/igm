@@ -76,7 +76,8 @@ class BasicIppController(ParallelController):
             client = Client()
         except TimeoutError:
             raise RuntimeError('Cannot connect to the ipyparallel client. Is it running?')
-
+        
+        ar = None
         try:
             client[:].use_cloudpickle()
             lbv = client.load_balanced_view()
@@ -101,6 +102,8 @@ class BasicIppController(ParallelController):
                 raise
         finally:
             # always close the client to release resources
+            if ar:
+                client.abort(ar)
             if client:
                 client.close()
         return r

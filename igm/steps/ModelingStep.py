@@ -66,7 +66,7 @@ class ModelingStep(StructGenStep):
 
     def _run_poller(self):
         readyfiles = [
-            os.path.join(self.tmp_dir, '%s.%d.ready' % (self.uid))
+            os.path.join(self.tmp_dir, '%s.%d.ready' % (self.uid, struct_id))
             for struct_id in self.argument_list
         ]
 

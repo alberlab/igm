@@ -620,7 +620,7 @@
                 "num_steps" : {
                     "label" : "Number of SA steps",
                     "dtype" : "int",
-                    "default" : 3,
+                    "default" : 4,
                     "description" : "Number of temperature steps in a simulated annealing run"
                 },
 
@@ -654,7 +654,7 @@
                     "dtype": "list",
                     "subdtype": "float",
                     "blank": true,
-                    "default": [0.1, 1.0, 1.0, 1.0],
+                    "default": [0.5, 1.0, 1.0, 1.0],
                     "description": "A list of floats indicating the excluded volume scale factor of each SA step. If not specified, it defaults to `model/restraints/exclude/evfactor`"
                 },
 
