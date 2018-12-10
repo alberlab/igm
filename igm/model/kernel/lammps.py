@@ -311,7 +311,7 @@ def create_lammps_script(model, user_args):
             print('velocity nonfixed create', t0, seed + step, file=f)
             # print('fix termostat nonfixed temp/berendsen', t0, t1, user_args['damp'], file=f)
             print('fix termostat nonfixed temp/rescale 1 ',
-                  t0, t1, user_args['damp'], 0.1, 1, file=f)
+                  t0, t1, 0.1, 1, file=f)
 
             # Thermodynamic info style for output
             print(
