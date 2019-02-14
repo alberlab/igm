@@ -173,12 +173,20 @@
                 "description" : "A .hcs file containing the input pairwise probability matrix"
             },
 
-            "sigma_list" : {
-                "label" : "Sigma probabilities",
+            "intra_sigma_list" : {
+                "label" : "Intra-chromosomal (cis) sigma probabilities",
                 "dtype" : "list",
                 "subdtype" : "float",
                 "default" : [1.0, 0.2, 0.1, 0.05, 0.02, 0.01],
-                "description" : "The list of decreasing cutoff probabilities for iterative optimization of Hi-C contacts"
+                "description" : "List of decreasing intra-chromosomal cutoff probabilities for iterative optimization of Hi-C contacts"
+            },
+
+            "inter_sigma_list" : {
+                "label" : "Inter-chromosomal (trans) sigma probabilities",
+                "dtype" : "list",
+                "subdtype" : "float",
+                "default" : [1.0, 0.2, 0.1, 0.05, 0.02, 0.01],
+                "description" : "List of decreasing inter-chromosomal cutoff probabilities for iterative optimization of Hi-C contacts"
             },
 
             "contact_range" : {

@@ -120,7 +120,7 @@ class Config(dict):
             d = self
             for p in split_path:
                 d = d[p]
-        except:
+        except KeyError:
             if default is not None:
                 return default
             d = schema
@@ -128,9 +128,22 @@ class Config(dict):
                 if p in d:
                     d = d[p]
                 else:
-                    raise KeyError("{} does not exist".format(keypath))
+                    raise KeyError("{} does not exist".format(keypath)) from None
             d = d.get("default")
         return d
+
+    def set(self, keypath, val):
+
+        split_path = keypath.split("/")
+
+        d = self
+        for p in split_path[:-1]:
+            if p not in d:
+                d[p] = dict()
+            d = d[p]
+        d[split_path[-1]] = val
+
+        return val
 
     def igm_parameter_abspath(self):
         # if a working directory is not specified, we set it to the

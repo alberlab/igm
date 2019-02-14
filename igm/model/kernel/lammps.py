@@ -331,7 +331,7 @@ def create_lammps_script(model, user_args):
         print('minimize', user_args['etol'], user_args['ftol'],
               user_args['max_cg_iter'], user_args['max_cg_eval'], file=f)
 
-        print('info time')
+        print('info time', file=f)
 
 
 def optimize(model, cfg):

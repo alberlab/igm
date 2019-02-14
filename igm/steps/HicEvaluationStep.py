@@ -121,7 +121,8 @@ class HicEvaluationStep(Step):
                 file=os.path.join(out_dir, 'matrix_comparison_%s.pdf' % c),
                 title=c,
                 vmax=0.2)
-        diffmat = np.log2( output_matrix.matrix.toarray() / input_matrix.matrix.toarray() )
+        with np.errstate(divide='ignore', invalid='ignore'):
+            diffmat = np.log2( output_matrix.matrix.toarray() / input_matrix.matrix.toarray() )
         maxv = np.percentile(np.abs(diffmat[np.isfinite(diffmat)]), 99)
         plt.figure()
         plt.imshow(diffmat, vmax=maxv, vmin=-maxv, cmap='RdBu_r')

@@ -36,10 +36,34 @@ class ActivationDistanceStep(Step):
     def __init__(self, cfg):
 
         # prepare the list of sigmas in the runtime status
-        if 'sigma_list' not in cfg["runtime"]["Hi-C"]:
-            cfg["runtime"]["Hi-C"]['sigma_list'] = cfg["restraints"]["Hi-C"]["sigma_list"][:]
+        if 'intra_sigma_list' not in cfg["runtime"]["Hi-C"]:
+            cfg["runtime"]["Hi-C"]['intra_sigma_list'] = cfg["restraints"]["Hi-C"]["intra_sigma_list"][:]
+        if 'inter_sigma_list' not in cfg["runtime"]["Hi-C"]:
+            cfg["runtime"]["Hi-C"]['inter_sigma_list'] = cfg["restraints"]["Hi-C"]["inter_sigma_list"][:]
         if "sigma" not in cfg["runtime"]["Hi-C"]:
-            cfg["runtime"]["Hi-C"]["sigma"] = cfg["runtime"]["Hi-C"]["sigma_list"].pop(0)
+            sigma = None
+            interl = cfg.get('runtime/Hi-C/inter_sigma_list')
+            intral = cfg.get('runtime/Hi-C/intra_sigma_list')
+            if len(interl) and len(intral):
+                # go to the next sigma, the larger between the intra and inter
+                if interl[0] == intral[0]:
+                    cfg.set("runtime/Hi-C/inter_sigma", interl.pop(0))
+                    cfg.set("runtime/Hi-C/intra_sigma", intral.pop(0))
+                    sigma = cfg.get('runtime/Hi-C/intra_sigma')
+                elif interl[0] > intral[0]:
+                    cfg.set("runtime/Hi-C/inter_sigma", interl.pop(0))
+                    sigma = cfg.get("runtime/Hi-C/inter_sigma")
+                else:
+                    cfg.set("runtime/Hi-C/intra_sigma", intral.pop(0))
+                    sigma = cfg.get("runtime/Hi-C/intra_sigma")
+            elif len(intral):
+                cfg.set("runtime/Hi-C/intra_sigma", intral.pop(0))
+                sigma = cfg.get("runtime/Hi-C/intra_sigma")
+            else:
+                cfg.set("runtime/Hi-C/inter_sigma", interl.pop(0))
+                sigma = cfg.get("runtime/Hi-C/inter_sigma")
+
+            cfg.set("runtime/Hi-C/sigma", sigma)
         super(ActivationDistanceStep, self).__init__(cfg)
 
     def name(self):
@@ -52,7 +76,10 @@ class ActivationDistanceStep(Step):
     def setup(self):
         dictHiC = self.cfg['restraints']['Hi-C']
         sigma = self.cfg['runtime']['Hi-C']["sigma"]
-        input_matrix = Contactmatrix(dictHiC["input_matrix"]).matrix
+        inter_sigma = self.cfg.get('runtime/Hi-C/inter_sigma', False)
+        intra_sigma = self.cfg.get('runtime/Hi-C/intra_sigma', False)
+        contact_matrix = Contactmatrix(dictHiC["input_matrix"])
+        input_matrix = contact_matrix.matrix
         n = input_matrix.shape[0]
         last_actdist_file = self.cfg.get('runtime/Hi-C').get("actdist_file", None)
         batch_size = self.cfg.get('restraints/Hi-C/batch_size', 1000)
@@ -92,8 +119,11 @@ class ActivationDistanceStep(Step):
         n_args_batches = 0
         k = 0
         curr_batch = []
+        chrom = contact_matrix.index.chrom
         for i, j, pwish in input_matrix.coo_generator():
-            if pwish >= sigma:
+            keep1 = (intra_sigma is not False) and (chrom[i] == chrom[j]) and (pwish >= intra_sigma)
+            keep2 = (inter_sigma is not False) and (chrom[i] != chrom[j]) and (pwish >= inter_sigma)
+            if keep1 or keep2:
                 curr_batch.append( ( i, j, pwish, plast[i, j] ) )
                 k += 1
             if k == batch_size:
@@ -240,7 +270,7 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
     # import here in case is executed on a remote machine
     import numpy as np
 
-    if (i==j):
+    if i == j:
         return []
 
     n_struct = hss.get_nstruct()

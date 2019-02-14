@@ -76,6 +76,9 @@ class FilePoller(object):
                 if delta < interval:
                     time.sleep(interval - delta)
 
+        except KeyboardInterrupt:
+            pass
+
         except:
             tb.append(traceback.format_exc())
 
@@ -84,8 +87,13 @@ class FilePoller(object):
                 try:
                     self.teardown(*self.teardown_args, **self.teardown_kwargs)
                 except:
-                    tb.append(traceback.format_exc())
-
+                    stb = traceback.format_exc()
+                    try:
+                        # the tb manager could already be down
+                        tb.append(stb)
+                    except:
+                        print(stb)    
+                    
     def watch_async(self, timeout=None, interval=POLL_INTERVAL):
         self.th = multiprocessing.Process(target=self.watch, args=(self.completed, self._traceback, timeout, interval))
         self.th.start()

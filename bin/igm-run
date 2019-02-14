@@ -100,7 +100,11 @@ def run_pipeline(cfgfile):
             is_acceptable = cfg.get("runtime/violation_score") < cfg.get("optimization/max_violations")
 
             # the step is potentially the last one unless there are more sigmas in HiC sigma list
-            is_hic_incomplete = ( 'Hi-C' in cfg['restraints'] ) and ( len( cfg.get("runtime/Hi-C/sigma_list") ) != 0 )
+            is_hic_incomplete = (
+                ('Hi-C' in cfg['restraints']) and
+                (len(cfg.get("runtime/Hi-C/intra_sigma_list")) != 0 ) and
+                (len(cfg.get("runtime/Hi-C/inter_sigma_list")) != 0)
+            )
             is_damid_incomplete = ( 'DamID' in cfg['restraints'] ) and ( len( cfg.get("runtime/DamID/sigma_list") ) != 0 )
             is_hic_done = not is_hic_incomplete
             is_damid_done = not is_damid_incomplete
