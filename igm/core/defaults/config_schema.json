@@ -510,7 +510,7 @@
         "keep_intermediate_structures" : {
             "label" : "Keep Intermediate Structures",
             "dtype" : "bool",
-            "default" : false,
+            "default" : true,
             "description" : "Keep a copy of the population for each optimization iteration"
         },
 
