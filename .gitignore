@@ -2,6 +2,7 @@
 #
 *.hss
 *.pdf
+ipython-log*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

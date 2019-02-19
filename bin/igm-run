@@ -42,9 +42,11 @@ def run_pipeline(cfgfile):
 
         starting_coordinates = cfg.get("model/starting_coordinates")
         if starting_coordinates != '':
+            with open('errorlog', 'w') as f:
+                print(cfg.get('optimization/clean_restart', False), os.path.isfile(cfg.get('parameters/step_db')), file=f)
             # make sure it is not a restart run
             # step_db should not be there yet if it is a fresh start
-            if cfg.get('optimization/clean_restart', False) and (not os.path.isfile(cfg.get('parameters/step_db'))):
+            if cfg.get('optimization/clean_restart', False) or (not os.path.isfile(cfg.get('parameters/step_db'))):
                 igm.logger.info('Initial coordinates from: ' + starting_coordinates)
                 try:
                     copyfile(starting_coordinates, cfg.get("optimization/structure_output"))
