@@ -41,26 +41,25 @@ class ActivationDistanceStep(Step):
         if 'inter_sigma_list' not in cfg["runtime"]["Hi-C"]:
             cfg["runtime"]["Hi-C"]['inter_sigma_list'] = cfg["restraints"]["Hi-C"]["inter_sigma_list"][:]
         if "sigma" not in cfg["runtime"]["Hi-C"]:
-            sigma = None
-            interl = cfg.get('runtime/Hi-C/inter_sigma_list')
-            intral = cfg.get('runtime/Hi-C/intra_sigma_list')
-            if len(interl) and len(intral):
+            inters = cfg.get('runtime/Hi-C/inter_sigma_list')
+            intras = cfg.get('runtime/Hi-C/intra_sigma_list')
+            if len(inters) and len(intras):
                 # go to the next sigma, the larger between the intra and inter
-                if interl[0] == intral[0]:
-                    cfg.set("runtime/Hi-C/inter_sigma", interl.pop(0))
-                    cfg.set("runtime/Hi-C/intra_sigma", intral.pop(0))
+                if inters[0] == intras[0]:
+                    cfg.set("runtime/Hi-C/inter_sigma", inters.pop(0))
+                    cfg.set("runtime/Hi-C/intra_sigma", intras.pop(0))
                     sigma = cfg.get('runtime/Hi-C/intra_sigma')
-                elif interl[0] > intral[0]:
-                    cfg.set("runtime/Hi-C/inter_sigma", interl.pop(0))
+                elif inters[0] > intras[0]:
+                    cfg.set("runtime/Hi-C/inter_sigma", inters.pop(0))
                     sigma = cfg.get("runtime/Hi-C/inter_sigma")
                 else:
-                    cfg.set("runtime/Hi-C/intra_sigma", intral.pop(0))
+                    cfg.set("runtime/Hi-C/intra_sigma", intras.pop(0))
                     sigma = cfg.get("runtime/Hi-C/intra_sigma")
-            elif len(intral):
-                cfg.set("runtime/Hi-C/intra_sigma", intral.pop(0))
+            elif len(intras):
+                cfg.set("runtime/Hi-C/intra_sigma", intras.pop(0))
                 sigma = cfg.get("runtime/Hi-C/intra_sigma")
             else:
-                cfg.set("runtime/Hi-C/inter_sigma", interl.pop(0))
+                cfg.set("runtime/Hi-C/inter_sigma", inters.pop(0))
                 sigma = cfg.get("runtime/Hi-C/inter_sigma")
 
             cfg.set("runtime/Hi-C/sigma", sigma)
