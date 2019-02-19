@@ -16,7 +16,9 @@ install_requires = [
     'scipy>=0.16', 
     'h5py>=2.5', 
     'alabtools>=0.0.1',
-    'tqdm', 'tornado'
+    'tqdm', 'tornado',
+    'cloudpickle',
+    'cython'
 ]
 
 tests_require = [
