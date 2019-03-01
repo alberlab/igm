@@ -166,13 +166,15 @@ class EllipticEnvelope(Force):
     def __init__(self, particle_ids,
                  center=(0, 0, 0),
                  semiaxes=(5000.0, 5000.0, 5000.0),
-                 k=1.0, note=""):
+                 k=1.0, note="", scale=100.0):
 
         self.shape = 'ellipsoid'
         self.center = np.array(center)
         self.semiaxes = np.array(semiaxes)
         self.particle_ids = particle_ids
         self.k = k
+        self.scale = scale  # pff. This is to actually give a
+                            # "relative  measure" for violation ratios.
         self.note = note
         self.rnum = len(particle_ids)
 
@@ -218,4 +220,4 @@ class EllipticEnvelope(Force):
         return ave_t/ave_ax
 
     def getViolationRatios(self, particles):
-        return self.getScores(particles) / (self.k * np.sqrt(np.sum(np.square(self.semiaxes))))
+        return self.getScores(particles) / (self.k * self.scale)

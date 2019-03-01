@@ -1,5 +1,7 @@
 from __future__ import division, print_function
 
+import numpy as np
+
 from .restraint import Restraint
 from ..model.particle import Particle
 from ..model.forces import HarmonicUpperBound, EllipticEnvelope
@@ -43,7 +45,12 @@ class Envelope(Restraint):
                 normal_particles,
                 center,
                 (self.a, self.b, self.c),
-                self.k
+                self.k,
+                scale=0.1*np.mean([self.a, self.b, self.c])
+                # set arbitrary scale: 100% violation ratio if extend inside by
+                # 1/10 of the nucleus radius. With usual parameters, it means
+                # that will be noticed as violated when the bond is stretched
+                # by 25nm.
             )
         )
         self.forceID.append(f)

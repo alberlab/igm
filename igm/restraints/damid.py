@@ -51,6 +51,7 @@ class Damid(Restraint):
     """
     def __init__(self, damid_file, contact_range=0.05, nuclear_radius=5000.0, shape="sphere",
                  semiaxes=(5000, 5000, 5000), k=1.0):
+
         self.shape = unicode(shape)
 
         if self.shape == u"sphere":
@@ -79,7 +80,7 @@ class Damid(Restraint):
             i for i, d in self.damid_actdist
             if snormsq_ellipsoid(
                 model.particles[i].pos,
-                np.array([self.a, self.b, self.c]), 
+                np.array([self.a, self.b, self.c]) * cutoff,
                 model.particles[i].r
             ) >= d**2
         ]
@@ -88,8 +89,9 @@ class Damid(Restraint):
             EllipticEnvelope(
                 affected_particles,
                 center,
-                (self.a*cutoff, self.b*cutoff, self.c*cutoff),
-                -self.k
+                np.array([self.a, self.b, self.c])*cutoff,
+                -self.k,
+                scale=cutoff*np.mean([self.a, self.b, self.c])
             )
         )
 
@@ -98,26 +100,6 @@ class Damid(Restraint):
 
     def _apply(self, model):
         return self._apply_envelope(model)
-        # center = model.addParticle([0., 0., 0.], 0., Particle.DUMMY_STATIC)
-        #
-        #
-        #
-        # for (i, d) in self.damid_actdist:
-        #
-        #     # if particle is far enough from the center
-        #     # apply restraint
-        #     if norm(model.particles[i].pos) >= d :
-        #
-        #         d0 = (self.nuclear_radius -
-        #               self.contact_range * model.particles[i].r)
-        #
-        #         f = model.addForce(HarmonicLowerBound((i, center), d0, self.k,
-        #                                               note=Restraint.DAMID))
-        #         self.forceID.append(f)
-            #-
-        #-
-    #=
-
 
 #==
 
