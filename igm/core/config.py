@@ -2,57 +2,18 @@ from __future__ import division, print_function
 
 import json
 import hashlib
-import numpy as np
+from configparser import ConfigParser
 import os, os.path
 from copy import deepcopy
-from six import string_types
+from six import string_types, raise_from
 from ..utils.files import make_absolute_path
 
 from . import defaults
 schema_file = os.path.join(
-    os.path.dirname( os.path.abspath(defaults.__file__) ),
+    os.path.dirname(os.path.abspath(defaults.__file__)),
     'config_schema.json'
 )
 schema = json.load(open(schema_file, 'r'))
-
-#OPT_DEFAULT = [
-    #('mdsteps', 40000, int, 'Number of MD steps per round'),
-    #('timestep', 0.25, float, 'MD timestep'),
-    #('tstart', 500.0, float, 'MD initial temperature'),
-    #('tstop', 1.0, float, 'MD final temperature'),
-    #('damp', 50.0, float, 'MD damp parameter'),
-    #('write', -1, int, 'Dump coordinates every <write> MD timesteps'),
-    #('thermo', 1000, int, 'Output thermodynamic info every <thermo>'
-                          #' MD timesteps'),
-    #('max_velocity', 5.0, float, 'Cap particle velocity'),
-    #('max_cg_iter', 500, int, 'Maximum # of Conjugate Gradient steps'),
-    #('max_cg_eval', 500, int, 'Maximum # of Conjugate Gradient evaluations'),
-    #('etol', 1e-4, float, 'Conjugate Gradient energy tolerance'),
-    #('ftol', 1e-6, float, 'Conjugate Gradient force tolerance'),
-    #('soft_min', 0, int, 'perform a soft minimization of lenght <> timesteps'),
-    #('ev_factor', 1.0, float, 'static excluded volume factor'),
-    #('ev_start', 0.0, float, 'initial excluded volume factor'),
-    #('ev_stop', 0.0, float, 'final excluded volume factor'),
-    #('ev_step', 0, int, 'If larger than zero, performs <n> rounds scaling '
-                        #'excluded volume factors from ev_start to ev_stop'),
-    #('use_gpu', 0, int, 'use gpu options for pair potential'),
-
-#]
-
-#SPRITE_DEFAULT = [
-
-    #('volume_fraction', 0.05, float, 'volume fraction in sprite clusters'),
-    #('tmp_dir', 'sprite', str, 'temporary directory'),
-    #('assignment_file', 'testassign.h5', str, 'assignment file'),
-    #('clusters', 'clusters.h5', str, 'input clusters file'),
-    #('batch_size', 100, int, 'batch size for parallel job'),
-    #('keep_best', 50, int, 'keep n best candidates for assignment'),
-    #('max_chrom_in_cluster', 6, int, 'do not consider cluster with more than n chromosomes'),
-    #('radius_kt', 100.0, float, 'the difference in radius of gyration which result in one unit penalization'),
-    #('kspring', 100.0, float, 'strength of contacts'),
-    #('keep_temporary_files', False, bool, 'whether it keeps temporary files'),
-
-#]
 
 ##TODO
 #use walk_schema to validate user args
@@ -70,23 +31,50 @@ def walk_schema(n, w, group_callback, post_group_callback,
         if w.get("dtype") is not None:
             item_callback(n, w)
 
+def make_default_dict(group):
+    out = dict()
+    for k, item in group.items():
+        if not isinstance(item, dict):
+            continue
+        if ('role' in item) and (item['role'] == 'group'):
+            out[k] = make_default_dict(group[k])
+        elif ('role' in item) and (item['role'] in ['optional-group', 'optional_input']):
+            pass
+        else:
+            try:
+                out[k] = item['default']
+            except KeyError:
+                pass
+    return out
+
+RAISE = object()
+
 class Config(dict):
     """
     Config is the class which holds all static parameters
     e.g. # structures, hic file, SPRITE file etc.
     and dynamic parameters e.g. activation distance and cluster assignment.
     """
+    RAISE = RAISE
 
     def __init__(self, cfg=None):
 
-        #put static config into config object
-        #dynamic config like genome object can be other members
-        self['model'] = dict()
-        self['restraints'] = dict()
-        self['optimization'] = dict()
-        self['optimization']['optimizer_options'] = dict()
-        self['parameters'] = dict()
+        # create default dictionary
+        self.update(make_default_dict(schema))
 
+        # runtime is a required key, and is home to all the generated parameters
+        self['runtime'] = dict()
+
+        # update with user files in ${HOME}/.igm
+        user_defaults_file = os.environ['HOME'] + '/.igm/user_defaults.cfg'
+        if os.path.isfile(user_defaults_file):
+            user_defaults = ConfigParser()
+            user_defaults.read(user_defaults_file)
+            for s in user_defaults.sections():
+                for k in user_defaults[s]:
+                    cfg.set(k, user_defaults[s][k])
+
+        # update the default dictionary with the provided file
         if cfg is not None:
             if isinstance(cfg, string_types):
                 with open(cfg) as f:
@@ -96,24 +84,16 @@ class Config(dict):
             else:
                 raise ValueError()
 
-        #self['model'] = validate_user_args(self['model'], MOD_DEFAULT)
-
         self.igm_parameter_abspath()
 
         # fix optimizer arguments
         self.preprocess_optimization_arguments()
 
-        # fix sprite arguments
-        #self.preprocess_sprite_arguments()
-
-        #runtime should be including all generated parameters
-        self['runtime'] = dict()
-
         for k in self['restraints']:
-            self['runtime'][k] = dict()
-    #-
-    def get(self, keypath, default=None):
+            if k not in self['runtime']:
+                self['runtime'][k] = dict()
 
+    def get(self, keypath, default=RAISE):
         split_path = keypath.split("/")
 
         try:
@@ -121,19 +101,18 @@ class Config(dict):
             for p in split_path:
                 d = d[p]
         except KeyError:
-            if default is not None:
+            if default is not RAISE:
                 return default
             d = schema
             for p in split_path:
                 if p in d:
                     d = d[p]
                 else:
-                    raise KeyError("{} does not exist".format(keypath)) from None
+                    raise_from(KeyError("{} does not exist".format(keypath)), None)
             d = d.get("default")
         return d
 
     def set(self, keypath, val):
-
         split_path = keypath.split("/")
 
         d = self
@@ -158,15 +137,6 @@ class Config(dict):
 
     def preprocess_optimization_arguments(self):
 
-        #if self['model']['nucleus_shape'] == 'sphere':
-            #self['optimization']['optimizer_options']['nucleus_radius'] = self['model']['nucleus_radius']
-        #elif self['model']['nucleus_shape'] == 'ellipsoid':
-            #self['optimization']['optimizer_options']['nucleus_radius'] = max(self['model']['nucleus_semiaxes'])
-
-        #if 'ev_factor' not in self['optimization']['optimizer_options']:
-            #self['optimization']['optimizer_options']['ev_factor'] = self['model']['evfactor']
-
-        #self['optimization']['optimizer_options'] = validate_user_args(self['optimization']['optimizer_options'], OPT_DEFAULT)
         opt = self['optimization']['optimizer_options']
         opt['ev_step'] = 0
         try:
