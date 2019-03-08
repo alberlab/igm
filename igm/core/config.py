@@ -5,7 +5,7 @@ import hashlib
 from configparser import ConfigParser
 import os, os.path
 from copy import deepcopy
-from six import string_types
+from six import string_types, raise_from
 from ..utils.files import make_absolute_path
 
 from . import defaults
@@ -47,17 +47,23 @@ def make_default_dict(group):
                 pass
     return out
 
+RAISE = object()
+
 class Config(dict):
     """
     Config is the class which holds all static parameters
     e.g. # structures, hic file, SPRITE file etc.
     and dynamic parameters e.g. activation distance and cluster assignment.
     """
+    RAISE = RAISE
 
     def __init__(self, cfg=None):
 
         # create default dictionary
         self.update(make_default_dict(schema))
+
+        # runtime is a required key, and is home to all the generated parameters
+        self['runtime'] = dict()
 
         # update with user files in ${HOME}/.igm
         user_defaults_file = os.environ['HOME'] + '/.igm/user_defaults.cfg'
@@ -83,13 +89,11 @@ class Config(dict):
         # fix optimizer arguments
         self.preprocess_optimization_arguments()
 
-        # runtime is a required key, and is home to all the generated parameters
-        self['runtime'] = dict()
-
         for k in self['restraints']:
-            self['runtime'][k] = dict()
+            if k not in self['runtime']:
+                self['runtime'][k] = dict()
 
-    def get(self, keypath, default=None):
+    def get(self, keypath, default=RAISE):
         split_path = keypath.split("/")
 
         try:
@@ -97,14 +101,14 @@ class Config(dict):
             for p in split_path:
                 d = d[p]
         except KeyError:
-            if default is not None:
+            if default is not RAISE:
                 return default
             d = schema
             for p in split_path:
                 if p in d:
                     d = d[p]
                 else:
-                    raise KeyError("{} does not exist".format(keypath)) from None
+                    raise_from(KeyError("{} does not exist".format(keypath)), None)
             d = d.get("default")
         return d
 
