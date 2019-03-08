@@ -366,8 +366,8 @@ class ModelingStep(StructGenStep):
             n_beads = hss.nbead
             violation_score = log_stats(hss, self.cfg)
             self.cfg['runtime']['violation_score'] = violation_score
-            h5_create_or_replace_dataset(hss, 'runtime_data',
-                                         data=json.dumps(self.cfg['runtime'], default=lambda a: a.tolist()))
+            h5_create_or_replace_dataset(hss, 'config_data',
+                                         data=json.dumps(self.cfg, default=lambda a: a.tolist()))
 
         # repack hss file
         PACK_SIZE = 1e6
