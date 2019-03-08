@@ -59,6 +59,8 @@ class Config(dict):
 
     def __init__(self, cfg=None):
 
+        super(Config, self).__init__()
+
         # create default dictionary
         self.update(make_default_dict(schema))
 
@@ -82,7 +84,7 @@ class Config(dict):
             elif isinstance(cfg, dict):
                 self.update(deepcopy(cfg))
             else:
-                raise ValueError()
+                raise TypeError('Config argument needs to be a path or a dictionary.')
 
         self.igm_parameter_abspath()
 
