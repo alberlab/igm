@@ -33,7 +33,8 @@ extras_require = {
 }
 
 extensions = [
-    Extension("igm.cython_compiled.sprite", ["igm/cython_compiled/sprite.pyx", "igm/cython_compiled/cpp_sprite_assignment.cpp"]),
+    Extension("igm.cython_compiled.sprite",
+              ["igm/cython_compiled/sprite.pyx", "igm/cython_compiled/cpp_sprite_assignment.cpp"]),
 ]
 
 extensions = cythonize(extensions)
@@ -47,7 +48,8 @@ setup(
         description = 'Integrated Genome Modeling',
         
         packages=find_packages('./igm/'),
-        package_data={'' : ['core/defaults/*', 'ui/static/css/*', 'ui/static/js/*', 'ui/static/js/genome_visualizer/*', 'ui/templates/*']},
+        package_data={'' : ['core/defaults/*', 'ui/static/css/*', 'ui/static/js/*',
+                            'ui/static/js/genome_visualizer/*', 'ui/templates/*']},
         include_package_data=True,
         install_requires=install_requires,
         tests_require=tests_require,
@@ -55,5 +57,6 @@ setup(
         
         ext_modules=extensions,
         include_dirs=[numpy.get_include()],
-        scripts=['bin/igm-run', 'bin/igm-server', 'bin/igm-register-dir', 'bin/igm-info-dir', 'bin/igm-unregister-dir', 'bin/igm-stop'],
+        scripts=['bin/igm-run', 'bin/igm-server', 'bin/igm-register-dir', 'bin/igm-info-dir',
+                 'bin/igm-unregister-dir', 'bin/igm-stop', 'bin/igm-report'],
 )
