@@ -131,13 +131,14 @@ def get_parameters_from_igm_config(igm_cfg: dict, basedir='.') -> dict:
     hic_ok = 'hic' not in report_config
     damid_ok = 'damid' not in report_config
     if 'runtime' in igm_cfg:
-        if igm_cfg.get('runtime/Hi-C/sigma', False):
-            report_config['hic']['inter_sigma'] = igm_cfg.get('runtime/Hi-C/sigma')
-            report_config['hic']['intra_sigma'] = igm_cfg.get('runtime/Hi-C/sigma')
-            hic_ok = True
-        elif igm_cfg.get('runtime/Hi-C/inter_sigma', False):
+        if igm_cfg.get('runtime/Hi-C/inter_sigma', False):  # new style sigmas
             report_config['hic']['inter_sigma'] = igm_cfg.get('runtime/Hi-C/inter_sigma')
             report_config['hic']['intra_sigma'] = igm_cfg.get('runtime/Hi-C/intra_sigma')
+            hic_ok = True
+
+        elif igm_cfg.get('runtime/Hi-C/sigma', False):  # old style sigmas
+            report_config['hic']['inter_sigma'] = igm_cfg.get('runtime/Hi-C/sigma')
+            report_config['hic']['intra_sigma'] = igm_cfg.get('runtime/Hi-C/sigma')
             hic_ok = True
 
         if igm_cfg.get('runtime/DamID/sigma', False):
@@ -152,12 +153,6 @@ def get_parameters_from_igm_config(igm_cfg: dict, basedir='.') -> dict:
         report_config['hic']['inter_sigma'] = None
         report_config['hic']['intra_sigma'] = None
 
-        if igm_cfg.get('restraints/Hi-C/sigma_list', False):  # old style sigma lists
-            l1 = igm_cfg.get('restraints/Hi-C/sigma_list')
-            if len(l1):
-                report_config['hic']['inter_sigma'] = l1[-1]
-                report_config['hic']['intra_sigma'] = l1[-1]
-
         if igm_cfg.get('restraints/Hi-C/inter_sigma_list', False):  # new style
             l1 = igm_cfg.get('restraints/Hi-C/inter_sigma_list', False)
             l2 = igm_cfg.get('restraints/Hi-C/intra_sigma_list', False)
@@ -165,6 +160,12 @@ def get_parameters_from_igm_config(igm_cfg: dict, basedir='.') -> dict:
                 report_config['hic']['inter_sigma'] = l1[-1]
             if len(l2):
                 report_config['hic']['intra_sigma'] = l2[-1]
+
+        elif igm_cfg.get('restraints/Hi-C/sigma_list', False):  # old style sigma lists
+            l1 = igm_cfg.get('restraints/Hi-C/sigma_list')
+            if len(l1):
+                report_config['hic']['inter_sigma'] = l1[-1]
+                report_config['hic']['intra_sigma'] = l1[-1]
 
     if not damid_ok:
         if igm_cfg.get('restraints/DamID/sigma_list', False):  # old style sigma lists
