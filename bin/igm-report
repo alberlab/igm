@@ -273,6 +273,8 @@ if __name__ == '__main__':
             args.out_dir = os.path.join(d, 'QC_' + args.label)
         else:
             args.out_dir = os.path.join(d, 'QC_' + b)
+
+    args.out_dir = op.realpath(op.abspath(args.out_dir))
     logger.info(f'Output will be written to: {args.out_dir}')
 
     process_user_args(cfg, args)
