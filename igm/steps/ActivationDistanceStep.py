@@ -117,9 +117,14 @@ class ActivationDistanceStep(Step):
         k = 0
         curr_batch = []
         chrom = contact_matrix.index.chrom
+        n_keep_intra = 0
+        n_keep_inter = 0
+
         for i, j, pwish in input_matrix.coo_generator():
             keep1 = (intra_sigma is not False) and (chrom[i] == chrom[j]) and (pwish >= intra_sigma)
             keep2 = (inter_sigma is not False) and (chrom[i] != chrom[j]) and (pwish >= inter_sigma)
+            n_keep_intra += keep1
+            n_keep_inter += keep2
             if keep1 or keep2:
                 curr_batch.append((i, j, pwish, plast[i, j]))
                 k += 1
