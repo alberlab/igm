@@ -56,7 +56,7 @@
             "label" : "Initial coordinates",
             "dtype" : "path",
             "default" : "",
-            "role" : "input",
+            "role" : "optional-input",
             "description" : "An hss file with the starting coordinates. If not specified, a random polymer model with territories will be generated as a starting point"
         },
 
@@ -833,6 +833,7 @@
                 "timeout" : {
                     "label" : "Max execution time",
                     "dtype" : "float",
+                    "role" : "optional-input",
                     "blank" : true,
                     "description" : "If specified, the maximum execution time per task (in seconds)."
                 },
@@ -883,6 +884,7 @@
                 "template" : {
                     "label" : "Template",
                     "dtype" : "path",
+                    "role" : "optional-input",
                     "blank" : true,
                     "description" : "A custom template for the slurm submit script. Variables are indicated with {{variable_name}}"
                 },
@@ -890,6 +892,7 @@
                 "other_options" : {
                     "label" : "Other options",
                     "dtype" : "str",
+                    "role" : "optional-input",
                     "default" : "{}",
                     "description" : "A json dictionary with additional variables to insert in the script"
                 },
