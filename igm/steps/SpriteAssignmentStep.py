@@ -37,16 +37,15 @@ class SpriteAssignmentStep(Step):
 
         self.keep_temporary_files = opt['keep_temporary_files']
         
-        if not os.path.exists(self.tmp_dir):
+        if not os.path.isdir(self.tmp_dir):
             os.makedirs(self.tmp_dir)
         #---
-
 
         clusters_file = opt['clusters']
         with h5py.File(clusters_file, 'r') as h5:
             n_clusters = len(h5['indptr']) - 1
 
-        with HssFile(self.cfg["structure_output"], 'r') as hss:
+        with HssFile(self.cfg.get("optimization/structure_output"), 'r') as hss:
             self.n_struct = hss.nstruct
 
         batch_size = opt['batch_size']
@@ -62,9 +61,9 @@ class SpriteAssignmentStep(Step):
     def task(batch_id, cfg, tmp_dir):
         
         opt = cfg['restraints']['sprite'] 
-        clusters_file = opt['clusters']
-        batch_size = opt['batch_size']
-        keep_best = opt['keep_best']
+        clusters_file = cfg.get('restraints/sprite/clusters')
+        batch_size = cfg.get('restraints/sprite/batch_size', 150)
+        keep_best = cfg.get('restraints/sprite/keep_best', 50)
 
         # read the clusters
         with h5py.File(clusters_file, 'r') as h5:
@@ -80,14 +79,14 @@ class SpriteAssignmentStep(Step):
             del data
 
         # open the structure file and read index
-        hss     = HssFile(cfg["structure_output"], 'r')
+        hss     = HssFile(cfg.get("optimization/structure_output"), 'r')
         index = hss.index
             
         indexes, values, selected_beads = [], [], []
         
         for cluster in clusters:
             n_chrom = len(np.unique(index.chrom[cluster]))
-            if n_chrom > opt['max_chrom_in_cluster']:
+            if n_chrom > cfg.get('restraints/sprite/max_chrom_in_cluster', 6):
                 selected_beads.append( 
                     np.zeros( ( keep_best, len(cluster) ), dtype='i4' ) - 1
                 )
