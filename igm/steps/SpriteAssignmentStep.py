@@ -144,7 +144,7 @@ class SpriteAssignmentStep(Step):
             self.tmp_dir
         )
 
-        with h5py.File(assignment_filename) as assignment_file:
+        with h5py.File(assignment_filename, 'r+') as assignment_file:
 
             if not 'assignment' in assignment_file:
                 assignment_file.create_dataset('assignment', (self.n_clusters, ), dtype=np.int32)
