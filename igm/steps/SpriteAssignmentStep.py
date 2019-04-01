@@ -3,12 +3,10 @@ import numpy as np
 import h5py
 import os
 import os.path
-import sys
 
 from alabtools.analysis import HssFile
 from ..cython_compiled.sprite import compute_gyration_radius
-
-from ..utils.log import print_progress
+from ..utils.files import make_absolute_path
 from ..core import Step
 
 from tqdm import tqdm
@@ -32,24 +30,28 @@ class SpriteAssignmentStep(Step):
         opt = self.cfg['restraints']['sprite'] 
         
         self.tmp_extensions = [".npy", ".npz"]
+
+        self.tmp_dir = make_absolute_path(
+            self.cfg.get('restraints/sprite/tmp_dir', 'sprite'),
+            self.cfg.get('parameters/tmp_dir')
+        )
         
         self.tmp_dir = opt['tmp_dir']
 
-        self.keep_temporary_files = opt['keep_temporary_files']
+        self.keep_temporary_files = self.cfg.get('restraints/sprite/keep_temporary_files', False)
         
-        if not os.path.exists(self.tmp_dir):
+        if not os.path.isdir(self.tmp_dir):
             os.makedirs(self.tmp_dir)
         #---
 
-
-        clusters_file = opt['clusters']
+        clusters_file = self.cfg.get('restraints/sprite/clusters')
         with h5py.File(clusters_file, 'r') as h5:
             n_clusters = len(h5['indptr']) - 1
 
-        with HssFile(self.cfg["structure_output"], 'r') as hss:
+        with HssFile(self.cfg.get("optimization/structure_output"), 'r') as hss:
             self.n_struct = hss.nstruct
 
-        batch_size = opt['batch_size']
+        batch_size = self.cfg.get('restraints/sprite/batch_size', 10)
         n_batches = n_clusters // batch_size
         if n_clusters % batch_size != 0:
             n_batches += 1
@@ -60,11 +62,10 @@ class SpriteAssignmentStep(Step):
             
     @staticmethod
     def task(batch_id, cfg, tmp_dir):
-        
-        opt = cfg['restraints']['sprite'] 
-        clusters_file = opt['clusters']
-        batch_size = opt['batch_size']
-        keep_best = opt['keep_best']
+
+        clusters_file = cfg.get('restraints/sprite/clusters')
+        batch_size = cfg.get('restraints/sprite/batch_size', 10)
+        keep_best = cfg.get('restraints/sprite/keep_best', 50)
 
         # read the clusters
         with h5py.File(clusters_file, 'r') as h5:
@@ -80,14 +81,14 @@ class SpriteAssignmentStep(Step):
             del data
 
         # open the structure file and read index
-        hss     = HssFile(cfg["structure_output"], 'r')
+        hss     = HssFile(cfg.get("optimization/structure_output"), 'r')
         index = hss.index
             
         indexes, values, selected_beads = [], [], []
         
         for cluster in clusters:
             n_chrom = len(np.unique(index.chrom[cluster]))
-            if n_chrom > opt['max_chrom_in_cluster']:
+            if n_chrom > cfg.get('restraints/sprite/max_chrom_in_cluster', 6):
                 selected_beads.append( 
                     np.zeros( ( keep_best, len(cluster) ), dtype='i4' ) - 1
                 )
@@ -126,10 +127,9 @@ class SpriteAssignmentStep(Step):
 
         # using random order, to minimize biases
         random_order = np.random.permutation(self.argument_list)
-        opt = self.cfg['restraints']['sprite'] 
-        clusters_file = opt['clusters']
-        batch_size = opt['batch_size']
-        kT = opt['radius_kt']
+        clusters_file = self.cfg.get('restraints/sprite/clusters')
+        batch_size = self.cfg.get('restraints/sprite/batch_size', 10)
+        kT = self.cfg.get('restraints/sprite/radius_kt', 100.0)
 
         occupancy = np.zeros(self.n_struct, dtype=np.int32)
         assignment = np.zeros(self.n_clusters, dtype=np.int32)
@@ -139,53 +139,58 @@ class SpriteAssignmentStep(Step):
         with h5py.File(clusters_file, 'r') as h5:
             indptr = h5['indptr'][()]
             
-        assignment_file = h5py.File(opt['assignment_file'])
-        if not 'assignment' in assignment_file:
-            assignment_file.create_dataset('assignment', (self.n_clusters, ), dtype=np.int32)
+        assignment_filename = make_absolute_path(
+            self.cfg.get('restraints/sprite/assignment_file', 'assignment.h5'),
+            self.tmp_dir
+        )
 
-        if not 'selected' in assignment_file:
-            assignment_file.create_dataset('selected', (indptr[-1], ), dtype=np.int32)
+        with h5py.File(assignment_filename, 'r+') as assignment_file:
 
-        if not 'indptr' in assignment_file:
-            assignment_file.create_dataset('indptr', data=indptr)
+            if not 'assignment' in assignment_file:
+                assignment_file.create_dataset('assignment', (self.n_clusters, ), dtype=np.int32)
 
-        for batch_id in tqdm(random_order, desc='(REDUCE)'):
-            idx_file = os.path.join(self.tmp_dir, 'tmp.%d.idx.npy' % batch_id )
-            val_file = os.path.join(self.tmp_dir, 'tmp.%d.values.npy' % batch_id )
-            sel_file = os.path.join(self.tmp_dir, 'tmp.%d.selected.npz' % batch_id )
-            structure_indexes = np.load(idx_file)
-            rg2_values = np.load(val_file)
-            selected_beads_zip = np.load(sel_file)
-            results = zip(rg2_values, structure_indexes)
+            if not 'selected' in assignment_file:
+                assignment_file.create_dataset('selected', (indptr[-1], ), dtype=np.int32)
 
-            assigned_beads = []
+            if not 'indptr' in assignment_file:
+                assignment_file.create_dataset('indptr', data=indptr)
 
-            for i, (best_rg2s, curr_idx) in enumerate(results):
-                ci = i + batch_id*batch_size # cluster id
-                    
-                if best_rg2s[0] < 0:
-                    pos = 0
-                    si = -1
-                else:
-                    best_rgs = np.sqrt(best_rg2s)
-                    structure_penalizations = np.clip(occupancy[curr_idx] - aveN, 0., None) / stdN
-                    E = (best_rgs-best_rgs[0])/kT + structure_penalizations
-                    P = np.cumsum(np.exp(-(E-E[0])))
-                    Z = P[-1]
-                    e = np.random.rand()*Z
-                    pos = np.searchsorted(P, e, side='left')
-                    si = curr_idx[pos]
-                    occupancy[si] += 1
-                
-                assignment[ci] = si
-                assigned_beads.append(selected_beads_zip[ 'arr_%i' % i][pos])
+            for batch_id in tqdm(random_order, desc='(REDUCE)'):
+                idx_file = os.path.join(self.tmp_dir, 'tmp.%d.idx.npy' % batch_id )
+                val_file = os.path.join(self.tmp_dir, 'tmp.%d.values.npy' % batch_id )
+                sel_file = os.path.join(self.tmp_dir, 'tmp.%d.selected.npz' % batch_id )
+                structure_indexes = np.load(idx_file)
+                rg2_values = np.load(val_file)
+                selected_beads_zip = np.load(sel_file)
+                results = zip(rg2_values, structure_indexes)
 
-            start = indptr[ batch_id * batch_size ]
-            stop = indptr[ batch_id * batch_size + len(assigned_beads) ]
+                assigned_beads = []
 
-            assignment_file['selected'][start:stop] = np.concatenate(assigned_beads)
-        
-        assignment_file['assignment'][...] = assignment
-        assignment_file.close()
+                for i, (best_rg2s, curr_idx) in enumerate(results):
+                    ci = i + batch_id*batch_size # cluster id
+
+                    if best_rg2s[0] < 0:
+                        pos = 0
+                        si = -1
+                    else:
+                        best_rgs = np.sqrt(best_rg2s)
+                        structure_penalizations = np.clip(occupancy[curr_idx] - aveN, 0., None) / stdN
+                        E = (best_rgs-best_rgs[0])/kT + structure_penalizations
+                        P = np.cumsum(np.exp(-(E-E[0])))
+                        Z = P[-1]
+                        e = np.random.rand()*Z
+                        pos = np.searchsorted(P, e, side='left')
+                        si = curr_idx[pos]
+                        occupancy[si] += 1
+
+                    assignment[ci] = si
+                    assigned_beads.append(selected_beads_zip[ 'arr_%i' % i][pos])
+
+                start = indptr[ batch_id * batch_size ]
+                stop = indptr[ batch_id * batch_size + len(assigned_beads) ]
+
+                assignment_file['selected'][start:stop] = np.concatenate(assigned_beads)
+
+            assignment_file['assignment'][...] = assignment
 #=  
     

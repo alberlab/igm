@@ -16,7 +16,7 @@ from ..core import StructGenStep
 from ..model import Model, Particle
 from ..restraints import Polymer, Envelope, Steric, HiC, Sprite, Damid
 from ..utils import HmsFile
-from ..utils.files import h5_create_group_if_not_exist, h5_create_or_replace_dataset
+from ..utils.files import h5_create_group_if_not_exist, h5_create_or_replace_dataset, make_absolute_path
 from ..parallel.async_file_operations import FilePoller
 from ..utils.log import logger, bcolors
 from .RandomInit import generate_random_in_sphere
@@ -197,12 +197,19 @@ class ModelingStep(StructGenStep):
             monitored_restraints.append(damid)
 
         if "sprite" in cfg['restraints']:
-            sprite_opt = cfg['restraints']['sprite']
+            sprite_tmp = make_absolute_path(
+                cfg.get('restraints/sprite/tmp_dir', 'sprite'),
+                cfg.get('parameters/tmp_dir')
+            )
+            assignment_filename = make_absolute_path(
+                cfg.get('restraints/sprite/assignment_file', 'assignment.h5'),
+                sprite_tmp
+            )
             sprite = Sprite(
-                sprite_opt['assignment_file'],
-                sprite_opt['volume_fraction'],
+                assignment_filename,
+                cfg.get('restraints/sprite/volume_fraction', 0.05),
                 struct_id,
-                sprite_opt['kspring']
+                cfg.get('restraints/sprite/kspring', 1.0)
             )
             model.addRestraint(sprite)
             monitored_restraints.append(sprite)
@@ -432,7 +439,7 @@ class ModelingStep(StructGenStep):
         additional_data.append(str(self.uid))
 
         return '.'.join([
-            self.cfg["optimization"]["structure_output"],
+            self.cfg.get("optimization/structure_output"),
         ] + additional_data)
 
 
