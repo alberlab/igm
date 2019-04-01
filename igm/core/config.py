@@ -72,9 +72,9 @@ class Config(dict):
         if os.path.isfile(user_defaults_file):
             user_defaults = ConfigParser()
             user_defaults.read(user_defaults_file)
-            for s in user_defaults.sections():
+            for s in user_defaults.sections() + ['DEFAULT']:
                 for k in user_defaults[s]:
-                    cfg.set(k, user_defaults[s][k])
+                    self.set(k, user_defaults[s][k])
 
         # update the default dictionary with the provided file
         if cfg is not None:

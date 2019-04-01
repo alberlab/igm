@@ -907,10 +907,31 @@
 
             }
 
-
         }
 
+    },
 
+    "email_notifications" : {
+
+        "label" : "Email Notifications, works only with localhost, if it's already configured, for now.",
+        "role" : "optional-group",
+
+        "address" : {
+            "label" : "Address of recipient",
+            "dtype" : "str",
+            "default" : "",
+            "role" : "input",
+            "required" : true,
+            "description" : "Email notifications will be sent to this address"
+        },
+
+        "from" : {
+            "label" : "Sender email",
+            "dtype" : "str",
+            "role" : "optional-input",
+            "blank": true,
+            "description" : "The address of the sender"
+        }
 
     }
 

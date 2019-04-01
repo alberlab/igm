@@ -56,6 +56,7 @@ Installation on linux
     make serial
     # create a user defaults file with the path of the executable
     mkdir -p ${HOME}/.igm
+    echo "[DEFAULT]" > ${HOME}/.igm/user_defaults.cfg
     echo "optimization/kernel_opts/lammps/lammps_executable = "$(pwd)/src/lmp_serial >> ${HOME}/.igm/user_defaults.cfg
     ```
     
