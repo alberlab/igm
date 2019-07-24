@@ -41,11 +41,15 @@ class RelaxInit(StructGenStep):
         self._run_poller()
 
     def setup_poller(self):
-        self._hss = HssFile(self.hssfilename, 'r+')
+        _hss = HssFile(self.hssfilename, 'r')
+        self._hss_crd = _hss.coordinates
+        _hss.close()
 
     def teardown_poller(self):
-        self._hss.close()
-
+        _hss = HssFile(self.hssfilename, 'r')
+        _hss.set_coordinates(self._hss_crd)
+        _hss.close()
+        
     def _run_poller(self):
         readyfiles = [
             os.path.join(self.tmp_dir, 'relax_%d.hms.ready' % struct_id)
@@ -152,8 +156,8 @@ class RelaxInit(StructGenStep):
         fname = "{}_{}.hms".format(self.tmp_file_prefix, i)
         with HmsFile(os.path.join(self.tmp_dir, fname), 'r') as hms:
             crd = hms.get_coordinates()
-            self._hss.set_struct_crd(i, crd)
-
+            self._hss_crd[:,i,:] = crd
+            
     def reduce(self):
         """
         Collect all structure coordinates together to assemble a hssFile
