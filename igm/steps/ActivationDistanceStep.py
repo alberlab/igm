@@ -362,9 +362,13 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
     # now, sort the whole matrix along both axes, and reshape that into a vector
     sortdist_sq = np.sort(d_sq[0:n_possible_contacts, :].ravel())
 
-    # adjust probabilities using information from: current structures, 
-    # from the previous actdist file, from the input probabilities 
+    # iterative correction to the probability (see Nan's PhD proposal)
+
+    # compute the fraction of excess contacts imposed 
     t = cleanProbability(pnow, plast)
+
+    # compute the 'corrected probability' of contacts to be assigned, to be used to 
+    # determine the activation distances for Hi-C restraints
     p = cleanProbability(pwish, t)
 
     res = []
