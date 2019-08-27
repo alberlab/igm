@@ -15,8 +15,8 @@ available on pip. In addition, some other packages are required:
 - alabtools (github.com/alberlab/alabtools)
 - a modified version of LAMMPS (github.com/alberlab/lammpgen)
 
-Installation on linux
----------------------
+Installation on linux / MacOS
+-----------------------------
 -   Many of the alabtools and IGM dependencies can be installed with a
     few commands if you are using conda 
     (https://www.anaconda.com/distribution/)
