@@ -29,7 +29,7 @@ class RelaxInit(StructGenStep):
         '''
         This runs only if map step is not skipped
         '''
-        # clean up ready files if we want a clean restart of the modeling step
+        # clean up ready files (those that have been generated) if we want a clean restart of the modeling step
         readyfiles = [
             os.path.join(self.tmp_dir, 'relax_%d.hms.ready' % struct_id)
             for struct_id in self.argument_list
@@ -41,16 +41,25 @@ class RelaxInit(StructGenStep):
         self._run_poller()
 
     def setup_poller(self):
+         
+        """ Load Hss population file, store all coordinates into numpy array, close file"""
+
         _hss = HssFile(self.hssfilename, 'r')
         self._hss_crd = _hss.coordinates
         _hss.close()
 
     def teardown_poller(self):
-        _hss = HssFile(self.hssfilename, 'r')
+
+        """ Reopen HSS file, overwrite ALL coordinates, close file """
+
+        _hss = HssFile(self.hssfilename, 'r+')
         _hss.set_coordinates(self._hss_crd)
         _hss.close()
         
     def _run_poller(self):
+
+        """ This is the (asyncrhonous) polling function: if .ready file is there, then execute function "set_structure """
+
         readyfiles = [
             os.path.join(self.tmp_dir, 'relax_%d.hms.ready' % struct_id)
             for struct_id in self.argument_list
@@ -129,10 +138,14 @@ class RelaxInit(StructGenStep):
         model.addRestraint(pp)
 
         # ========Optimization
-        # optimize model
+
+        # set "run_name" variable into "runtime" dictionary 
         cfg['runtime']['run_name'] = cfg['runtime']['step_hash'] + '_' + str(struct_id)
+        
+        # run optimization
         model.optimize(cfg)
 
+        # save optimization results (both optimized coordinates and violations) into a .hms file
         ofname = os.path.join(tmp_dir, 'relax_%d.hms' % struct_id)
         with HmsFile(ofname, 'w') as hms:
             hms.saveModel(struct_id, model)
@@ -143,6 +156,7 @@ class RelaxInit(StructGenStep):
             if not np.all(hms.get_coordinates() == model.getCoordinates()):
                 raise RuntimeError('error writing the file %s' % ofname)
 
+        # create .ready file, which signals to the poller that optimization went to completion
         readyfile = ofname + '.ready'
         open(readyfile, 'w').close()  # touch the ready-file
 
@@ -153,16 +167,24 @@ class RelaxInit(StructGenStep):
         ])
 
     def set_structure(self, i):
+       
+        """ Update the coordinates of the i-th structure in the population matrix (extracted from HSS), this is executed
+            in the polling function, once the .ready file is found """
+
+        # name of hms file associated with i-th structure
         fname = "{}_{}.hms".format(self.tmp_file_prefix, i)
+
+        # load hms file, extract coordinates and update master matrix
         with HmsFile(os.path.join(self.tmp_dir, fname), 'r') as hms:
             crd = hms.get_coordinates()
             self._hss_crd[:,i,:] = crd
             
     def reduce(self):
         """
-        Collect all structure coordinates together to assemble a hssFile
+        Collect all structure coordinates together to assemble a hssFile, using the polling function, and repack
         """
 
+        # update structure coordinates
         for i in tqdm(self.file_poller.enumerate(), desc='(REDUCE)'):
             pass
 
@@ -170,7 +192,9 @@ class RelaxInit(StructGenStep):
             n_struct = hss.nstruct
             n_beads = hss.nbead
 
-        # repack hss file
+        logger.info('Coordinates in master file updated for ALL structures; repacking starts...')
+        
+        # repack hss file (this is a syntax proper to h5df files)
         PACK_SIZE = 1e6
         pack_beads = max(1, int(PACK_SIZE / n_struct / 3))
         pack_beads = min(pack_beads, n_beads)
@@ -190,7 +214,7 @@ class RelaxInit(StructGenStep):
             print('O:', stdout.decode('utf-8'))
             print('E:', stderr.decode('utf-8'))
             raise RuntimeError('repacking failed. error code: %d' % sp.returncode)
-        logger.info('done.')
+        logger.info('repacking done.')
 
         # save the output file with a unique file name if requested
         if self.keep_intermediate_structures:
@@ -198,5 +222,6 @@ class RelaxInit(StructGenStep):
                 self.hssfilename + '.swap',
                 self.intermediate_name() + '.hss'
             )
-
+ 
+        # get rid of temporary .swap file
         os.rename(self.hssfilename + '.swap', self.cfg.get("optimization/structure_output"))

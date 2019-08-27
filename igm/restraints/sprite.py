@@ -9,7 +9,7 @@ from ..model.forces import HarmonicUpperBound
 
 class Sprite(Restraint):
     """
-    Object handles Hi-C restraint
+    Object handles Sprite restraint
     
     Parameters
     ----------
@@ -21,34 +21,40 @@ class Sprite(Restraint):
     
     def __init__(self, assignment_file, volume_occupancy, struct_id, k=1.0):
         
+        """ Initialize SPRITE parameters and input file """
+
         self.volume_occupancy = volume_occupancy
-        self.struct_id = struct_id
-        self.k = k
-        self.forceID = []
-        self.assignment_file = h5py.File(assignment_file, 'r')
+        self.struct_id        = struct_id
+        self.k                = k
+        self.forceID          = []
+        self.assignment_file  = h5py.File(assignment_file, 'r')
     #-
     
     def _apply(self, model):
- 
-        assignment = self.assignment_file['assignment'][()]
-        indptr = self.assignment_file['indptr'][()]
-        selected_beads = self.assignment_file['selected']
-        clusters_ids = np.where(assignment == self.struct_id)[0]
-        radii = model.getRadii()
-        coord = model.getCoordinates()
 
+        """ Apply SPRITE restraints """ 
+
+        assignment     = self.assignment_file['assignment'][()]
+        indptr         = self.assignment_file['indptr'][()]
+        selected_beads = self.assignment_file['selected']
+        clusters_ids   = np.where(assignment == self.struct_id)[0]
+        radii          = model.getRadii()
+        coord          = model.getCoordinates()
+
+        # loop over indexes in 'assignment' (see SpriteAcrivationStep.py) referring to structure 'struct_id'
         for i in clusters_ids:
-            beads = selected_beads[ indptr[i] : indptr[i+1] ]
-            crad = radii[beads]
-            ccrd = coord[beads]
-            csize = len(beads)
-            csize = get_cluster_size(crad, self.volume_occupancy)
+            beads      = selected_beads[ indptr[i] : indptr[i+1] ]
+            crad       = radii[beads]
+            ccrd       = coord[beads]
+            csize      = len(beads)
+            csize      = get_cluster_size(crad, self.volume_occupancy)
             
-            # add a centroid for the cluster
+            # add a centroid for the cluster, in the geometric center
             centroid_pos = np.mean(ccrd, axis=0)
-            centroid = model.addParticle(centroid_pos, 0, Particle.DUMMY_DYNAMIC) # no excluded volume
+            centroid     = model.addParticle(centroid_pos, 0, Particle.DUMMY_DYNAMIC) # no excluded volume
 
             for b in beads:
+                # apply harmonic restraint(s) to all beads making up the cluster, using the position of the centroid as "origin" (one-body terms)
                 f = model.addForce(HarmonicUpperBound(
                     (b, centroid), float(csize-radii[b]), self.k, 
                     note=Restraint.SPRITE))

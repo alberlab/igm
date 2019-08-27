@@ -4,7 +4,7 @@ import time
 import traceback
 import multiprocessing
 
-POLL_INTERVAL = 0.5  # check every half second
+POLL_INTERVAL = 30  # check 30 seconds
 
 
 class GeneratorLen(object):
@@ -20,6 +20,9 @@ class GeneratorLen(object):
 
 
 class FilePoller(object):
+
+    """ Define polling function """
+
     def __init__(self, files, callback, args=None, kwargs=None, remove_after_callback=False,
                  setup=None, setup_args=tuple(), setup_kwargs=dict(),
                  teardown=None, teardown_args=tuple(), teardown_kwargs=dict()):
@@ -48,6 +51,7 @@ class FilePoller(object):
         self.teardown_kwargs = teardown_kwargs
         self._traceback = self._manager.list()
 
+    # watch function, which scans over the 'to_poll' list
     def watch(self, completed, tb, timeout=None, interval=POLL_INTERVAL):
         try:
             if self.setup:
@@ -106,6 +110,7 @@ class FilePoller(object):
     def _enumerate(self):
         lastc = 0
         while True:
+            #print('lastdc = ' + str(lastc))     # LB
             if len(self._traceback):
                     self.th.join()
                     raise RuntimeError('\n'.join(self._traceback))

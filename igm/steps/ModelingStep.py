@@ -30,6 +30,9 @@ DEFAULT_HIST_MAX = 0.1
 class ModelingStep(StructGenStep):
 
     def name(self):
+
+        """ This explains verbatim which optimization is performed, is printed to the logger """
+
         s = 'ModelingStep'
         additional_data = []
         if "Hi-C" in self.cfg['restraints']:
@@ -46,6 +49,13 @@ class ModelingStep(StructGenStep):
                 )
             )
 
+        if "sprite" in self.cfg['restraints']:
+            additional_data .append(
+                'sprite={:.1f}%'.format(
+                    self.cfg['restraints']['sprite']['volume_fraction'] * 100.0
+                )
+            )
+
         if 'opt_iter' in self.cfg['runtime']:
             additional_data.append(
                 'iter={}'.format(
@@ -56,15 +66,24 @@ class ModelingStep(StructGenStep):
         if len(additional_data):
             s += ' (' + ', '.join(additional_data) + ')'
         return s
+    #-
+
 
     def setup(self):
+
+        """ Read in parameters from cfg file """
+
         self.tmp_extensions = [".hms", ".data", ".lam", ".lammpstrj", ".ready"]
         self.tmp_file_prefix = "mstep"
         self.argument_list = range(self.cfg["model"]["population_size"])
         self.hssfilename = self.cfg["optimization"]["structure_output"] + '.T'
         self.file_poller = None
+    #-
 
     def _run_poller(self):
+
+        """ Setup polling function (See also RelaxInit.py script) """
+
         readyfiles = [
             os.path.join(self.tmp_dir, '%s.%d.ready' % (self.uid, struct_id))
             for struct_id in self.argument_list
@@ -78,12 +97,14 @@ class ModelingStep(StructGenStep):
             teardown=self.teardown_poller
         )
         self.file_poller.watch_async()
+    #-
+
 
     def before_map(self):
         """
         This runs only if map step is not skipped
         """
-        # clean up ready files if we want a clean restart of the modeling step
+        # clean up ready files (those that arae there and spotter by the poller) if we want a clean restart of the modeling step
         readyfiles = [
             os.path.join(self.tmp_dir, '%s.%d.ready' % (self.uid, struct_id))
             for struct_id in self.argument_list
@@ -94,6 +115,8 @@ class ModelingStep(StructGenStep):
                     os.remove(f)
 
         self._run_poller()
+    #-
+
 
     def before_reduce(self):
         """
@@ -102,6 +125,8 @@ class ModelingStep(StructGenStep):
         # if we don't have a poller, set it up
         if self.file_poller is None:
             self._run_poller()
+    #-
+
 
     @staticmethod
     def task(struct_id, cfg, tmp_dir):
@@ -144,8 +169,10 @@ class ModelingStep(StructGenStep):
         for i in range(n_particles):
             model.addParticle(crd[i], radii[i], Particle.NORMAL, chainID=chain_ids[i])
 
-        # Add restraint
+        # Add restraints
         monitored_restraints = []
+
+        # ---- POLYMER STRUCTURAL INTEGRITY INTRINSIC restraints ----- #
 
         # add excluded volume restraint
         ex = Steric(cfg.get("model/restraints/excluded/evfactor"))
@@ -175,28 +202,40 @@ class ModelingStep(StructGenStep):
             model.addRestraint(pp)
             monitored_restraints.append(pp)
 
+        # ---- IGM MODELING RESTRAINTS FROM EXPERIMENTAL DATA (FISH MISSING) ---- #
+
         # add Hi-C restraint
         if "Hi-C" in cfg['restraints']:
+            
+            # read parameters from cfg file
             actdist_file = cfg.get('runtime/Hi-C/actdist_file')
             contact_range = cfg.get('restraints/Hi-C/contact_range', 2.0)
             k = cfg.get('restraints/Hi-C/contact_kspring', 0.05)
 
+            # effectively add HiC restraints (bonds)
             hic = HiC(actdist_file, contact_range, k)
             model.addRestraint(hic)
             monitored_restraints.append(hic)
 
+        # add DAMID restraint
         if "DamID" in cfg['restraints']:
+
+            # read parameters from cfg file
             actdist_file = cfg.get('runtime/DamID/damid_actdist_file')
             contact_range = cfg.get('restraints/DamID/contact_range', 2.0)
             k = cfg.get('restraints/DamID/contact_kspring', 0.05)
 
+            # effectively add DAMID restraints
             damid = Damid(damid_file=actdist_file, contact_range=contact_range,
                           nuclear_radius=radius, k=k,
                           shape=shape, semiaxes=semiaxes)
             model.addRestraint(damid)
             monitored_restraints.append(damid)
 
+        # add SPRITE restraint
         if "sprite" in cfg['restraints']:
+
+            # read parameters from cfg file
             sprite_tmp = make_absolute_path(
                 cfg.get('restraints/sprite/tmp_dir', 'sprite'),
                 cfg.get('parameters/tmp_dir')
@@ -205,6 +244,8 @@ class ModelingStep(StructGenStep):
                 cfg.get('restraints/sprite/assignment_file', 'assignment.h5'),
                 sprite_tmp
             )
+
+            # effectively add SPRITE retraints 
             sprite = Sprite(
                 assignment_filename,
                 cfg.get('restraints/sprite/volume_fraction', 0.05),
@@ -220,11 +261,12 @@ class ModelingStep(StructGenStep):
 
         tol = cfg.get('optimization/violation_tolerance', 0.01)
 
+        # save optimization results to .hms file
         ofname = os.path.join(tmp_dir, 'mstep_%d.hms' % struct_id)
         with HmsFile(ofname, 'w') as hms:
             hms.saveModel(struct_id, model)
 
-            # create violations statistics
+            # create violations statistics and save all of that into the "vstat" dictionary
             vstat = {}
             for r in monitored_restraints:
                 vs = []
@@ -248,6 +290,7 @@ class ModelingStep(StructGenStep):
                     'n_imposed': n_imposed
                 }
 
+            # add violation dictionary to hms file
             h5_create_or_replace_dataset(hms, 'violation_stats', json.dumps(vstat))
 
             if isinstance(optinfo, dict):
@@ -262,13 +305,23 @@ class ModelingStep(StructGenStep):
             if not np.all(hms.get_coordinates() == model.getCoordinates()):
                 raise RuntimeError('error writing the file %s' % ofname)
 
+        # generate the .ready file, which signals to the poller that optimization for that structure has been completed
         readyfile = os.path.join(tmp_dir, '%s.%d.ready' % (step_id, struct_id))
         open(readyfile, 'w').close()  # touch the ready-file
+    #-
+
+
 
     def setup_poller(self):
-        # the set_structure is performed in a different process, so we need
-        # to setup and teardown stuff there.
-        self._hss = HssFile(self.hssfilename, 'r+')
+
+        """ Set up polling function: define coordinate master matrix and a dictionary summarizing statistics from run"""
+        
+        _hss = HssFile(self.hssfilename, 'r')
+        #self._hss = HssFile(self.hssfilename, 'r+')
+
+        self._hss_crd = _hss.coordinates
+        _hss.close()
+
         self._summary_data = {
             'n_imposed': 0.0,
             'n_violations': 0.0,
@@ -286,17 +339,23 @@ class ModelingStep(StructGenStep):
             },
             'byrestraint': {}
         }
+    #-
 
-    # this is run in the poller
+
+
     def set_structure(self, i):
+
+        """ This is the function run the in the poller, coordinates and statistics are updated for i-th configuration """
+
         fname = "{}_{}.hms".format(self.tmp_file_prefix, i)
         with HmsFile(os.path.join(self.tmp_dir, fname), 'r') as hms:
 
-            # set coordinates
+            # extract coordinates from .hms file and update master matrix
             crd = hms.get_coordinates()
 
             # hss and summary_data are globals
-            self._hss.set_struct_crd(i, crd)
+            #self._hss.set_struct_crd(i, crd)
+            self._hss_crd[:,i,:] = crd
 
             # collect violation statistics
             try:
@@ -343,27 +402,44 @@ class ModelingStep(StructGenStep):
                 infodict = json.loads(hms['opt_info_dict'][()])
                 for k, v in infodict['thermo'].items():
                     if k not in self._summary_data['bystructure']['thermo']:
-                        self._summary_data['bystructure']['thermo'][k] = np.zeros(self._hss.nstruct)
+                        self._summary_data['bystructure']['thermo'][k] = np.zeros(self._hss_crd.shape[1])   # LB replaced hss.n_struct
                     self._summary_data['bystructure']['thermo'][k][i] = v
+    #-
+
+
+
 
     def teardown_poller(self):
+
+        """ Teardown poller, after all coodinates and statistics have been updated for the whole population """
+
         total_violations, total_restraints = self._summary_data['n_violations'], self._summary_data['n_imposed']
 
         if total_restraints == 0:
             violation_score = 0
         else:
+            # percentage of restraint violations
             violation_score = total_violations / total_restraints
 
+        # open HSS population file
+        self._hss = HssFile(self.hssfilename, 'r+')     # LB
+
+        # store violation score, all the coordinates and the restraint violation summary into the HSS file
         self._hss.set_violation(violation_score)
+        self._hss.set_coordinates(self._hss_crd)   # LB
         h5_create_or_replace_dataset(self._hss, 'summary', data=json.dumps(self._summary_data, default=lambda a: a.tolist()))
+        
+        # close HSS file
         self._hss.close()
+    #-
+
 
     def reduce(self):
         """
         Collect all structure coordinates together to assemble a hssFile
         """
 
-        # wait for poller to finish
+        # wait for poller to finish (see also RelaxInit.py script)
         for _ in tqdm(self.file_poller.enumerate(), desc='(REDUCE)'):
             pass
 
@@ -398,7 +474,7 @@ class ModelingStep(StructGenStep):
             raise RuntimeError('repacking failed. error code: %d' % sp.returncode)
         logger.info('done.')
 
-        # save the output file with a unique file name if requested
+        # save the output file with a unique file name if requested (see 'intermediate_name' function below)
         if self.keep_intermediate_structures:
             copyfile(
                 self.hssfilename + '.swap',
@@ -407,6 +483,10 @@ class ModelingStep(StructGenStep):
 
         # finally replace output file
         shutil.move(self.hssfilename + '.swap', self.cfg.get("optimization/structure_output"))
+    #-
+
+
+
 
     def skip(self):
         fn = self.intermediate_name() + '.hss'
@@ -414,9 +494,14 @@ class ModelingStep(StructGenStep):
             with HssFile(fn, 'r') as hss:
                 violation_score = log_stats(hss, self.cfg)
                 self.cfg['runtime']['violation_score'] = violation_score
+    #-
+
+
 
     def intermediate_name(self):
 
+        """ Define unique intermediate name for HSS file associated with this modeling step (how about SPRITE?)"""
+        
         additional_data = []
         if "DamID" in self.cfg['runtime']:
             additional_data .append(
@@ -430,6 +515,14 @@ class ModelingStep(StructGenStep):
                     self.cfg['runtime']['Hi-C'].get('sigma', -1.0)
                 )
             )
+
+        if "sprite" in self.cfg['restraints']:
+            additional_data .append(
+                'sprite_{:.1f}'.format(
+                    self.cfg['restraints']['sprite']['volume_fraction'] * 100.0
+                )
+            )
+
         if 'opt_iter' in self.cfg['runtime']:
             additional_data.append(
                 'iter_{}'.format(
@@ -442,8 +535,15 @@ class ModelingStep(StructGenStep):
             self.cfg.get("optimization/structure_output"),
         ] + additional_data)
 
+    #-
+
+
+#----- these following functions do not belong to the ModelingStep class
 
 def get_violation_histogram(v, nbins=DEFAULT_HIST_BINS, vmax=1):
+
+    """ Get numpy histogram (H, edges) of violations """
+
     v = np.array(v)
     over = np.count_nonzero(v > vmax)
     inner = v[v <= vmax]
@@ -455,10 +555,12 @@ def get_violation_histogram(v, nbins=DEFAULT_HIST_BINS, vmax=1):
 
 def log_stats(hss, cfg):
 
+    """ Recapitulate average (per-bead) thermodynamic quantities, and print information to logger to finally conclude this M step """
+
     try:
         n_struct = hss.nstruct
-        n_beads = hss.nbead
-        summary = json.loads(hss['summary'][()])
+        n_beads  = hss.nbead
+        summary  = json.loads(hss['summary'][()])
     except:
         logger.info(bcolors.WARNING + 'No summary data' + bcolors.ENDC)
         return

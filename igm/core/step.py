@@ -236,9 +236,14 @@ class Step(object):
             'cfg': self.cfg,
         }
 
+        # accessing the database tracking sqlite file 
         past_history = self._db.get_history(self.uid)
         past_substeps = { x['status'] : x['cfg'] for x in past_history }
+
+        # if some of the scheduled steps have been completed already, say so by printing that to the logger and move on
         if 'completed' in past_substeps:
+
+            # that is updated in the runtime status
             self.cfg['runtime'].update(past_substeps['completed']['runtime'])
             logger.info(BC.OKBLUE + 'step {} already completed, skipping.'.format(self.name()) + BC.ENDC)
             self.skip()
@@ -344,6 +349,8 @@ class StructGenStep(Step):
         """
 
         hssfilename = self.cfg["optimization"]["structure_output"] + '.T'
+        
+	# bonimba: using changes as Nan
         with HssFile(hssfilename, 'r+') as hss:
             n_struct = hss.nstruct
             n_beads = hss.nbead
@@ -351,20 +358,31 @@ class StructGenStep(Step):
             total_restraints = 0.0
             total_violations = 0.0
 
+	    # extract coordinates and put them in matrix
+            master = hss.coordinates
+            print('Collecting all the coordinates from all configurations....')
+
             for i in tqdm(range(hss.nstruct), desc='(REDUCE)'):
                 fname = "{}_{}.hms".format(self.tmp_file_prefix, i)
                 hms = HmsFile( os.path.join( self.tmp_dir, fname ) )
                 crd = hms.get_coordinates()
                 total_restraints += hms.get_total_restraints()
                 total_violations += hms.get_total_violations()
-
-                hss.set_struct_crd(i, crd)
+		
+                # edit master numpy matrix...
+                master[:,i,:] = crd
+ 
+            # in un colpo solo, chiudi il fil
+            hss.set_coordinates(master)
             #-
             if (total_violations == 0) and (total_restraints == 0):
                 hss.set_violation(np.nan)
             else:
                 hss.set_violation(total_violations / total_restraints)
 
+        hss.close()
+
+        # repack 
         PACK_SIZE = 1e6
         pack_beads = max(1, int( PACK_SIZE / n_struct / 3 ) )
         pack_beads = min(pack_beads, n_beads)

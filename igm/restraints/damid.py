@@ -4,7 +4,7 @@ import numpy as np
 import h5py
 
 from .restraint import Restraint
-from ..model.forces import HarmonicLowerBound, EllipticEnvelope
+from ..model.forces import HarmonicLowerBound, EllipticEnvelope    # restraint forces associated with damid
 from ..model import Particle
 
 try:
@@ -13,16 +13,48 @@ except NameError:
     unicode = lambda s: str(s)
 
 
-# radial position of of the bead surface in radius units
-# on 1 the surface contacts the envelope
+# ---- AUXILIARY FUNCTIONS FOR DAMID CALCULATIONS ----#
+
 def snormsq_sphere(x, R, r):
+
+    """
+    Compute radial distance of a bead to spherical nuclear envelope
+
+    INPUT
+        x (float), bead/locus coordinates
+        R (float), radius of nuclear envelope, when spherical
+        r (float), radius of bead
+
+    OUTPUT (normalized) distance between bead surface and nuclear envelope
+                        d = 1 if bead surface touches the envelope
+                        d < 1 otherwise
+    """
+
     # return np.square(
     #     (np.linalg.norm(x, axis=1) + r) / R**2
     # )
     return np.sum(np.square(x), axis=1) / (R-r)**2
 
 
+
+
+
 def snormsq_ellipsoid(x, semiaxes, r):
+
+    """
+    Compute radial distance of a bead to ellipsoidal nuclear envelope
+
+    INPUT
+        x (float), bead/locus coordinates
+        r (float), radius of bead
+        semiaxes (float, float, float), semiaxes of nuclear envelope, if ellipsoidal
+
+    OUTPUT (normalized) distance between bead surface and nuclear envelope: x**2/(a-r)**2 + y**2/(b-r)**2 + z**2/(c-r)**2
+                        d = 1 if bead surface touches the envelope (this means the bead center is laying on a concentric ellipsoid
+                                                                    of semiaxes (a - r, b - r, c - r))
+                        d < 1 otherwise (the bead center is laying on a concentric ellipsoid with even shorter semiaxes) 
+    """
+
     a, b, c = np.array(semiaxes) - r
     sq = np.square(x)
     return sq[0]/(a**2) + sq[1]/(b**2) + sq[2]/(c**2)
@@ -49,6 +81,7 @@ class Damid(Restraint):
 
 
     """
+
     def __init__(self, damid_file, contact_range=0.05, nuclear_radius=5000.0, shape="sphere",
                  semiaxes=(5000, 5000, 5000), k=1.0):
 
@@ -59,6 +92,7 @@ class Damid(Restraint):
         elif self.shape == u"ellipsoid":
             self.a, self.b, self.c = semiaxes
 
+        # recapitulate parameters
         self.contact_range = contact_range
         self.nuclear_radius = nuclear_radius
         self.k = k
@@ -68,10 +102,14 @@ class Damid(Restraint):
 
 
     def _load_actdist(self,damid_actdist):
+
+        """ Read in file containing current DAMID activation distances """
         self.damid_actdist = DamidActivationDistanceDB(damid_actdist)
 
 
     def _apply_envelope(self, model):
+
+        """ Effectively apply damid restraints to the different beads, if distance is smaller than activation distance """
 
         center = model.addParticle([0., 0., 0.], 0., Particle.DUMMY_STATIC)
         cutoff = 1 - self.contact_range
@@ -105,7 +143,7 @@ class Damid(Restraint):
 
 class DamidActivationDistanceDB(object):
     """
-    HDF5 activation distance iterator
+    HDF5 activation distance iterator: read in damid activation distance file in chunks
     """
 
     def __init__(self, damid_file, chunk_size = 10000):
