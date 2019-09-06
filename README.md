@@ -15,8 +15,8 @@ available on pip. In addition, some other packages are required:
 - alabtools (github.com/alberlab/alabtools)
 - a modified version of LAMMPS (github.com/alberlab/lammpgen)
 
-Installation on linux / MacOS
------------------------------
+Installation on linux
+---------------------
 -   Many of the alabtools and IGM dependencies can be installed with a
     few commands if you are using conda 
     (https://www.anaconda.com/distribution/)
@@ -59,7 +59,40 @@ Installation on linux / MacOS
     echo "[DEFAULT]" > ${HOME}/.igm/user_defaults.cfg
     echo "optimization/kernel_opts/lammps/lammps_executable = "$(pwd)/src/lmp_serial >> ${HOME}/.igm/user_defaults.cfg
     ```
-    
+
+Installation on MacOS
+--------------
+-   Installation on MacOS poses additional challenges, especially on 11.14 Mojave (updated Sept 2019).  ```gcc``` compiler may not be pre-installed; instead, the more efficient ```clang``` might be (this can be checked with ```gcc --version```):
+
+    ``` 
+    $ which gcc
+    /usr/bin/gcc
+    $ gcc --version
+    Configured with: --prefix=/Applications/Xcode.app/Contents/Developer/usr --with-gxx-include-dir=/usr/include/c++/4.2.1
+    Apple LLVM version 7.3.0 (clang-703.0.29)
+    Target: x86_64-apple-darwin15.4.0
+    Thread model: posix
+    InstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin
+    ```
+
+If you are getting this printout, then there is NO actual gcc installed. In order to circumvent that, the following procedure worked for me:
+
+-   First install ```gcc``` using ```Homebrew```: 
+    ``` brew install gcc```
+
+    A gcc compiler will be installed, but we still need to make sure it supercedes the default ```clang```, anytime the C compiler is called. Assume the 9.0 version was installed, then the default installation path reads ```/usr/local/Cellar/gcc/9.0.2/```
+
+-   Make sure the default gcc compiler points to that folder, i.e.
+
+    ``` 
+    export CXX=/usr/local/Cellar/gcc/9.0.2/gcc+-9
+    export CC=/usr/local/Cellar/gcc/9.0.2/gcc-9
+    ```
+
+-   Then, ```alabtools``` can be installed in the regular way
+
+
+
 Quickstart
 ----------
 IGM has a web-based ui, which is probably the quickest way to setup and perform a IGM run. After installing igm,
