@@ -1,6 +1,5 @@
-# igm
 
-A Integrated Genome Modeling Platform
+IGM: An Integrated Genome Modeling Platform
 =====================================
 This is the modeling platform used in Frank U. Alber lab, University of California Los Angeles.
 It automates most of the modeling effort. It does not preprocess raw data.
