@@ -2,9 +2,16 @@
 
 A Integrated Genome Modeling Platform
 =====================================
-
-This is the modeling platform used in Frank U. Alber lab.
+This is the modeling platform used in Frank U. Alber lab, University of California Los Angeles.
 It automates most of the modeling effort. It does not preprocess raw data.
+
+Feb 2020
+
+-  Hi-C data, SPRITE data
+-  excluded volume, imaging data for volumetric restraints (e.g., nuclear bodies)
+-  lamina DamID data in combination with ellipsoidal nuclear envelope
+-  FISH data (in progress)
+
 
 Dependencies
 ------------
