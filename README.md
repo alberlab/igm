@@ -2,7 +2,7 @@
 IGM: An Integrated Genome Modeling Platform
 =====================================
 This is the modeling platform used in Frank U. Alber lab, University of California Los Angeles.
-It automates most of the modeling effort. It does not preprocess raw data.
+A population of individual full genome (diploid) structures is generated, which fully recapitulates a variety of experimental genomic and/or imaging data. It does NOT preprocess raw data.
 
 Feb 2020
 
