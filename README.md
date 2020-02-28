@@ -11,6 +11,13 @@ Feb 2020
 -  lamina DamID data in combination with ellipsoidal nuclear envelope
 -  FISH data (in progress)
 
+Repository organization
+-----------------------
+- ``` igm ```: full IGM code(s)
+- ``` bin ```: IGM run, server and GUI scripts. In particular, refer to ```igm-run.sh``` (actual submission script) and ```igm-report.sh``` (post-processing automated script)
+- ``` test ```: example inputs for preliminary test runs
+- ``` HCP_scripts ```: create ipyparallel environment and submit igm run on a SGE scheduler based HCP resource
+
 
 Dependencies
 ------------
