@@ -196,6 +196,7 @@ class SpriteAssignmentStep(Step):
 
                 assigned_beads = []
 
+                # use a Gibbs distribution with penalty to establish which structure should express which cluster
                 for i, (best_rg2s, curr_idx) in enumerate(results):   # i is a counter
                     
                     # 'best_rg2s' and 'curr_idx' are arrays, each pertaining a given cluster in current batch

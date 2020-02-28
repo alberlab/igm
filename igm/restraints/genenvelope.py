@@ -4,51 +4,47 @@ import numpy as np
 
 from .restraint import Restraint
 from ..model.particle import Particle
-from ..model.forces import HarmonicUpperBound, EllipticEnvelope
+from ..model.forces import ExpEnvelope
+
 try:
     UNICODE_EXISTS = bool(type(unicode))
 except NameError:
     unicode = lambda s: str(s)
 
-class Envelope(Restraint):
+class GenEnvelope(Restraint):
     """
-    A object handles nuclear envelope restraints
+    This class handles a (non ideal) nuclear envelope restraint from a density map
 
     Parameters
     ----------
-    nucRadius : float or list
-        nuclear radius or the length of the three semiaxes, in nm
+    volume_file: string
+        name of file containing the binary density map we would like to fit the genome into
     k : float
         spring constant
     """
-    def __init__(self, shape="sphere", nuclear_radius=5000.0, k=1.0):
+
+    def __init__(self, shape, volume_file="", k=1.0):
+
         self.shape = unicode(shape)
+        self.volume_file = volume_file     # file containing the binary density map information
+        self.k = k                         # elastic restraining constant (>0 attractive, <0 repulsive)
 
-        if self.shape == u"sphere":
-            self.a = self.b = self.c = nuclear_radius
-        elif self.shape == u"ellipsoid":
-            self.a, self.b, self.c = nuclear_radius
-
-        self.k = k
         self.forceID = []
 
 
     def _apply_sphere_envelop(self, model):
 
-        """ add a dummy dimensionless particle in the geometric center, to be used in force modeling """
-        center = model.addParticle([0., 0., 0.], 0., Particle.DUMMY_STATIC)
-
         normal_particles = [
             i for i, p in enumerate(model.particles)
             if p.ptype == Particle.NORMAL
         ]
+
         f = model.addForce(
-            EllipticEnvelope(
+            ExpEnvelope(
                 normal_particles,
-                center,
-                (self.a, self.b, self.c),
+                self.volume_file,
                 self.k,
-                scale=0.1*np.mean([self.a, self.b, self.c])
+                scale= 0.5
                 # set arbitrary scale: 100% violation ratio if extend inside by
                 # 1/10 of the nucleus radius. With usual parameters, it means
                 # that will be noticed as violated when the bond is stretched
@@ -63,5 +59,5 @@ class Envelope(Restraint):
 
 
     def __repr__(self):
-        return 'Envelope[shape={},k={},a={},b={},c={}]'.format(self.shape, self.k, self.a, self.b, self.c)
+        return 'ExpEnvelope[shape={},k={},volume_file={}]'.format(self.shape, self.k, self.volume_file)
     #=

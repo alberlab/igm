@@ -37,6 +37,8 @@ def get_info_from_log(output):
     return info
 
 def get_last_frame(fh):
+
+    """ Quite self-explanatory: extract coordinates from last frame produced by simulation """
     atomlines = []
     for l in reverse_readline(fh):
         if 'ITEM: ATOMS' in l:

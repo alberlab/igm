@@ -15,7 +15,7 @@ try:
 except ImportError:
     pass
 
-
+# dictionaries for the activation distance files
 damid_actdist_shape = [
     ('loc', 'int32'),
     ('dist', 'float32'),
@@ -107,7 +107,7 @@ class DamidActivationDistanceStep(Step):
         """ Prepare parameters, read in DAMID input file and preprocess by spitting that into batches, produce tmp files """
 
         # read in damid sigma activation, and the filename containing raw damid data
-        sigma = self.cfg.get("runtime/DamID/sigma")
+        sigma         = self.cfg.get("runtime/DamID/sigma")
         input_profile = self.cfg.get("restraints/DamID/input_profile")
 
         self.tmp_extensions = [".npy", ".tmp"]
@@ -217,16 +217,18 @@ class DamidActivationDistanceStep(Step):
         
         # concatenate...
         for i in self.argument_list:
+            
             fname = os.path.join(self.tmp_dir, '%d.out.tmp' % i)
             partial_damid_actdist = np.genfromtxt( fname, dtype=damid_actdist_shape )
+            
             if partial_damid_actdist.ndim == 0:
                 partial_damid_actdist = np.array([partial_damid_actdist], dtype=damid_actdist_shape)
 
-            loc.append(partial_damid_actdist['loc'])
+            loc.append( partial_damid_actdist['loc'])
             dist.append(partial_damid_actdist['dist'])
             prob.append(partial_damid_actdist['prob'])
 
-        #... write to file
+        #... write to tmp damid actdist file
         with h5py.File(damid_actdist_file + '.tmp', "w") as h5f:
             h5f.create_dataset("loc", data=np.concatenate(loc))
             h5f.create_dataset("dist", data=np.concatenate(dist))
@@ -250,6 +252,7 @@ class DamidActivationDistanceStep(Step):
 
 
     def set_tmp_path(self):
+        """ Auxiliary function to play around with paths and directories """
         curr_cfg = self.cfg['restraints']['DamID']
         damid_tmp_dir = curr_cfg.get('damid_actdist_dir', 'damid_actdist')
 
@@ -269,7 +272,6 @@ def cleanProbability(pij, pexist):
     else:
         pclean = pij
     return max(0, pclean)
-
 
 
 
@@ -296,6 +298,8 @@ def get_damid_actdist(locid, pwish, plast, hss, contact_range=0.05, shape="spher
 
     Returns
     -------
+        list of (i, activation_distance, p) entries
+
         locid (int): the locus index
         ad (float): the activation distance
         p (float): the corrected probability
@@ -331,6 +335,7 @@ def get_damid_actdist(locid, pwish, plast, hss, contact_range=0.05, shape="spher
     # approx 1 when at least one contact is there in each cell
     pnow = float(contact_count) / n_struct / n_copies
 
+    # iterative correction
     # adjust probabilites using information from current population, previous step and input data
     t = cleanProbability(pnow, plast)
     p = cleanProbability(pwish, t)

@@ -9,14 +9,17 @@ from ..model.forces import HarmonicUpperBound
 
 class Sprite(Restraint):
     """
-    Object handles Sprite restraint
+    Add SPRITE restraint as a DUMMY DYNAMIC particle is introduced and all beads assigned to a given
+    cluster are connected to it via harmonic springs
     
     Parameters
     ----------
-    actdist_file : activation distance file
+    assignment_file : SPRITE activation distance file
         
-    contactRange : int
+    volume_occupancy : float
         defining contact range between 2 particles as contactRange*(r1+r2)
+
+    k (float): elastic constant for restraining
     """
     
     def __init__(self, assignment_file, volume_occupancy, struct_id, k=1.0):

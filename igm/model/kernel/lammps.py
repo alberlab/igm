@@ -49,10 +49,10 @@ except NameError:
     unicode = str
 
 
-__author__ = "Guido Polles"
+__author__ = "Guido Polles, Lorenzo Boninsegna"
 __license__ = "GPL"
 __version__ = "0.0.1"
-__email__ = "polles@usc.edu"
+__email__ = "polles@usc.edu, bonimba@g.ucla.edu"
 
 
 INFO_KEYS = ['final-energy', 'pair-energy',
@@ -62,11 +62,14 @@ EPS_TEMP = 0.001
 
 def create_lammps_data(model, user_args):
 
-    n_atom_types = len(model.atom_types)
-    n_bonds = len(model.bonds)
-    n_bondtypes = len(model.bond_types)
-    n_atoms = len(model.atoms)
+    """ model = lammps model already """
 
+    n_atom_types = len(model.atom_types)
+    n_bonds      = len(model.bonds)
+    n_bondtypes  = len(model.bond_types)
+    n_atoms      = len(model.atoms)
+
+    # define simulation box size
     boxdim = 0
     for atom in model.atoms:
         boxdim = max(boxdim, np.max(np.abs(atom.xyz)))
@@ -81,16 +84,18 @@ def create_lammps_data(model, user_args):
         print(n_bondtypes, 'bond types\n', file=f)
         print(n_bonds, 'bonds\n', file=f)
 
+        # write simulation box size(s)
         print('-{} {} xlo xhi\n'.format(boxdim, boxdim),
               '-{} {} ylo yhi\n'.format(boxdim, boxdim),
               '-{} {} zlo zhi'.format(boxdim, boxdim), file=f)
 
+        # --- atom coordinates -----
         print('\nAtoms\n', file=f)
         # index, molecule, atom type, x y z.
         for atom in model.atoms:
             print(atom, file=f)
 
-        # bonds
+        # --- information about the bonds ----
         # Harmonic Upper Bond Coefficients are one for each bond type
         # and coded as:
         #   Bond_type_id kspring activation_distance
@@ -106,7 +111,7 @@ def create_lammps_data(model, user_args):
             for bond in model.bonds:
                 print(bond, file=f)
 
-        # Excluded volume coefficients
+        # Excluded volume coefficients: one set of coefficients for EACH pair-flavors (i.e., pair of particle types)
         atom_types = list(model.atom_types.values())
 
         print('\nPairIJ Coeffs\n', file=f)
@@ -116,6 +121,8 @@ def create_lammps_data(model, user_args):
                 a2 = atom_types[j]
                 id1 = min(a1.id + 1, a2.id + 1)
                 id2 = max(a1.id + 1, a2.id + 1)
+
+                # if either one particle is not a BEAD type, no excluded volume is applied
                 if (a1.atom_category == AtomType.BEAD and
                         a2.atom_category == AtomType.BEAD):
                     ri = a1.radius
@@ -129,7 +136,7 @@ def create_lammps_data(model, user_args):
                 else:
                     print(id1, id2, 0.0, 0.0, file=f)
 
-        # User data
+        # User data, add bead radius
         print('\nUser\n', file=f)
         for i, atom in enumerate(model.atoms):
             if hasattr(atom.atom_type, 'radius'):
@@ -140,6 +147,13 @@ def create_lammps_data(model, user_args):
 
 
 def create_lammps_script(model, user_args):
+
+    """ This function prepares and writes the Lammps script which contains the 
+        protocol to define the system (particles and interactions) and 
+        run simulated annealing and conjugate gradient (CJ) 
+
+	Possible Lammps fixes are to be called here
+    """
 
     # get a seed, different for each minimization and run but deterministic
     seed = (
@@ -213,6 +227,7 @@ def create_lammps_script(model, user_args):
         print('fix integrator nonfixed nve/limit',
               user_args['max_velocity'], file=f)
 
+        # momento envelope: produce envelope groups listing the atoms
         valid_envelopes = [
             envelope for envelope in model.envelopes if len(envelope.particle_ids)]
         for j, envelope in enumerate(valid_envelopes):
@@ -234,13 +249,13 @@ def create_lammps_script(model, user_args):
 
         # print('pair_modify shift yes mix arithmetic', file=f)
 
-        # outputs:
+        # regulate output:
         print('dump   crd_dump all custom',
               user_args['write'],
               user_args['out'],
               'id type x y z fx fy fz', file=f)
 
-        # Run MD
+        # Write the steps of simulated annealing
 
         # prepare protocol
         protocol = user_args.get('custom_annealing_protocol', None)
@@ -255,11 +270,11 @@ def create_lammps_script(model, user_args):
                 'envelope_scales': [1]
             }
 
-        nsteps = protocol.get('num_steps')
-        mdsteps = protocol.get('mdsteps', [user_args['mdsteps']] * nsteps)
-        tstarts = protocol.get('tstarts', [user_args['tstart']] * nsteps)
-        tstops = protocol.get('tstops', tstarts)
-        evfs = protocol.get('evfactors', [1] * nsteps)
+        nsteps     = protocol.get('num_steps')
+        mdsteps    = protocol.get('mdsteps', [user_args['mdsteps']] * nsteps)
+        tstarts    = protocol.get('tstarts', [user_args['tstart']] * nsteps)
+        tstops     = protocol.get('tstops', tstarts)
+        evfs       = protocol.get('evfactors', [1] * nsteps)
         envelopesf = protocol.get('envelope_factors', [1] * nsteps)
 
         assert(len(mdsteps) == len(tstarts) == len(tstops)
@@ -286,6 +301,15 @@ def create_lammps_script(model, user_args):
                             file=f
                         )
                         print('fix_modify envelope{} energy yes'.format(j), file=f)
+                    
+                    elif envelope.shape == 'exp_map':
+			#print(str(envelope.volume_file).format(j), file=f)
+                        print(
+                            'fix envelope{0} envgrp{0} volumetricrestraint '.format(j) + str(envelope.volume_file), envelope.k, file=f
+                        )
+                        print('fix_modify envelope{} energy yes'.format(j), file=f)
+
+
                     else:
                         raise NotImplementedError(
                             'Envelope (%s) not implemented' % envelope.shape)
@@ -326,7 +350,7 @@ def create_lammps_script(model, user_args):
 
             print('unfix exVolAdapt%d' % step, file=f)
 
-        # Run CG
+        # Run minimization using Conjugate Gradient (CG)
         print('min_style cg', file=f)
         print('minimize', user_args['etol'], user_args['ftol'],
               user_args['max_cg_iter'], user_args['max_cg_eval'], file=f)
@@ -390,16 +414,16 @@ def optimize(model, cfg):
         if e.errno == errno.EEXIST:
             pass
 
-    run_name = cfg['runtime']['run_name']
+    run_name             = cfg['runtime']['run_name']
     keep_temporary_files = cfg['optimization']['keep_temporary_files']
-    lammps_executable = cfg['optimization'][
+    lammps_executable    = cfg['optimization'][
         'kernel_opts']['lammps']['lammps_executable']
-    run_opts = deepcopy(cfg['optimization']['optimizer_options'])
+    run_opts             = deepcopy(cfg['optimization']['optimizer_options'])
 
-    data_fname = os.path.join(tmp_files_dir, run_name + '.data')
-    script_fname = os.path.join(tmp_files_dir, run_name + '.lam')
-    traj_fname = os.path.join(tmp_files_dir, run_name + '.lammpstrj')
-    log_fname = os.path.join(tmp_files_dir, run_name + '.log')
+    data_fname           = os.path.join(tmp_files_dir, run_name + '.data')
+    script_fname         = os.path.join(tmp_files_dir, run_name + '.lam')
+    traj_fname           = os.path.join(tmp_files_dir, run_name + '.lammpstrj')
+    log_fname            = os.path.join(tmp_files_dir, run_name + '.log')
 
     try:
 
@@ -410,7 +434,8 @@ def optimize(model, cfg):
         # this is to set the random seed
         run_opts.update({'step_no': cfg.get('runtime/step_no', 1) + 2})
         m = LammpsModel(model)
-
+ 
+        # write input .lam and .data files to be used in the minimization
         create_lammps_data(m, run_opts)
         create_lammps_script(m, run_opts)
 
@@ -430,7 +455,7 @@ def optimize(model, cfg):
 
         # get results
         with open(log_fname, 'r') as lf:
-            info = get_info_from_log(lf)
+            info = get_info_from_log(lf)   # this is returned as result of lammps minimization file
 
         with open(traj_fname, 'r') as fd:
             new_crd = get_last_frame(fd)

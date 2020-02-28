@@ -3,7 +3,10 @@ import numpy as np
 
 POSDTYPE = np.float32
 
+# define "Particle" class
+
 class Particle(object):
+
     NORMAL = 0
     DUMMY_STATIC = 1
     DUMMY_DYNAMIC = 2
@@ -11,9 +14,9 @@ class Particle(object):
     PTYPES = ["NORMAL","DUMMY_STATIC","DUMMY_DYNAMIC"]
     
     def __init__(self, pos, r, t, **kwargs):
-        self.pos = np.array(pos).astype(POSDTYPE)
-        self.r = POSDTYPE(r)
-        self.ptype = t
+        self.pos = np.array(pos).astype(POSDTYPE)     # particle coordinates
+        self.r = POSDTYPE(r)                          # particle radius (if 0, then no excluded voluem)
+        self.ptype = t                                # particle type (see PTYPES list)
         for k in kwargs:
             setattr(self, k, kwargs[k])
     

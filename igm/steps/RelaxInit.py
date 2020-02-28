@@ -10,7 +10,7 @@ from subprocess import Popen, PIPE
 
 from ..core import StructGenStep
 from ..model import Model, Particle
-from ..restraints import Polymer, Envelope, Steric
+from ..restraints import Polymer, Envelope, Steric, Nucleolus, GenEnvelope
 from ..utils import HmsFile
 from ..parallel.async_file_operations import FilePoller
 from ..utils.log import logger
@@ -85,7 +85,7 @@ class RelaxInit(StructGenStep):
     @staticmethod
     def task(struct_id, cfg, tmp_dir):
         """
-        relax one random structure chromosome structures
+        relax one random structure chromosome structures, SERIAL
         """
         cfg = deepcopy(cfg)
 
@@ -113,12 +113,13 @@ class RelaxInit(StructGenStep):
         for i in range(n_particles):
             model.addParticle(crd[i], radii[i], Particle.NORMAL)
 
-        # ========Add restraint
+        # ========Add polymer/nucleoli restraints =========
+
         # add excluded volume restraint
         ex = Steric(cfg.get("model/restraints/excluded/evfactor"))
         model.addRestraint(ex)
 
-        # add nucleus envelop restraint
+        # add nucleus envelope restraint (spherical, ellipsoidal OR from data)
         if cfg['model']['restraints']['envelope']['nucleus_shape'] == 'sphere':
             ev = Envelope(cfg['model']['restraints']['envelope']['nucleus_shape'],
                           cfg['model']['restraints']['envelope']['nucleus_radius'],
@@ -127,6 +128,10 @@ class RelaxInit(StructGenStep):
             ev = Envelope(cfg['model']['restraints']['envelope']['nucleus_shape'],
                           cfg['model']['restraints']['envelope']['nucleus_semiaxes'],
                           cfg['model']['restraints']['envelope']['nucleus_kspring'])
+        elif cfg['model']['restraints']['envelope']['nucleus_shape'] == 'exp_map':
+            ev = GenEnvelope(cfg['model']['restraints']['envelope']['nucleus_shape'],
+                             cfg['model']['restraints']['envelope']['input_map'],
+                             cfg['model']['restraints']['envelope']['nucleus_kspring'])
         model.addRestraint(ev)
 
         # add consecutive polymer restraint
@@ -137,12 +142,23 @@ class RelaxInit(StructGenStep):
                      contact_probabilities=contact_probabilities)
         model.addRestraint(pp)
 
+
+        # LB: add nuclear body "excluded volume" restraints (keep chromosomes out of nucleolar region)
+        if 'nucleolus' in cfg['restraints']:
+
+              for mappa in cfg['restraints']['nucleolus']['input_map']:
+          
+                    nucl = GenEnvelope(cfg['restraints']['nucleolus']['shape'], mappa,
+                                       cfg['restraints']['nucleolus']['k_spring'])
+                    model.addRestraint(nucl)
+                    logger.info(nucl)
+
         # ========Optimization
 
         # set "run_name" variable into "runtime" dictionary 
         cfg['runtime']['run_name'] = cfg['runtime']['step_hash'] + '_' + str(struct_id)
         
-        # run optimization
+        # run optimization of the structures, by enforcing excluded volume, polymer and envelope restraints
         model.optimize(cfg)
 
         # save optimization results (both optimized coordinates and violations) into a .hms file

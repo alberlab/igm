@@ -31,8 +31,12 @@ class Polymer(Restraint):
     def _apply(self, model):
 
         for i in range(len(self.index) - 1):
+            
+            # if i and i+1 belong to the same chromosome (and copy)
             if (self.index.chrom[i] == self.index.chrom[i+1] and
                 self.index.copy[i] == self.index.copy[i+1]):
+
+                # do we have contact probabiities?
                 if self.cp is None:
                     dij = self.contactRange*(model.particles[i].r +
                                              model.particles[i+1].r)

@@ -14,7 +14,7 @@ from alabtools.analysis import HssFile
 
 from ..core import StructGenStep
 from ..model import Model, Particle
-from ..restraints import Polymer, Envelope, Steric, HiC, Sprite, Damid
+from ..restraints import Polymer, Envelope, Steric, HiC, Sprite, Damid, Nucleolus, GenEnvelope
 from ..utils import HmsFile
 from ..utils.files import h5_create_group_if_not_exist, h5_create_or_replace_dataset, make_absolute_path
 from ..parallel.async_file_operations import FilePoller
@@ -130,9 +130,11 @@ class ModelingStep(StructGenStep):
 
     @staticmethod
     def task(struct_id, cfg, tmp_dir):
+
         """
-        Do single structure modeling with bond assignment from A-step
+        Do single structure modeling with restraint assignment from A-step
         """
+
         # the static method modifications to the cfg should only be local,
         # use a copy of the config file
         cfg = deepcopy(cfg)
@@ -158,7 +160,7 @@ class ModelingStep(StructGenStep):
             else:
                 crd = hss.get_struct_crd(struct_id)
 
-        # init Model
+        # init Model class (igm.model)
         model = Model(uid=struct_id)
 
         # get the chain ids
@@ -183,16 +185,21 @@ class ModelingStep(StructGenStep):
         envelope_k = cfg.get('model/restraints/envelope/nucleus_kspring')
         radius = 0
         semiaxes = (0, 0, 0)
+
         if shape == 'sphere':
             radius = cfg.get('model/restraints/envelope/nucleus_radius')
             ev = Envelope(shape, radius, envelope_k)
         elif cfg['model']['restraints']['envelope']['nucleus_shape'] == 'ellipsoid':
             semiaxes = cfg.get('model/restraints/envelope/nucleus_semiaxes')
             ev = Envelope(shape, semiaxes, envelope_k)
+        elif cfg['model']['restraints']['envelope']['nucleus_shape'] == 'exp_map':
+            volume_file  = cfg.get('model/restraints/envelope/input_map')
+            ev = GenEnvelope(shape, volume_file, envelope_k)
+
         model.addRestraint(ev)
         monitored_restraints.append(ev)
 
-        # add consecutive polymer restraint
+        # add consecutive bead polymer restraint to ensure chain connectivity
         if cfg.get('model/restraints/polymer/polymer_bonds_style') != 'none':
             contact_probabilities = cfg['runtime'].get('consecutive_contact_probabilities', None)
             pp = Polymer(index,
@@ -202,18 +209,30 @@ class ModelingStep(StructGenStep):
             model.addRestraint(pp)
             monitored_restraints.append(pp)
 
+        # LB: add nuclear body excluded volume restraints
+        if "nucleolus" in cfg['restraints']:
+
+            # read in nucle lus coordinates and radius from cfg file
+
+            for mappa  in cfg['restraints']['nucleolus']['input_map']:
+
+                    nucl = GenEnvelope(cfg['restraints']['nucleolus']['shape'], mappa,
+                                       cfg['restraints']['nucleolus']['k_spring'])
+                    model.addRestraint(nucl)
+                    monitored_restraints.append(nucl)
+
         # ---- IGM MODELING RESTRAINTS FROM EXPERIMENTAL DATA (FISH MISSING) ---- #
 
         # add Hi-C restraint
         if "Hi-C" in cfg['restraints']:
             
             # read parameters from cfg file
-            actdist_file = cfg.get('runtime/Hi-C/actdist_file')
+            actdist_file  = cfg.get('runtime/Hi-C/actdist_file')
             contact_range = cfg.get('restraints/Hi-C/contact_range', 2.0)
-            k = cfg.get('restraints/Hi-C/contact_kspring', 0.05)
+            k             = cfg.get('restraints/Hi-C/contact_kspring', 0.05)
 
             # effectively add HiC restraints (bonds)
-            hic = HiC(actdist_file, contact_range, k)
+            hic           = HiC(actdist_file, contact_range, k)
             model.addRestraint(hic)
             monitored_restraints.append(hic)
 
@@ -221,12 +240,12 @@ class ModelingStep(StructGenStep):
         if "DamID" in cfg['restraints']:
 
             # read parameters from cfg file
-            actdist_file = cfg.get('runtime/DamID/damid_actdist_file')
+            actdist_file  = cfg.get('runtime/DamID/damid_actdist_file')
             contact_range = cfg.get('restraints/DamID/contact_range', 2.0)
-            k = cfg.get('restraints/DamID/contact_kspring', 0.05)
+            k             = cfg.get('restraints/DamID/contact_kspring', 0.05)
 
             # effectively add DAMID restraints
-            damid = Damid(damid_file=actdist_file, contact_range=contact_range,
+            damid         = Damid(damid_file=actdist_file, contact_range=contact_range,
                           nuclear_radius=radius, k=k,
                           shape=shape, semiaxes=semiaxes)
             model.addRestraint(damid)
@@ -259,6 +278,7 @@ class ModelingStep(StructGenStep):
         cfg['runtime']['run_name'] = cfg.get('runtime/step_hash') + '_' + str(struct_id)
         optinfo = model.optimize(cfg)
 
+        # tolerance parameter: if violation score is smaller than tolerance, then restraint is satisfied
         tol = cfg.get('optimization/violation_tolerance', 0.01)
 
         # save optimization results to .hms file
@@ -275,12 +295,14 @@ class ModelingStep(StructGenStep):
                     f = model.forces[fid]
                     n_imposed += f.rnum
                     if f.rnum > 1:
+			# a list of values is appended to vs = [] at once
                         vs += f.getViolationRatios(model.particles).tolist()
                     else:
+			# one value is appended at the time to vs = []
                         vs.append(f.getViolationRatio(model.particles))
                 vs = np.array(vs)
                 H, edges = get_violation_histogram(vs)
-                num_violations = np.count_nonzero(vs > tol)
+                num_violations = np.count_nonzero(vs > tol)    # the same 'tol' value is used to compute the number of violations across different restraint kinds...is that too easy?
                 vstat[repr(r)] = {
                     'histogram': {
                         'edges': edges.tolist(),
@@ -305,7 +327,7 @@ class ModelingStep(StructGenStep):
             if not np.all(hms.get_coordinates() == model.getCoordinates()):
                 raise RuntimeError('error writing the file %s' % ofname)
 
-        # generate the .ready file, which signals to the poller that optimization for that structure has been completed
+        # generat;e the .ready file, which signals to the poller that optimization for that structure has been completed
         readyfile = os.path.join(tmp_dir, '%s.%d.ready' % (step_id, struct_id))
         open(readyfile, 'w').close()  # touch the ready-file
     #-
@@ -503,6 +525,7 @@ class ModelingStep(StructGenStep):
         """ Define unique intermediate name for HSS file associated with this modeling step (how about SPRITE?)"""
         
         additional_data = []
+        
         if "DamID" in self.cfg['runtime']:
             additional_data .append(
                 'damid_{:.4f}'.format(

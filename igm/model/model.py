@@ -11,7 +11,7 @@ class Model(object):
     
     Modeling target system
     
-    This is an abstract mid-layer between data-restraints and minization kernel.
+    This is an abstract mid-layer between data-restraints (ASSIGNMENT) and minization kernel (LAMMPS).
     
     The Model holds all information about the target system by particles and
     harmonic forces.

@@ -230,12 +230,12 @@ class Atom(object):
 
 class LammpsModel(object):
     '''
-    A class to organize data to generate lammps input files.
+    An intermediate (possibly non-necessary)  class to organize data to generate lammps input files.
 
     Parameters
     ----------
     model : igm.model.Model, optional
-        tranfer data from a igm.Model to a LammpsModel
+        tranfer data from a igm.Model to a LammpsModel, which is then used to generate the input files for a production run
     '''
 
     def __init__(self, model=None, uid=0):
@@ -252,8 +252,12 @@ class LammpsModel(object):
 
     def from_model(self, model):
         self.id = model.id
+
+        # loop over particles, add appropriate beads for NORMAL, DUMMY_STATIC, DUMMY_DYNAMIC
         centroid_type = ClusterCentroid()
         for p in model.particles:
+  
+            # if NORMAL, add a regular DNA bead
             if p.ptype == Particle.NORMAL:
                 att = DNABead(p.r)
                 if hasattr(p, 'chainID'):
@@ -261,6 +265,8 @@ class LammpsModel(object):
                 else:
                     mol_id = 0
                 atom = self.add_atom(att, p.pos, mol_id=mol_id)
+
+            # if DUMMY particles, define properties and add them
             elif p.ptype == Particle.DUMMY_STATIC:
                 atom = self.get_next_dummy(p.pos)
             elif p.ptype == Particle.DUMMY_DYNAMIC:
@@ -269,9 +275,10 @@ class LammpsModel(object):
                 raise ValueError('Unknown particle type')
             self.imap.append(atom.id)
 
+        # loop over the different physical forces involved in the model
         for f in model.forces:
-            if f.ftype == f.ENVELOPE:
-                self.envelopes.append(f)
+            if (f.ftype == f.ENVELOPE) or (f.ftype == f.GENERAL_ENVELOPE):
+                self.envelopes.append(f)     # see Guido's email: la classe del model viene aggiunta alle envelopes del Lammpsmodel
             elif f.ftype == f.EXCLUDED_VOLUME:
                 self.evfactor = f.k
 

@@ -21,6 +21,7 @@ try:
 except ImportError:
     pass
 
+# dictionary for the actdist file
 actdist_shape = [
     ('row', 'int32'),
     ('col', 'int32'),
@@ -84,15 +85,16 @@ class ActivationDistanceStep(Step):
 
         """ Reading parameters from cfg and actdist files, split into batches and save to tmp files """
 
-        dictHiC = self.cfg['restraints']['Hi-C']
-        sigma = self.cfg['runtime']['Hi-C']["sigma"]
-        inter_sigma = self.cfg.get('runtime/Hi-C/inter_sigma', False)
-        intra_sigma = self.cfg.get('runtime/Hi-C/intra_sigma', False)
+        dictHiC        = self.cfg['restraints']['Hi-C']
+        sigma          = self.cfg['runtime']['Hi-C']["sigma"]
+        inter_sigma    = self.cfg.get('runtime/Hi-C/inter_sigma', False)
+        intra_sigma    = self.cfg.get('runtime/Hi-C/intra_sigma', False)
         contact_matrix = Contactmatrix(dictHiC["input_matrix"])
-        input_matrix = contact_matrix.matrix
-        n = input_matrix.shape[0]
+        input_matrix   = contact_matrix.matrix
+        n              = input_matrix.shape[0]
+
         last_actdist_file = self.cfg.get('runtime/Hi-C').get("actdist_file", None)
-        batch_size = self.cfg.get('restraints/Hi-C/batch_size', 1000)
+        batch_size        = self.cfg.get('restraints/Hi-C/batch_size', 1000)
 
         self.tmp_extensions = [".npy", ".tmp"]
 
@@ -105,7 +107,6 @@ class ActivationDistanceStep(Step):
 
         if not os.path.exists(self.tmp_dir):
             os.makedirs(self.tmp_dir)
-        # ---
 
         # get the last iteration corrected probabilities from last_actdist_file...
         # TODO: find a way not to read all to memory?
@@ -123,7 +124,8 @@ class ActivationDistanceStep(Step):
                     shape=input_matrix.shape
                 ).tolil()
         else:
-            # ... if there are no corrected probabilities from last iteration, initialize empty sparse lil matrix
+            # ... if there are no corrected probabilities from last iteration (aka, the current iteration is the first iteration)
+            # initialize empty sparse lil matrix
             plast = scipy.sparse.lil_matrix(input_matrix.shape)
 
         # initialize parameters for batch processing
@@ -165,16 +167,16 @@ class ActivationDistanceStep(Step):
         """ Compute activation distances for batch identified by parameter batch_id """
 
         dictHiC = cfg['restraints']['Hi-C']
-        hss = HssFile(cfg.get("optimization/structure_output"), 'r')
+        hss     = HssFile(cfg.get("optimization/structure_output"), 'r')
 
         # read params
-        fname = os.path.join(tmp_dir, '%d.in.npy' % batch_id)
-        params = np.load(fname)
+        fname   = os.path.join(tmp_dir, '%d.in.npy' % batch_id)
+        params  = np.load(fname)
 
         # initialize result list
         results = []
 
-        # compute activation distances for all pairs of locus indexes
+        # compute activation distances for all pairs of locus indexes, append to "results" list
         for i, j, pwish, plast in params:
             res = get_actdist(
                 int(i), int(j), pwish, plast, hss,
@@ -184,7 +186,7 @@ class ActivationDistanceStep(Step):
             for r in res:
                 results.append(r)  # (i, j, actdist, p)
             # -
-        # --
+
         hss.close()
 
         # save activation distances from current batch to a batch-unique output file, using format specifier 'actdist_fmt_str'
@@ -192,28 +194,35 @@ class ActivationDistanceStep(Step):
         with open(fname, 'w') as f:
             f.write('\n'.join([actdist_fmt_str % x for x in results]))
 
+
+
     def reduce(self):
 
         """ Concatenate data from all batches into a single hdf5 'actdist' file """
 
-        actdist_file = os.path.join(self.tmp_dir, "actdist.hdf5")
+        actdist_file      = os.path.join(self.tmp_dir, "actdist.hdf5")
         last_actdist_file = self.cfg['runtime']['Hi-C'].get("actdist_file", None)
         row = []
         col = []
         dist = []
         prob = []
 
+        # poll all files and strap them together into a single file output
         for i in tqdm(self.argument_list, desc='(REDUCE)'):
-            fname = os.path.join(self.tmp_dir, '%d.out.tmp' % i)
+
+            fname           = os.path.join(self.tmp_dir, '%d.out.tmp' % i)
             partial_actdist = np.genfromtxt(fname, dtype=actdist_shape)
+
             if partial_actdist.ndim == 0:
                 partial_actdist = np.array([partial_actdist], dtype=actdist_shape)
+
             row.append(partial_actdist['row'])
             col.append(partial_actdist['col'])
             dist.append(partial_actdist['dist'])
             prob.append(partial_actdist['prob'])
+        #-
 
-        # build suffix to append to actdist file
+        # build suffix to append to actdist file (code does not overwrite actdist files)
         additional_data = []
         if "Hi-C" in self.cfg['runtime']:
             additional_data.append(
@@ -228,12 +237,13 @@ class ActivationDistanceStep(Step):
                 )
             )
 
+        # this is the activation distance tmp file storing the information about the currect act step
         tmp_actdist_file = actdist_file + '.tmp'
 
         # concatenate all the information and saeve to file
         with h5py.File(tmp_actdist_file, "w") as h5f:
-            h5f.create_dataset("row", data=np.concatenate(row))
-            h5f.create_dataset("col", data=np.concatenate(col))
+            h5f.create_dataset("row",  data=np.concatenate(row))
+            h5f.create_dataset("col",  data=np.concatenate(col))
             h5f.create_dataset("dist", data=np.concatenate(dist))
             h5f.create_dataset("prob", data=np.concatenate(prob))
         # -
@@ -258,14 +268,6 @@ class ActivationDistanceStep(Step):
         self.cfg['runtime']['Hi-C']["actdist_file"] = self.actdist_file
 # =
 
-# this seems to be deprecated, not used
-def newton_prob(p_wish, x_now, x_last, p_now, p_last):
-    # value of the functions
-    f_now = p_now - p_wish
-    f_last = p_last - p_wish
-    derivative = (f_now - f_last) / (x_now - x_last)
-    x_new = x_now - f_now / derivative
-    return x_new
 
 
 def cleanProbability(pij, pexist):
@@ -280,7 +282,9 @@ def cleanProbability(pij, pexist):
     return max(0, pclean)
 
 
+
 def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
+
     '''
     Serial function to compute the activation distance for a pair of loci.
 
@@ -302,6 +306,8 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
             (1) intra chromosome contacts are assigned intra/inter equally
     Returns
     -------
+	List res of [i, j, ad, p] arrays
+
         i (int): index of first locus
         j (int): index of second locus
         ad (float): the activation distance
@@ -392,3 +398,13 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
 
     # return a list (n_pairs, 4), n_pairs = number of independent pairs
     return res
+
+
+# this seems to be DEPRECATED, not used
+def newton_prob(p_wish, x_now, x_last, p_now, p_last):
+    # value of the functions
+    f_now = p_now - p_wish
+    f_last = p_last - p_wish
+    derivative = (f_now - f_last) / (x_now - x_last)
+    x_new = x_now - f_now / derivative
+    return x_new

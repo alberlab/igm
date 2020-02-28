@@ -13,6 +13,11 @@ from shutil import copyfile
 #===prepare genome and index instances
 def PrepareGenomeIndex(cfg):
 
+    """ Prepare genome and index instances
+
+	cfg: configuration file object, as from igm.config() 
+    """
+    
     gcfg = cfg['genome']
     if 'usechr' not in gcfg:
         gcfg['usechr'] = ['#', 'X', 'Y']
@@ -92,29 +97,32 @@ def Preprocess(cfg):
     #Generate genome, index objects
     genome, index = PrepareGenomeIndex(cfg)
 
+    # number of structures in population, number of beads
     nstruct = cfg['model']['population_size']
     nbead = len(index)
 
+    # read in volume occupancy as from CFG file
     occupancy = cfg['model']['occupancy']
     _43pi = 4./3*np.pi
 
     # compute volume of the nucleus
     nucleus_shape = cfg.get('model/restraints/envelope/nucleus_shape')
     if nucleus_shape == 'sphere':
-        nucleus_radius = cfg.get('model/restraints/envelope/nucleus_radius')
-        nucleus_volume = _43pi * (nucleus_radius**3)
+        nucleus_radius     = cfg.get('model/restraints/envelope/nucleus_radius')
+        nucleus_volume     = _43pi * (nucleus_radius**3)
         nucleus_parameters = nucleus_radius
     elif nucleus_shape == 'ellipsoid':
         sx = cfg.get('model/restraints/envelope/nucleus_semiaxes')
-        nucleus_volume = _43pi * sx[0] * sx[1] * sx[2]
+        nucleus_volume     = _43pi * sx[0] * sx[1] * sx[2]
         nucleus_parameters = sx
+    elif nucleus_shape == 'exp_map':      # account for a random nucleus, initialize on a sphere
+        nucleus_radius     = 5200         # this is the effective radius for the volume map/w nucleolus
+        nucleus_volume     = _43pi * (nucleus_radius**3)
+        nucleus_parameters = nucleus_radius
     else:
         raise NotImplementedError(
             "Cannot compute volume for shape %s" % cfg.get('model/restraints/envelope/nucleus_shape')
         )
-
-    # compute model radius
-    occupancy = cfg['model']['occupancy']
 
     # compute volume per basepair
     rho = occupancy * nucleus_volume / (sum(index.end - index.start))

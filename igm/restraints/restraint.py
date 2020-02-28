@@ -19,7 +19,7 @@ class Restraint(object):
     SPRITE = 5
     ENVELOPE = 6
     EXCLUDED_VOLUME = 7
-
+    NUCL_EXCLUDED_VOLUME = 8
 
     def __init__(self, data, args):
         self.forceID = []
