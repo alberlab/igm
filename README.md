@@ -180,6 +180,10 @@ Important notes
     processes have yet to be completely and exaustively documented publicly. We are working on it, but in the meantime
     email if you need help.
   
-
+Test
+----
+-   Enter the ```test``` folder
+-   Edit the path entries to the lammps executable file (and all paths, if needed)
+-   ```igm-run config_file.json >> output.txt```
 
 

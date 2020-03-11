@@ -60,6 +60,13 @@
             "description" : "An hss file with the starting coordinates. If not specified, a random polymer model with territories will be generated as a starting point"
         },
 
+	"init_radius": {
+	    "label" : " Initialization radius",
+	    "dtype" : "float",
+	    "default" : 5000,
+            "description" : "Radius of an effective sphere inside which the genome is initialized"
+	},
+
         "occupancy" : {
             "label" : "Volume occupancy",
             "dtype" : "float",
@@ -91,7 +98,7 @@
                     "label" : "Nucleus shape",
                     "dtype" : "str",
                     "role" : "select",
-                    "allowed_values" : ["sphere", "ellipsoid"],
+                    "allowed_values" : ["sphere", "ellipsoid", "exp_map"],
                     "default" : "sphere",
                     "description" : "The shape of the nucleus"
                 },
@@ -114,6 +121,13 @@
                     "description" : "",
                     "depends_on" : "model__restraints__envelope__nucleus_shape=ellipsoid"
                 },
+
+		"input_map" : {
+		    "label" : "Input map",
+		    "dtype": "path", 
+		    "default": "input.txt",
+		    "description": ".txt file containing the imaging volumetric map describing the nuclear envelope"
+		},
 
                 "nucleus_kspring" : {
                     "label" : "Nucleus shape restraint force constant",
@@ -389,6 +403,36 @@
             }
 
         },
+
+	"nucleolus" : {
+
+	    "label" : "nucleolus",
+	    "role" : "optional-group",
+
+	    "shape" : {
+		"label" : " nucleolus restraints file",
+		"dtype" : "str",
+	        "default" : "exp_map",
+		"role" : "input",
+	    	"required" : true,
+		"description" : " specify shape of nucleoli"
+	    },
+
+	    "input_map" : {
+		"label" : "nucleoli file",
+		"dtype" : "list of txt files",
+		"subtype" : "float",
+		"default" : [],
+		"description" : "list of .txt files, each coding the volumetric map for one single nuclear body"
+	    },
+
+	    "k_spring" : {
+		"label" : "volume restraints force constant",
+                "dtype" : "float",
+                "default" : 1.0,
+                "min" : 0.0,
+                "description" : "The force constant for volume restraints"
+	    },
 
         "FISH" : {
 
