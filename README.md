@@ -182,7 +182,9 @@ Important notes
   
 Test
 ----
--   Enter the ```test``` folder
+-   Enter the ```test``` folder: data and scripts for a 2Mb IGM calculation with Hi-C restraints are provided;
+    -   ```.hcs``` file is a 2Mb resolution Hi-C contact map
+    - ``` config_file.json ``` is the .json configuration file with all the parameters needed for the calculation.
 -   Edit the path entries to the lammps executable file (and all paths, if needed)
 -   ```igm-run config_file.json >> output.txt```
 
