@@ -432,7 +432,8 @@
                 "default" : 1.0,
                 "min" : 0.0,
                 "description" : "The force constant for volume restraints"
-	    },
+	    }
+	},
 
         "FISH" : {
 
