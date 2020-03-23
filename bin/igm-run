@@ -12,6 +12,9 @@ import json
 from multiprocessing import Process
 import traceback
 
+igm.logger.info('Using Bonimba s version of IGM')
+
+# specify the configuration.json file
 cfgfile = os.path.abspath(sys.argv[1])
 
 def run_pipeline(cfgfile):
@@ -27,12 +30,13 @@ def run_pipeline(cfgfile):
         def rmfiles():
             os.remove('.igm-pid.txt')
 
+        # register repulisti function to run at the end
         atexit.register(rmfiles)
 
         # read configuration file (.json) and get the parameters ready
         cfg = igm.Config(cfgfile)
 
-        # set up logger
+        # Set up logger
         igm.SetupLogging(cfg)
         igm.logger.info('Starting pipeline. Configuration from ' + cfgfile)
 
@@ -51,19 +55,23 @@ def run_pipeline(cfgfile):
                     copyfile(starting_coordinates, cfg.get("optimization/structure_output"))
                 except SameFileError:
                     pass
+            #-
+        #-
         # ... or generate random initial coordinates
         else:
-            igm.logger.info('Generating random initial coordinates.')
+            igm.logger.info('Generating random initial coordinates...')
             randomStep = igm.RandomInit(cfg)
             randomStep.run()
             igm.logger.info('\n')
 
-            igm.logger.info('Relaxing random configurations.')
+            igm.logger.info('Relaxing random configurations...')
             relaxStep = igm.RelaxInit(cfg)
             relaxStep.run()
             igm.logger.info('\n')
 
-        # optimization iteration
+        igm.logger.info('Relaxation completed')
+
+        # initialize optimization iteration counter
         opt_iter = 0
 
         # min optimization iterations before proceeding to next theta
@@ -74,7 +82,7 @@ def run_pipeline(cfgfile):
         # if even "max_iter" iterations do not lead to convergence, the pipeline exits with error message
         max_iter = cfg.get("optimization/max_iterations", 12)
 
-        # ---- main A/M optimization loop
+        # ---- main A/M optimization loop, more iterations ----#
         while True:
 
             # update "run_time" entry in configuration dictionary
@@ -83,19 +91,23 @@ def run_pipeline(cfgfile):
             # setup the needed restraint steps (ACTIVATION) for this optimization iteration
             iter_steps = []
 
-            if 'Hi-C' in cfg['restraints']:
+            if 'nucleolus' in cfg['restraints']:
+                igm.logger.info('Using volume maps ...')
+
+            if 'Hi-C'      in cfg['restraints']:
                 iter_steps.append(igm.ActivationDistanceStep)
                 igm.logger.info('Using Hi-C data...')
 
-            if 'FISH' in cfg['restraints']:
+            # --- THERE IS NO FishAssignmentStep in the code ----#
+            if 'FISH'      in cfg['restraints']:
                 iter_steps.append(igm.FishAssignmentStep)
                 igm.logger.info('Using FISH data...')
 
-            if 'sprite' in cfg['restraints']:
+            if 'sprite'    in cfg['restraints']:
                 iter_steps.append(igm.SpriteAssignmentStep)
                 igm.logger.info('Using SPRITE data...')
 
-            if 'DamID' in cfg['restraints']:
+            if 'DamID'     in cfg['restraints']:
                 iter_steps.append(igm.DamidActivationDistanceStep)
                 igm.logger.info('Using DamID data...')
 
@@ -107,19 +119,24 @@ def run_pipeline(cfgfile):
                 iter_steps.append(igm.HicEvaluationStep)
                 igm.logger.info('Running Hi-C evaluation step...')
 
+            igm.logger.info('Running the following steps ' + str(iter_steps))
+            igm.logger.info('\n\n')
+
             # run all the steps from master list "iter_steps"
             for StepClass in iter_steps:
                 step = StepClass(cfg)
                 step.run()
-                igm.logger.info('\n\n')
+                igm.logger.info('\n')
+
+            igm.logger.info('A/M iteration OK, now checking violations')
 
             # -------- check the violations ------ #
 
             # ---- NOTE THAT FISH AND SPRITE VIOLATION CONTROLS HAVE NOT BEEN TAKEN INTO ACCOUNT YET -----#
 
             # the modeled population is acceptable if violations (in cfg["runtime"]) are under a certain threshold (in cfg["optimization"])
-            # "is_acceptable" = True if condition is satisfied
-            is_acceptable = cfg.get("runtime/violation_score") < cfg.get("optimization/max_violations")
+            # "is_acceptable" = True, if violation score is smaller than tolerance
+            is_acceptable = cfg.get("runtime/violation_score") < cfg.get("optimization/max_violations")    # this is cumulative
             igm.logger.info('Violation score from iteration = ' + str(cfg.get("runtime/violation_score")))
             igm.logger.info('Violation score threshold      = ' + str(cfg.get("optimization/max_violations")))
 
@@ -134,10 +151,13 @@ def run_pipeline(cfgfile):
             is_hic_done = not is_hic_incomplete
 
             # Damid: "is_damid_incomplete" = True, if there are still DamiD-sigma values to explore
-            is_damid_incomplete = ( 'DamID' in cfg['restraints'] ) and ( len( cfg.get("runtime/DamID/sigma_list") ) != 0 )
+            is_damid_incomplete = ( 
+                ('DamID' in cfg['restraints'] ) and 
+                    ( len( cfg.get("runtime/DamID/sigma_list") ) != 0 )
+            )
             is_damid_done = not is_damid_incomplete
 
-            # force minimum restraint optimization iterations before going to next parameter set
+            # if min_iter iterations have not been run yet, and at least one iteration has been run...
             force_next_iteration = (opt_iter < min_iter - 1) and ( opt_iter != 0 )
 
             # force next iteration if it is the last step and only one restraint optimization iteration was run
@@ -163,17 +183,18 @@ def run_pipeline(cfgfile):
                 if is_hic_incomplete:
                     # ... remove current HiC sigma value from cfg["runtime"], and move on to the next
                     del cfg["runtime"]["Hi-C"]["sigma"]
+                    # reset iteration number counter
                     opt_iter = 0
 
                 if is_damid_incomplete:
                     # ... remove current DamiD sigma value from cfg["runtime"], and move on to the next
                     del cfg["runtime"]["DamID"]["sigma"]
+                    # reset iteration number counter
                     opt_iter = 0
 
-                # ... or exit the pipeline successfully (parameter set fully run)
+                # ... or, if both HiC and DamID converged, exit the pipeline successfully
                 if is_hic_done and is_damid_done:
 
-                    # we are actually done
                     igm.logger.info('Pipeline completed')
                     open('completed', 'w').close()
                     
@@ -186,7 +207,8 @@ def run_pipeline(cfgfile):
                     break
             else:
 
-                # gotta move on to the next restraint optimization iteration
+                # move on to the next optimization iteration, since either violation score is still larger than tolerance,
+                # or another iteration is forced anyway
                 opt_iter += 1
 
                 if max_iter is not None:
@@ -202,9 +224,10 @@ def run_pipeline(cfgfile):
                             )
                         break
 
-                # if violations are acceptable, force next iteration for the same set of parameters
+                # if violations are acceptable, force next iteratiron for the same set of parameters
                 if is_acceptable:
-                    igm.logger.info('Forcing next iteration')
+                    igm.logger.info('Violations acceptable; yet, forcing next iteration')
+                
                 igm.logger.info('iteration # %d' % opt_iter)
                 igm.logger.info('\n\n')
 

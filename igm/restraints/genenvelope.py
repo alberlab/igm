@@ -59,5 +59,5 @@ class GenEnvelope(Restraint):
 
 
     def __repr__(self):
-        return 'ExpEnvelope[shape={},k={},volume_file={}]'.format(self.shape, self.k, self.volume_file)
+        return 'ExpEnvelope[shape={},k={}]'.format(self.shape, self.k)
     #=
