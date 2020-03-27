@@ -440,13 +440,22 @@
             "label" : "FISH",
             "role" : "optional-group",
 
-            "fish_file" : {
+            "input_fish" : {
                 "label" : "FISH restraints file",
                 "dtype" : "path",
                 "default" : "",
                 "role" : "input",
                 "required" : true,
                 "description" : "A hdf5 file of input FISH distance distributions"
+            },
+
+            "fish_assignment_file" : {
+                "label" : "FISH restraints file",
+                "dtype" : "path",
+                "default" : "",
+                "role" : "input",
+                "required" : true,
+                "description" : "Assignment file of distances"
             },
 
             "rtype" : {
@@ -479,7 +488,7 @@
                 "description" : ""
             },
 
-            "tolerance_list" : {
+            "tol_list" : {
                 "label" : "FISH tolerances",
                 "dtype" : "list",
                 "subdtype" : "float",

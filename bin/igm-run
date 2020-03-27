@@ -12,7 +12,6 @@ import json
 from multiprocessing import Process
 import traceback
 
-igm.logger.info('Using Bonimba s version of IGM')
 
 # specify the configuration.json file
 cfgfile = os.path.abspath(sys.argv[1])
@@ -98,7 +97,6 @@ def run_pipeline(cfgfile):
                 iter_steps.append(igm.ActivationDistanceStep)
                 igm.logger.info('Using Hi-C data...')
 
-            # --- THERE IS NO FishAssignmentStep in the code ----#
             if 'FISH'      in cfg['restraints']:
                 iter_steps.append(igm.FishAssignmentStep)
                 igm.logger.info('Using FISH data...')
@@ -132,7 +130,6 @@ def run_pipeline(cfgfile):
 
             # -------- check the violations ------ #
 
-            # ---- NOTE THAT FISH AND SPRITE VIOLATION CONTROLS HAVE NOT BEEN TAKEN INTO ACCOUNT YET -----#
 
             # the modeled population is acceptable if violations (in cfg["runtime"]) are under a certain threshold (in cfg["optimization"])
             # "is_acceptable" = True, if violation score is smaller than tolerance
@@ -156,6 +153,13 @@ def run_pipeline(cfgfile):
                     ( len( cfg.get("runtime/DamID/sigma_list") ) != 0 )
             )
             is_damid_done = not is_damid_incomplete
+
+            # FISH "is_fish_incomplete" = True, if there are still fish_tol values to explore
+            is_fish_incomplete = (
+                ('FISH' in cfg['restraints']) and 
+                    ( len( cfg.get("runtine/FISH/tol_list")) !-0 )
+            )
+            is_fish_done = not is_fish_incomplete
 
             # if min_iter iterations have not been run yet, and at least one iteration has been run...
             force_next_iteration = (opt_iter < min_iter - 1) and ( opt_iter != 0 )
@@ -192,8 +196,14 @@ def run_pipeline(cfgfile):
                     # reset iteration number counter
                     opt_iter = 0
 
+                if is_fish_incomplete:
+                    # ... remove current DamiD sigma value from cfg["runtime"], and move on to the next
+                    del cfg["runtime"]["FISH"]["tol"]
+                    # reset iteration number counter
+                    opt_iter = 0
+
                 # ... or, if both HiC and DamID converged, exit the pipeline successfully
-                if is_hic_done and is_damid_done:
+                if is_hic_done and is_damid_done and is_fish_done:
 
                     igm.logger.info('Pipeline completed')
                     open('completed', 'w').close()

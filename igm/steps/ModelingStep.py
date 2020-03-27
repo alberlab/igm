@@ -14,7 +14,7 @@ from alabtools.analysis import HssFile
 
 from ..core import StructGenStep
 from ..model import Model, Particle
-from ..restraints import Polymer, Envelope, Steric, HiC, Sprite, Damid, Nucleolus, GenEnvelope
+from ..restraints import Polymer, Envelope, Steric, HiC, Sprite, Damid, Nucleolus, GenEnvelope, Fish
 from ..utils import HmsFile
 from ..utils.files import h5_create_group_if_not_exist, h5_create_or_replace_dataset, make_absolute_path
 from ..parallel.async_file_operations import FilePoller
@@ -32,6 +32,7 @@ class ModelingStep(StructGenStep):
     def name(self):
 
         """ This explains verbatim which optimization is performed, is printed to the logger """
+        """ NEED TO POSSIBLY ADD THE FISH STRING """
 
         s = 'ModelingStep'
         additional_data = []
@@ -53,6 +54,13 @@ class ModelingStep(StructGenStep):
             additional_data .append(
                 'sprite={:.1f}%'.format(
                     self.cfg['restraints']['sprite']['volume_fraction'] * 100.0
+                )
+            )
+
+        if "FISH" in self.cfg['restraints']:
+            additional_data .append(
+                'FISH={:.1f}%'.format(
+                    self.cfg['runtime']['FISH']['fish_tol']
                 )
             )
 
@@ -273,6 +281,26 @@ class ModelingStep(StructGenStep):
             )
             model.addRestraint(sprite)
             monitored_restraints.append(sprite)
+
+        if "FISH" in cfg['restraints']:
+
+            # read parameters from cfg file
+            FISH_tmp = make_absolute_path(
+                cfg.get('restraints/FISH/tmp_dir', 'FISH'),
+                cfg.get('parameters/tmp_dir')
+            )
+            fish_assignment_filename = make_absolute_path(
+                cfg.get('restraints/FISH/fish_file', 'fish_assignment.h5'),
+                FISH_tmp
+            )
+
+            # effectively add FISH restraints (index e' definito, check polymer restraint)
+            fish = Fish(fish_assignment_file, index, struct_id,
+                        k = cfg.get('restraints/sprite/kspring', 1.0), 
+                        tol = 25.0, rtype = cfg['restraints']['FISH']['rtype'])
+
+            model.addRestraint(fish)
+            monitored_restraints.append(fish) 
 
         # ========Optimization
         cfg['runtime']['run_name'] = cfg.get('runtime/step_hash') + '_' + str(struct_id)
@@ -556,6 +584,13 @@ class ModelingStep(StructGenStep):
             additional_data .append(
                 'sprite_{:.1f}'.format(
                     self.cfg['restraints']['sprite']['volume_fraction'] * 100.0
+                )
+            )
+
+        if "FISH" in self.cfg['restraints']:
+            additional_data .append(
+                'FISH={:.1f}%'.format(
+                    self.cfg['runtime']['FISH']['fish_tol']
                 )
             )
 

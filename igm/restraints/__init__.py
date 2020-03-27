@@ -8,3 +8,4 @@ from .sprite      import Sprite
 from .damid       import Damid
 from .nucleolus   import Nucleolus
 from .genenvelope import GenEnvelope
+from .fish        import Fish
