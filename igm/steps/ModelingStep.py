@@ -59,8 +59,8 @@ class ModelingStep(StructGenStep):
 
         if "FISH" in self.cfg['restraints']:
             additional_data .append(
-                'FISH={:.1f}%'.format(
-                    self.cfg['runtime']['FISH']['fish_tol']
+                'FISH={:.1f}'.format(
+                    self.cfg['runtime']['FISH']['tol']
                 )
             )
 
@@ -229,7 +229,7 @@ class ModelingStep(StructGenStep):
                     model.addRestraint(nucl)
                     monitored_restraints.append(nucl)
 
-        # ---- IGM MODELING RESTRAINTS FROM EXPERIMENTAL DATA (FISH MISSING) ---- #
+        # ---- IGM MODELING RESTRAINTS FROM EXPERIMENTAL DATA ---- #
 
         # add Hi-C restraint
         if "Hi-C" in cfg['restraints']:
@@ -289,19 +289,22 @@ class ModelingStep(StructGenStep):
                 cfg.get('restraints/FISH/tmp_dir', 'FISH'),
                 cfg.get('parameters/tmp_dir')
             )
-            fish_assignment_filename = make_absolute_path(
+            fish_assignment_file = make_absolute_path(
                 cfg.get('restraints/FISH/fish_file', 'fish_assignment.h5'),
                 FISH_tmp
             )
 
+            kspring   = cfg['restraints']['FISH']['kspring']
+            tolerance = cfg['runtime']['FISH']['tol']
+            rtype     = cfg['restraints']['FISH']['rtype']
+
             # effectively add FISH restraints (index e' definito, check polymer restraint)
-            fish = Fish(fish_assignment_file, index, struct_id,
-                        k = cfg.get('restraints/sprite/kspring', 1.0), 
-                        tol = 25.0, rtype = cfg['restraints']['FISH']['rtype'])
+            fish      = Fish(fish_assignment_file = fish_assignment_file, index = index, struct_id = struct_id,
+                        kspring = kspring, tolerance = tolerance, rtype = rtype) 
 
             model.addRestraint(fish)
             monitored_restraints.append(fish) 
-
+        
         # ========Optimization
         cfg['runtime']['run_name'] = cfg.get('runtime/step_hash') + '_' + str(struct_id)
         optinfo = model.optimize(cfg)
@@ -309,7 +312,7 @@ class ModelingStep(StructGenStep):
         # tolerance parameter: if violation score is smaller than tolerance, then restraint is satisfied
         tol = cfg.get('optimization/violation_tolerance', 0.01)
 
-        # save optimization results to .hms file
+        # save optimized configuration and violation results to .hms file
         ofname = os.path.join(tmp_dir, 'mstep_%d.hms' % struct_id)
         with HmsFile(ofname, 'w') as hms:
             hms.saveModel(struct_id, model)
@@ -563,7 +566,7 @@ class ModelingStep(StructGenStep):
 
     def intermediate_name(self):
 
-        """ Define unique intermediate name for HSS file associated with this modeling step (how about SPRITE?)"""
+        """ Define unique intermediate name for HSS file associated with this modeling step """
         
         additional_data = []
         
@@ -589,8 +592,8 @@ class ModelingStep(StructGenStep):
 
         if "FISH" in self.cfg['restraints']:
             additional_data .append(
-                'FISH={:.1f}%'.format(
-                    self.cfg['runtime']['FISH']['fish_tol']
+                'FISH_{:.1f}'.format(
+                    self.cfg['runtime']['FISH']['tol']
                 )
             )
 

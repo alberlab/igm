@@ -3,6 +3,8 @@ import numpy as np
 import h5py
 import os
 import os.path
+import shutil
+from tqdm import tqdm
 
 from alabtools.analysis import HssFile
 
@@ -18,26 +20,20 @@ except ImportError:
 # dictionaries for the activation distance files
 fish_restr = { 'pair_min': [], 'radial_min' : [] , 'pair_max': [], 'radial_max' : [] }
 
-def get_pair_dists(pair, n_bead, n_conf, crd):
+def get_pair_dists(ii, jj, n_bead, n_conf, crd):
     
     """
     Compute all diploid distances between (pair) annotations
-    INPUT:  pair, 2-uple i,j
+    INPUT:  ii, jj, list of diploid annotations for the i-j pair
     OUTPUT: dists, array (4, n_conf), all diploid distances across all configs in popuations 
     """
 
-    n_hapl = int(n_bead/2)   # haploid domains
-
-    (i1, j1) = pair
-    i2 = i1+ n_hapl   # from haploid to diploid annotations
-    j2 = j1+ n_hapl
-
     dists = np.empty((4, n_conf))
     
-    x1 = crd[i1, :, :]
-    y1 = crd[j1, :, :]
-    x2 = crd[i2, :, :]
-    y2 = crd[j2, :, :]
+    x1 = crd[ii[0], :, :][()]
+    y1 = crd[jj[0], :, :][()]
+    x2 = crd[ii[1], :, :][()]
+    y2 = crd[jj[1], :, :][()]
         
     dists[0] = np.linalg.norm( x1-y1, axis=1 )
     dists[1] = np.linalg.norm( x1-y2, axis=1 )
@@ -48,20 +44,19 @@ def get_pair_dists(pair, n_bead, n_conf, crd):
                             # (i,j), (i,j+n_hapl), (i+n_hapl, j), (i+n_hapl, j+n_hapl)
 
 
-def get_rad_dists(i, n_bead, n_conf, crd):
+def get_rad_dists(ii, n_bead, n_conf, crd):
     
     """
     Compute radial distances of diploid annotations
-    INPUT: i, integer  (haploid annotation)
+    INPUT: ii, list of diploid annotations for the i-th probe
     OUTPUT: dists, array (2, n_conf), all diploid radial distances across all configs in popuations 
     """
 
-    n_hapl = int(n_bead/2)
-    
-    x1 = crd[i, :, :]
-    x2 = crd[i+n_hapl, :, :]    # from haploid to diploid annotation
+    x1 = crd[ii[0], :, :][()]
+    x2 = crd[ii[1], :, :][()]    # from haploid to diploid annotation
     
     dists = np.empty((2, n_conf))
+
     dists[0] = np.linalg.norm( x1, axis=1 )
     dists[1] = np.linalg.norm( x2, axis=1 )
     
@@ -106,11 +101,11 @@ class FishAssignmentStep(Step):
 
     def name(self):
 
-        """ This is printed to logger, and indicates that the FISH assignment step has started """
+        """ This is printed to logger, and indicates that the FISH assignment step has started (and tol and iteration)  """
 
-        s = 'FishAssignmentStep (cut={:.2f}%, iter={:s})'
+        s = 'FishAssignmentStep (tol={:.2f}, iter={:s})'
         return s.format(
-            self.cfg.get('runtime/FISH/tol', -1) * 100.0,
+            self.cfg.get('runtime/FISH/tol', -1),
             str( self.cfg.get('runtime/opt_iter', 'N/A') )
         )
 
@@ -119,11 +114,13 @@ class FishAssignmentStep(Step):
 
         """ Prepare parameters, read in FISH input file and preprocess by spitting that into batches, produce tmp files """
 
-        # read in damid sigma activation, and the filename containing raw damid data
-        #FISH_tol           = self.cfg.get("runtime/FISH/FISH_tol")
+        # read in FISH tolerance, and the filename containing raw FISH data
+        tol           = self.cfg.get("runtime/FISH/tol")
+
+        logger.info("FISH tolerance = " + str(tol))
         #input_FISH         = self.cfg.get("restraints/FISH/fish_file")
 
-        self.tmp_extensions = [".npy", ".tmp"]
+        self.tmp_extensions = [".npz"]
         self.set_tmp_path()
         self.keep_temporary_files = self.cfg.get("restraints/FISH/keep_temporary_files", False)
 
@@ -133,6 +130,24 @@ class FishAssignmentStep(Step):
 
         fish_input_file = self.cfg.get('restraints/FISH/input_fish')
         
+        # GUIDO DID THIS FOR BATCHES
+        #with h5py.File(fish_input_file, 'r') as h5:
+        #    pairs  = h5['pairs'][()]
+        #    probes = h5['probes'][()]
+
+        #batch_size = self.cfg.get('restraints/FISH/batch_size', 10)
+        #batches = []
+
+        # Each batch contains: batch_id, entity_type (pair or probe), a maximum of batch_size entities 
+        #for i in range(0, len(pairs), batch_size):
+        #    batches.append((len(batches), 'pair', pairs[i: i+batch_size]))
+        #for i in range(0, len(probes), batch_size):
+        #    batches.append((len(batches), 'probe', probes[i: i+batch_size]))
+        #
+        #self.argument_list = batches
+
+
+        """  CHECK IF WE WANT THAT
         # read target distribution file, extract "pairs" and "probes"
         with h5py.File(fish_input_file, 'r') as h5:
          
@@ -146,7 +161,6 @@ class FishAssignmentStep(Step):
         with HssFile(self.cfg.get("optimization/structure_output"), 'r') as hss:
             self.n_struct = hss.nstruct
 
-        """
         # need to define some sort of batches? Assume n_pairs = n_probes If yes
         batch_size = self.cfg.get('restraints/sprite/batch_size', 10)
         n_batches = n_pairs // batch_size
@@ -160,120 +174,128 @@ class FishAssignmentStep(Step):
         self.argument_list = range(n_batches)
         """
 
-        n_batches = 3
+        n_batches = 10
+        logger.info('number batches = ' + str(n_batches))
 
-        self.n_batches     = n_batches
-        self.n_pairs       = n_pairs
         self.argument_list = range(n_batches)
 
 
     @staticmethod
     def task(batch_id, cfg, tmp_dir):
 
-        """ Read in temporary in.tmp files, generated list of Damid activation distances, produce out.tmp files """
+
+        # initialize empty dictionary to be populated later in loop
+        fish_restr = { 'pair_min': [], 'radial_min' : [] , 'pair_max': [], 'radial_max' : [] }
 
         #batch_size = cfg.get('restraints/FISH/batch_size', 2)
-        batch_size = 1
+        batch_size = 10
 
         # define starting and ending point of current batch
         start = batch_id * batch_size
-        stop  = (batch_id + 1) * batch_size
- 
-        # initialize empty dictionary to be used later in loop
-        fish_restr = { 'pair_min': [], 'radial_min' : [] , 'pair_max': [], 'radial_max' : [] }
+        fine  = (batch_id + 1) * batch_size
+
         
         # read in population file and extract coordinates
         hss = HssFile(cfg.get("optimization/structure_output"), 'r')
-        crd = hss['coordinates'][()]
+        crd = hss['coordinates']
     
         # number of configurations, number of domains
         n_conf = crd.shape[1]
         n_bead = crd.shape[0]
+
+        # from haploid to multiploid representation
+        copy_index = hss.index.copy_index
 
         assert(crd.shape[2] == 3)    # check consistency in array sizes
   
         fish_input_file = cfg.get('restraints/FISH/input_fish')
 
         # load input file with distributions (maybe check if number of distances = number of poluation structures)
-        ftf = h5py.File(fish_input_file, 'r')
+        with h5py.File(fish_input_file, 'r') as ftf:
+            # extract dictionary, and check which entries there are
+            dict_entries = list(ftf.keys())
 
-        # extract dictionary, and check which entries there are
-        dict_entries = list(ftf.keys())
+            # if we have pairs information
+            if 'pairs' in dict_entries:
+              pairs  =  ftf['pairs'][()][start:fine]
 
-        # if we have pairs information
-        if 'pairs' in dict_entries:
-            pairs  =  ftf['pairs'][()][start:stop]
+              for k, (i,j) in enumerate(pairs):
 
-            pairs_replica_min_position = []
-            pairs_replica_max_position = []
-    
-            for k, p in enumerate(pairs):
+                ii = copy_index[i]
+                jj = copy_index[j]
 
-                # Compute all radial and motual distances across all configurations
-                pairs_dists =  get_pair_dists(pairs[k],  n_bead, n_conf, crd)
+                # Compute all radial and mutual distances across all configurations
+                pairs_dists =  get_pair_dists(ii, jj,  n_bead, n_conf, crd)
 
-                res = get_min_max_and_idx(pairs_dists)
+                # min & max distances, sorting indexes
+                (mindists, maxdists, idxmin, idxmax) = get_min_max_and_idx(pairs_dists)
                 
-                # min & max distances,   sorting indexes
-                (mindists, maxdists, idxmin, idxmax) = res
-
-                pairs_replica_min_position.append(idxmin)   # these are configuration idx
-                pairs_replica_max_position.append(idxmax)   # this is configuration idx
-
                 if 'pair_min' in  dict_entries:
-                    dtmin = ftf['pair_min'][k][()]      # minimum distances
-                    fish_restr['pair_min'].append(dtmin[pairs_replica_min_position[k]])
+                    dtmin = ftf['pair_min'][start : fine][k][()]      # minimum distances
+                    fish_restr['pair_min'].append(dtmin[idxmin])
 
                 if 'pair_max' in  dict_entries:
-                    dtmax = ftf['pair_max'][k][()]
-                    fish_restr['pair_max'].append(dtmax[pairs_replica_max_position[k]])
+                    dtmax = ftf['pair_max'][start : fine][k][()]
+                    fish_restr['pair_max'].append(dtmax[idxmax])
 
 
-        if 'probes' in dict_entries:
-            probes = ftf['probes'][()][start:stop]
+            if 'probes' in dict_entries:
+              probes = ftf['probes'][()][start:fine]
 
-            raddist_replica_min_position = []
-            raddist_replica_max_position = []
-    
-            for k, i in enumerate(probes):
+              for k, i in enumerate(probes):
+
+               ii = copy_index[i]
 
                # Compute all radial and motual distances across all configurations
-               rad_dists   =   get_rad_dists(probes[k], n_bead, n_conf, crd)
+               rad_dists   =   get_rad_dists(ii, n_bead, n_conf, crd)
 
-               res = get_min_max_and_idx(rad_dists)
+               (mindists, maxdists, idxmin, idxmax) = get_min_max_and_idx(rad_dists)
 
-               # min & max radials,   sorting indexes  
-               (mindists, maxdists, idxmin, idxmax) = res
-
-               raddist_replica_min_position.append(idxmin)   # sequence of ordering indexes for minimum distances
-               raddist_replica_max_position.append(idxmax)
-    
                if 'radial_min' in dict_entries:
-                   dtmin = ftf['radial_min'][k][()]
-                   fish_restr['radial_min'].append(dtmin[raddist_replica_min_position[k]])
+                   dtmin = ftf['radial_min'][start : fine][k][()]
+                   fish_restr['radial_min'].append(dtmin[idxmin])
         
                if 'radial_max' in dict_entries:
-                   dtmax = ftf['radial_max'][k][()]
-                   fish_restr['radial_max'].append(dtmax[raddist_replica_max_position[k]])
+                   dtmax = ftf['radial_max'][start : fine][k][()]
+                   fish_restr['radial_max'].append(dtmax[idxmax])
           
 
 
-        # intermediate file, create database, save npz file with features of the chunk (some entries might be empty lists)
-        auxiliary_file = os.path.join(tmp_dir, 'tmp.%d.target.npz' % batch_id)
+            # intermediate file, create database, save npz file with features of the chunk (some entries might be empty lists)
+            auxiliary_file = os.path.join(tmp_dir, 'tmp.%d.fish.npz' % batch_id)
 
-        np.savez(auxiliary_file,     pairs = pairs,                            probes = probes,
-                                 pair_min = np.array(fish_restr['pair_min']),      pair_max = np.array(fish_restr['pair_max']),
-                               radial_min = np.array(fish_restr['radial_min']),  radial_max = np.array(fish_restr['radial_max'])      
+            np.savez(auxiliary_file,           
+                             pairs = pairs,  probes = probes,
+                             pair_min = np.array(fish_restr['pair_min']),      
+                             pair_max = np.array(fish_restr['pair_max']),
+                             radial_min = np.array(fish_restr['radial_min']),  
+                             radial_max = np.array(fish_restr['radial_max'])      
                )
-
 
 
     def reduce(self):
 
         """ Concatenate data from all batches into a single hdf5 fish_actdist file """
 
+        # build suffix to append to actdist file (code does not overwrite actdist files)
+        additional_data = []
+        if "FISH" in self.cfg['runtime']:
+            additional_data.append(
+                'tol_{:.4f}'.format(
+                    self.cfg['runtime']['FISH']['tol']
+                )
+            )
+        if 'opt_iter' in self.cfg['runtime']:
+            additional_data.append(
+                'iter_{}'.format(
+                    self.cfg['runtime']['opt_iter']
+                )
+            )
+
+
         # create filename
         fish_assignment_file = os.path.join(self.tmp_dir, "fish_assignment.h5")
+        last_actdist_file = self.cfg['runtime']['FISH'].get("fish_assignment_file", None)
 
         # we start with one empty element to avoid errors in np.concatenate
         target_pairs       = []
@@ -283,16 +305,16 @@ class FishAssignmentStep(Step):
         minraddists        = []
         maxraddists        = []
 
-        # (also see 'reduce' step in ActivationDistanceStep.py) Read in all .out.tmp files and concatenate all data into a single
-        # 'damid_actdist_file' file, of type h5df (see 'create-dataset attributes)
-        
+        # (also see 'reduce' step in ActivationDistanceStep.py) Read in all *fish.npz files and concatenate all data into a single
+        # 'fish_actdist_file' file, of type h5df (see 'create-dataset attributes)
+ 
         # concatenate: loop over chunks
         for i in self.argument_list:
             
             # load auxiliary files and fill in lists
-            auxiliary_file = os.path.join(self.tmp_dir, 'tmp.%d.target.npz' % i)
+            auxiliary_file = os.path.join(self.tmp_dir, 'tmp.%d.fish.npz' % i)
  
-            t = np.load(auxiliary_file)
+            t = np.load(auxiliary_file, allow_pickle=True)
 
             target_pairs.append(t['pairs'][()])
             target_raddist.append(t['probes'][()])
@@ -304,8 +326,10 @@ class FishAssignmentStep(Step):
             maxraddists.append(t['radial_max'][()])
 
 
+        tmp_assignment_file = fish_assignment_file + '.tmp'
+
         # write fish actdist file for current iteration, create datasets and smoothly concatenate stuff
-        with h5py.File(fish_assignment_file + '.tmp', "w") as o5f:
+        with h5py.File(tmp_assignment_file, "w") as o5f:
             o5f.create_dataset('pairs',      data =   np.concatenate(target_pairs),  dtype='i4')
             o5f.create_dataset('probes',     data = np.concatenate(target_raddist),  dtype='i4')
             o5f.create_dataset('pair_min',   data =   np.concatenate(minpairdists),  dtype='f4')
@@ -313,9 +337,12 @@ class FishAssignmentStep(Step):
             o5f.create_dataset('radial_min', data =   np.concatenate( minraddists),  dtype='f4')
             o5f.create_dataset('radial_max', data =   np.concatenate( maxraddists),  dtype='f4')
         
-        #o5f.close()
+        # save file temporary with appends
+        swapfile = os.path.realpath('.'.join([fish_assignment_file, ] + additional_data))
+        if last_actdist_file is not None:
+            shutil.move(last_actdist_file, swapfile)
+        shutil.move(tmp_assignment_file, fish_assignment_file)
 
-        os.rename(fish_assignment_file + '.tmp', fish_assignment_file)
 
         # ... update runtime parameter for next iteration/sigma value
         self.cfg['runtime']['FISH']["fish_assignment_file"] = fish_assignment_file

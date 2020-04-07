@@ -7,6 +7,7 @@ from ..model.forces import HarmonicUpperBound, HarmonicLowerBound
 from ..model.particle import Particle
 
 import h5py
+from ..utils.log import logger
 
 # helper functions
 
@@ -52,8 +53,8 @@ class Fish(Restraint):
     struct_id : index of structure in population
     index:      alabtools Index object (go from haploid to multiploid annotations)
     rtype:      string, 'r' or 'R' (RADIAL), 'p' or 'P' (PAIR), and combinations
-    tol:        tolerance parameter to impose distances
-    k:          FISH restraining constant
+    tolerance:  tolerance parameter to impose distances
+    kspring:    FISH restraining constant
     
     Read in a fish_file generated from the AssignmentStep, from haploid to diploid annotations, select min or max pair (probe), apply restraints
     """
@@ -63,178 +64,184 @@ class Fish(Restraint):
                  index, 
                  struct_id,
                  rtype,
-                 tol=0.0, 
-                 k=1.0):
+                 tolerance = 10.0, 
+                 kspring = 2.0 ):
         
         self.fish_assignment_file = fish_assignment_file
 
-        self.rtype     = rtype
-        self.index     = index
-        self.struct_id = struct_id
-        self.tol       = tol
-        self.k         = k
+        self.hff                  = h5py.File(self.fish_assignment_file, 'r')
+
+        self.rtype                = rtype
+        self.index                = index
+        self.struct_id            = struct_id
+        self.tolerance            = tolerance
+        self.kspring              = kspring
+        
+        # list to which FISH restraints are appended to the model object
         self.forceID   = []
 
    
         
     def _apply(self, model):
         
-        # copy index, includes the diploid annotations
-        copy_index = self.index.copy_index
+            # copy index, includes the diploid annotations
+            copy_index = self.index.copy_index
 
-        hff = h5py.File(self.fish_assignment_file, 'r')
+            minradial = 'r' in self.rtype    # minimal radial distance (particle to center)
+            maxradial = 'R' in self.rtype    # maximal radial distance (particle to center)
+            minpair   = 'p' in self.rtype      # minimal pairwise distance (particle to particle)
+            maxpair   = 'P' in self.rtype      # maximal pairwise distance (particle to particle)
 
-        minradial = 'r' in self.rtype    # minimal radial distance (particle to center)
-        maxradial = 'R' in self.rtype    # maximal radial distance (particle to center)
-        minpair   = 'p' in self.rtype      # minimal pairwise distance (particle to particle)
-        maxpair   = 'P' in self.rtype      # maximal pairwise distance (particle to particle)
+            struct_id = self.struct_id
 
-        struct_id = self.struct_id
-
-        ck        = self.k
-        tol       = self.tol
-        crd       = model.getCoordinates()     # IGM model, this is where coordinates are directly processed
+            ck        = self.kspring
+            tol       = self.tolerance
+            crd       = model.getCoordinates()     # IGM model, this is where coordinates are directly processed
                                                # only coordinates associated with structure "struct_id" are read in 
+            hff       = self.hff
 
-        # if we use radial restraint we want to define the center, let's add a DUMMY particle
-        if minradial or maxradial:
-            center = model.addParticle([0., 0., 0.], 0., Particle.DUMMY_STATIC)
+            logger.info("tolerance = " + str(tol))
+            logger.info("constant  = " + str(ck))
+            logger.info("crd      = " + str(crd.shape))
+        
+            # if we use radial restraint we want to define the center, let's add a DUMMY particle
+            if minradial or maxradial:
+               center = model.addParticle([0., 0., 0.], 0., Particle.DUMMY_STATIC)
 
-        if minradial:
+            if minradial:
 
-            probes  = hff['probes']
-            targets = hff['radial_min'][:, struct_id]   # select only those "target_distance"s pertaining such a structure
+               probes  = hff['probes'][()]
+               targets = hff['radial_min'][:, struct_id][()]   # select only those "target_distance"s pertaining such a structure
    
-            for q, i in enumerate(probes):
+               for q, i in enumerate(probes):
                 
-                # get all the copies of locus i
-                ii = copy_index[i]  
-                target_dist = targets[q]
+                    # get all the copies of locus i
+                    ii = copy_index[i]  
+                    target_dist = targets[q]
 
-                # find the one locus being closest to the center
-                particle = sort_radially(ii, crd)[0]
+                    # find the one locus being closest to the center
+                    particle = sort_radially(ii, crd)[0]
 
-                # add a lower bound on that bead
-                f = HarmonicLowerBound((center, particle), 
+                    # add a lower bound on that bead
+                    f = HarmonicLowerBound((center, particle), 
                                        k=ck,
                                        d=max(0, target_dist - tol),    # is the target_dist very close to the tolerance?
                                        note=Restraint.FISH_RADIAL)
-                f = model.addForce(f)
-                self.forceID.append(f)
+                    f = model.addForce(f)
+                    self.forceID.append(f)
 
-                # add a upper bound on that bead
-                f = HarmonicUpperBound((center, particle), 
+                    # add a upper bound on that bead
+                    f = HarmonicUpperBound((center, particle), 
                                        k=ck,
                                        d=target_dist + tol,
                                        note=Restraint.FISH_RADIAL)
-                f = model.addForce(f)
-                self.forceID.append(f)
+                    f = model.addForce(f)
+                    self.forceID.append(f)
 
-        if maxradial:
-            probes  = hff['probes']
-            targets = hff['radial_max'][:, struct_id]
+            if maxradial:
 
-            for q, i in enumerate(probes):
-                # get all multiploid copies of locus i
-                ii = copy_index[i]
-                target_dist = targets[q]
+               probes  = hff['probes'][()]
+               targets = hff['radial_max'][:, struct_id][()]
 
-                # find the one locus being farthest away from the center
-                particle = sort_radially(ii, crd)[-1]
+               for q, i in enumerate(probes):
+                    # get all multiploid copies of locus i
+                    ii = copy_index[i]
+                    target_dist = targets[q]
 
-                # add a lower bound on that bead
-                f = HarmonicLowerBound((center, particle), 
+                    # find the one locus being farthest away from the center
+                    particle = sort_radially(ii, crd)[-1]
+
+                    # add a lower bound on that bead
+                    f = model.addForce(HarmonicLowerBound((center, particle), 
                                        k=ck,
                                        d=max(0, target_dist - tol),
-                                       note=Restraint.FISH_RADIAL)
-                f = model.addForce(f)
-                self.forceID.append(f)
+                                       note=Restraint.FISH_RADIAL))
+                    self.forceID.append(f)
 
-                # add a upper bound on that bead
-                f = HarmonicUpperBound((center, particle), 
+                    # add a upper bound on that bead
+                    f = model.addForce(HarmonicUpperBound((center, particle), 
                                        k=ck,
                                        d=target_dist + tol,
-                                       note=Restraint.FISH_RADIAL)
-                f = model.addForce(f)
-                self.forceID.append(f)
+                                       note=Restraint.FISH_RADIAL))
+                    self.forceID.append(f)
 
-        if minpair:
-            pairs   = hff['pairs']
-            targets = hff['pair_min'][:, struct_id]
+               np.savez(tmp_file, beads = np.array(lista_tmp))
 
-            for q, (i, j) in enumerate(pairs):
-                assert (i != j)
+            if minpair:
+                pairs   = hff['pairs'][()]
+                targets = hff['pair_min'][:, struct_id][()]
 
-                target_dist = targets[q]
+                for q, (i, j) in enumerate(pairs):
+                   assert (i != j)
 
-                # get annotations from  all the copies
-                ii = copy_index[i]
-                jj = copy_index[j]
+                   target_dist = targets[q]
 
-                # sort all the possible multiploid pairs by distance
-                sorted_pairs = sort_pairs_by_distance(ii, jj, crd)
+                   # get annotations from  all the copies
+                   ii = copy_index[i]
+                   jj = copy_index[j]
+
+                   # sort all the possible multiploid pairs by distance
+                   sorted_pairs = sort_pairs_by_distance(ii, jj, crd)
                 
-                # restraint all the pairs not to be too close
+                   # restraint all the pairs not to be too close
 
-                for m, n in sorted_pairs:    
-                    f = HarmonicLowerBound((m, n), 
+                   for m, n in sorted_pairs:    
+                      f = HarmonicLowerBound((m, n), 
                                            k=ck,
                                            d=min(0, target_dist - tol),
                                            note=Restraint.FISH_PAIR)
-                    f = model.addForce(f)
-                    self.forceID.append(f)
+                      f = model.addForce(f)
+                      self.forceID.append(f)
             
 
-                # find the closest pair and keep it from getting
-                # too far apart
+                   # find the closest pair and keep it from getting
+                   # too far apart
 
-                m, n = sorted_pairs[0]
-                f = HarmonicUpperBound((m, n), 
+                   m, n = sorted_pairs[0]
+                   f = HarmonicUpperBound((m, n), 
                                        k=ck,
                                        d=target_dist + tol,
                                        note=Restraint.FISH_PAIR)
-                f = model.addForce(f)
-                self.forceID.append(f)
+                   f = model.addForce(f)
+                   self.forceID.append(f)
                 
-        if maxpair:
+            if maxpair:
 
-            pairs   = hff['pairs']
-            targets = hff['pair_max'][:, struct_id]
+               pairs   = hff['pairs'][()]
+               targets = hff['pair_max'][:, struct_id][()]
 
-            for q, (i, j) in enumerate(pairs):
+               for q, (i, j) in enumerate(pairs):
                 
-                assert (i != j)
-                target_dist = targets[q]
+                   assert (i != j)
+                   target_dist = targets[q]
 
-                # get annotations from all the copies
-                ii = copy_index[i]
-                jj = copy_index[j]
+                   # get annotations from all the copies
+                   ii = copy_index[i]
+                   jj = copy_index[j]
 
-                # sort all the possible multiploid pairs by distance
-                sorted_pairs = sort_pairs_by_distance(ii, jj, crd)
+                   # sort all the possible multiploid pairs by distance
+                   sorted_pairs = sort_pairs_by_distance(ii, jj, crd)
                 
-                # restraint all the pairs not to be too far: upper bound, with ck elastic constant, rest length within "tol" tolerance
-                for m, n in sorted_pairs:    
-                    f = HarmonicUpperBound((m, n), 
+                   # restraint all the pairs not to be too far: upper bound, with ck elastic constant, rest length within "tol" tolerance
+                   for m, n in sorted_pairs:    
+                      f = HarmonicUpperBound((m, n), 
                                            k=ck,
                                            d=target_dist + tol,
                                            note=Restraint.FISH_PAIR)
-                    f = model.addForce(f)
-                    self.forceID.append(f)
+                      f = model.addForce(f)
+                      self.forceID.append(f)
             
 
-                # find the furthest pair and keep it from getting
-                # too close (look into this)
-                m, n = sorted_pairs[0]
-                f = HarmonicLowerBound((m, n), 
+                   # find the furthest pair and keep it from getting
+                   # too close (look into this)
+                   m, n = sorted_pairs[0]
+                   f = HarmonicLowerBound((m, n), 
                                        k=ck,
                                        d=min(0, target_dist - tol),
                                        note=Restraint.FISH_PAIR)
-                f = model.addForce(f)
-                self.forceID.append(f)
+                   f = model.addForce(f)
+                   self.forceID.append(f)
 
-        # close input file and get ready for next iteration
-        hff.close()
-    
+            hff.close()
     
 #==

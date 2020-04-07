@@ -157,7 +157,7 @@ def run_pipeline(cfgfile):
             # FISH "is_fish_incomplete" = True, if there are still fish_tol values to explore
             is_fish_incomplete = (
                 ('FISH' in cfg['restraints']) and 
-                    ( len( cfg.get("runtine/FISH/tol_list")) !-0 )
+                    ( len( cfg.get("runtime/FISH/tol_list")) !=0 )
             )
             is_fish_done = not is_fish_incomplete
 
