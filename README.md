@@ -7,9 +7,9 @@ A population of individual full genome (diploid) structures is generated, which 
 Apr 2020
 
 -  Hi-C data, SPRITE data
--  excluded volume, imaging data for volumetric restraints (e.g., nuclear bodies)
+-  excluded volume, imaging data for volumetric restraints (e.g., both nuclear envelope and nuclear bodies)
 -  lamina DamID data in combination with ellipsoidal nuclear envelope
--  FISH data (if number of points in input distribution = number of structures in population)
+-  FISH data, both "pairs" and "radial" options active (if number of points in input distribution = number of structures in population)
 
 Repository organization
 -----------------------

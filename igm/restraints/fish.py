@@ -103,7 +103,9 @@ class Fish(Restraint):
             logger.info("tolerance = " + str(tol))
             logger.info("constant  = " + str(ck))
             logger.info("crd      = " + str(crd.shape))
-        
+       
+            logger.info("Using " + self.rtype + " FISH protocol")
+ 
             # if we use radial restraint we want to define the center, let's add a DUMMY particle
             if minradial or maxradial:
                center = model.addParticle([0., 0., 0.], 0., Particle.DUMMY_STATIC)
@@ -138,6 +140,17 @@ class Fish(Restraint):
                     f = model.addForce(f)
                     self.forceID.append(f)
 
+                    # push the other domain outwards, we do not want it to accidentally get further away from target_dist
+                    other_particle = sort_radially(ii, crd)[-1]
+
+                    # add restraint to keep other particle closer to the center, within threshold value
+                    f = model.addForce(HarmonicLowerBound((center, other_particle),
+                                       k=ck,
+                                       d=target_dist + tol,
+                                       note=Restraint.FISH_RADIAL))
+                    self.forceID.append(f)
+
+
             if maxradial:
 
                probes  = hff['probes'][()]
@@ -165,7 +178,15 @@ class Fish(Restraint):
                                        note=Restraint.FISH_RADIAL))
                     self.forceID.append(f)
 
-               np.savez(tmp_file, beads = np.array(lista_tmp))
+                    # push the other domain inwards, we do not want it to accidentally get further away from target_dist
+                    other_particle = sort_radially(ii, crd)[0]
+
+                    # add restraint to keep other particle closer to the center, within threshold value
+                    f = model.addForce(HarmonicUpperBound((center, other_particle),
+                                       k=ck,
+                                       d=target_dist - tol,
+                                       note=Restraint.FISH_RADIAL))
+                    self.forceID.append(f)
 
             if minpair:
                 pairs   = hff['pairs'][()]
@@ -184,18 +205,17 @@ class Fish(Restraint):
                    sorted_pairs = sort_pairs_by_distance(ii, jj, crd)
                 
                    # restraint all the pairs not to be too close
-
                    for m, n in sorted_pairs:    
                       f = HarmonicLowerBound((m, n), 
                                            k=ck,
-                                           d=min(0, target_dist - tol),
+                                           d=max(0, target_dist - tol),
                                            note=Restraint.FISH_PAIR)
                       f = model.addForce(f)
                       self.forceID.append(f)
             
 
                    # find the closest pair and keep it from getting
-                   # too far apart
+                   # too far apart, keep em closer than (target+tol)
 
                    m, n = sorted_pairs[0]
                    f = HarmonicUpperBound((m, n), 
@@ -237,7 +257,7 @@ class Fish(Restraint):
                    m, n = sorted_pairs[0]
                    f = HarmonicLowerBound((m, n), 
                                        k=ck,
-                                       d=min(0, target_dist - tol),
+                                       d=max(0, target_dist - tol),
                                        note=Restraint.FISH_PAIR)
                    f = model.addForce(f)
                    self.forceID.append(f)
