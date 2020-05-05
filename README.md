@@ -4,12 +4,12 @@ IGM: An Integrated Genome Modeling Platform
 This is the modeling platform used in Frank U. Alber lab, University of California Los Angeles.
 A population of individual full genome (diploid) structures is generated, which fully recapitulates a variety of experimental genomic and/or imaging data. It does NOT preprocess raw data.
 
-Apr 2020
+May 2020
 
 -  Hi-C data, SPRITE data
 -  excluded volume, imaging data for volumetric restraints (e.g., both nuclear envelope and nuclear bodies)
 -  lamina DamID data in combination with ellipsoidal nuclear envelope
--  FISH data, both "pairs" and "radial" options active (if number of points in input distribution = number of structures in population)
+-  FISH data, both "pairs" and "radial" options active (a code is available to interpolated data if the number of points in the availablr distribution is smaller than the number of structures we would like to simulate)
 
 Repository organization
 -----------------------
