@@ -10,6 +10,7 @@ May 2020
 -  excluded volume, imaging data for volumetric restraints (e.g., both nuclear envelope and nuclear bodies)
 -  lamina DamID data in combination with ellipsoidal nuclear envelope
 -  FISH data, both "pairs" and "radial" options active (a code is available to interpolated data if the number of points in the availablr distribution is smaller than the number of structures we would like to simulate)
+- experimental volume maps are included, with approximate radial force field
 
 Repository organization
 -----------------------
