@@ -76,6 +76,9 @@ Installation on linux
 
 Installation on MacOS
 --------------
+
+-   It looks like ```cgal``` version needs to be 4.14 otherwise compiling errors. Please use ```conda install gcal=4.14```
+
 -   Installation on MacOS poses additional challenges, especially on 11.14 Mojave (updated Sept 2019).  ```gcc``` compiler may not be pre-installed; instead, the more efficient ```clang``` might be (this can be checked with ```gcc --version```):
 
     ``` 
