@@ -39,17 +39,32 @@ Installation on linux
     conda create -n igm python=3.6
     source activate igm
     # install dependencies
-    conda install pandas swig cython cgal hdf5 h5py numpy scipy matplotlib \
+    conda install pandas swig cython cgal==4.14 hdf5 h5py numpy scipy matplotlib \
                   tornado ipyparallel cloudpickle
     ```
+    -   It looks like ```cgal``` version needs to be 4.14, there are some compatibility issues with latest 5.0 version.
+    
     If you _really_ do not want to use conda, most of the packages can be 
     installed with pip, but it is up to you to download and build cgal and 
     hdf5, and eventually set the correct include/library paths during 
     installation.
 
 -   Install alabtools (github.com/alberlab/alabtools).
+    If in previous step for installing required packages, pip was used in default python environment instead of conda then go ahead and install alabtools using pip install git as mentioned below.
     ```
     pip install git+https://github.com/alberlab/alabtools.git
+    ```
+    If you created new conda environment then follow steps below to install alabtools. Make sure your new conda environment is activated.
+    ```
+    git clone https://github.com/alberlab/alabtools.git
+    cd alabtools
+    ```
+    Now, edit setup.py to include libraries for swig. We need to add "include" and "lib" folder from newly installed conda environment. So first get path to your newly installed conda enviroment.
+    In line
+    ```
+    mkdir -p ${HOME}/.igm
+    echo "[DEFAULT]" > ${HOME}/.igm/user_defaults.cfg
+    echo "optimization/kernel_opts/lammps/lammps_executable = "$(pwd)/src/lmp_serial >> ${HOME}/.igm/user_defaults.cfg
     ```
     Note: on windows, conda CGAL generates the library, but the name depends 
     on the build, e.g CGAL-vc140-mt-4.12.lib. Go to 
@@ -76,9 +91,6 @@ Installation on linux
 
 Installation on MacOS
 --------------
-
--   It looks like ```cgal``` version needs to be 4.14 otherwise compiling errors. Please use ```conda install gcal=4.14```
-
 -   Installation on MacOS poses additional challenges, especially on 11.14 Mojave (updated Sept 2019).  ```gcc``` compiler may not be pre-installed; instead, the more efficient ```clang``` might be (this can be checked with ```gcc --version```):
 
     ``` 
