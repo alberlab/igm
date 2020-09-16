@@ -49,8 +49,9 @@ Installation on linux
     hdf5, and eventually set the correct include/library paths during 
     installation.
 
--   Install alabtools (github.com/alberlab/alabtools).
-    If in previous step for installing required packages, pip was used in default python environment instead of conda then go ahead and install alabtools using pip install git as mentioned below.
+-   Install alabtools (github.com/alberlab/alabtools)
+
+    If in the previous step 'pip' was used instead of 'conda' then go ahead and install alabtools using pip install git as mentioned below.
     ```
     pip install git+https://github.com/alberlab/alabtools.git
     ```
