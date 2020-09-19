@@ -50,22 +50,8 @@ Installation on linux
     installation.
 
 -   Install alabtools (github.com/alberlab/alabtools)
-
-    If in the previous step 'pip' was used instead of 'conda' then go ahead and install alabtools using pip install git as mentioned below.
     ```
     pip install git+https://github.com/alberlab/alabtools.git
-    ```
-    If you created new conda environment then follow steps below to install alabtools. Make sure your new conda environment is activated.
-    ```
-    git clone https://github.com/alberlab/alabtools.git
-    cd alabtools
-    ```
-    Now, edit setup.py to include libraries for swig. We need to add "include" and "lib" folder from newly installed conda environment. So first get path to your newly installed conda enviroment.
-    In line
-    ```
-    mkdir -p ${HOME}/.igm
-    echo "[DEFAULT]" > ${HOME}/.igm/user_defaults.cfg
-    echo "optimization/kernel_opts/lammps/lammps_executable = "$(pwd)/src/lmp_serial >> ${HOME}/.igm/user_defaults.cfg
     ```
     Note: on windows, conda CGAL generates the library, but the name depends 
     on the build, e.g CGAL-vc140-mt-4.12.lib. Go to 
