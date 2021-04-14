@@ -16,6 +16,7 @@ import traceback
 # specify the configuration.json file
 cfgfile = os.path.abspath(sys.argv[1])
 
+# create a process and pass a 'value' to it, which is the igm configuration file 
 def run_pipeline(cfgfile):
     #===start pipeline with configure file
     try:
@@ -45,6 +46,7 @@ def run_pipeline(cfgfile):
 
         # Get initial coordinates: either read them from file...
         starting_coordinates = cfg.get("model/starting_coordinates")
+
         if starting_coordinates != '':
             # make sure it is not a restart run
             # step_db should not be there yet if it is a fresh start
@@ -56,7 +58,7 @@ def run_pipeline(cfgfile):
                     pass
             #-
         #-
-        # ... or generate random initial coordinates
+        # ... or generate random initial coordinates w territories and relax them to avoid steric clashes
         else:
             igm.logger.info('Generating random initial coordinates...')
             randomStep = igm.RandomInit(cfg)
@@ -73,23 +75,24 @@ def run_pipeline(cfgfile):
         # initialize optimization iteration counter
         opt_iter = 0
 
-        # min optimization iterations before proceeding to next theta
+        # min optimization iterations before proceeding to next set of step-wise threhsold values
         # skipped if iter 0 is successful, if "min_iter" unsuccessful, force one additional iteration
         min_iter = cfg.get("optimization/min_iterations", 5)
 
         # max unsuccessful optimization iterations before stopping
-        # if even "max_iter" iterations do not lead to convergence, the pipeline exits with error message
+        # if even "max_iter" iterations do not lead to convergence, the pipeline exits with error message (see below)
         max_iter = cfg.get("optimization/max_iterations", 12)
 
-        # ---- main A/M optimization loop, more iterations ----#
+        # ---- main A/M optimization loop, iterations ----#
         while True:
 
             # update "run_time" entry in configuration dictionary
             cfg["runtime"]["opt_iter"] = opt_iter
 
-            # setup the needed restraint steps (ACTIVATION) for this optimization iteration
+            # setup the needed restraint steps (Activation/Assignment) for this optimization iteration
             iter_steps = []
 
+            # --- ASSIGNMENT STEP: population from previous iteration used to compute latent varaibles ---#
             if 'nucleolus' in cfg['restraints']:
                 igm.logger.info('Using volume maps ...')
 
@@ -109,7 +112,8 @@ def run_pipeline(cfgfile):
                 iter_steps.append(igm.DamidActivationDistanceStep)
                 igm.logger.info('Using DamID data...')
 
-            # run a modeling step (MODELING, configurations are relaxed to stable structures)
+            # --- MODELING STEP: each non zero latent variable entry is a spatial restraint added to structure H run a modeling step
+            #    use lammps for a simulated annealing/conjugate gradient optimization step, find energetic minimum, in step.run()
             iter_steps.append(igm.ModelingStep)
 
             # if "Hi-C evalutation" is True, setup the required steps for evaluations
@@ -130,12 +134,12 @@ def run_pipeline(cfgfile):
 
             # -------- check the violations ------ #
 
-
             # the modeled population is acceptable if violations (in cfg["runtime"]) are under a certain threshold (in cfg["optimization"])
             # "is_acceptable" = True, if violation score is smaller than tolerance
             is_acceptable = cfg.get("runtime/violation_score") < cfg.get("optimization/max_violations")    # this is cumulative
-            igm.logger.info('Violation score from iteration = ' + str(cfg.get("runtime/violation_score")))
-            igm.logger.info('Violation score threshold      = ' + str(cfg.get("optimization/max_violations")))
+
+            igm.logger.info('Violation score from iteration   = ' + str(cfg.get("runtime/violation_score")))
+            igm.logger.info('Violation score setup threshold  = ' + str(cfg.get("optimization/max_violations")))
 
             # HiC: "is_his_incomplete' = True, if there are still HiC-sigma values to explore
             is_hic_incomplete = (
@@ -161,13 +165,21 @@ def run_pipeline(cfgfile):
             )
             is_fish_done = not is_fish_incomplete
 
+            # SPRITE "is_sprite_incomplete" = True, if there are still volume_occupancy  values to explore
+            is_sprite_incomplete = (
+                ('sprite' in cfg['restraints']) and
+                    ( len( cfg.get("runtime/sprite/volume_fraction_list")) !=0 )
+            )
+            is_sprite_done = not is_sprite_incomplete
+
             # if min_iter iterations have not been run yet, and at least one iteration has been run...
             force_next_iteration = (opt_iter < min_iter - 1) and ( opt_iter != 0 )
 
-            # force next iteration if it is the last step and only one restraint optimization iteration was run
+            # force next iteration if all data have been included, but only one restraint optimization iteration was run
+            # this circumvents the "force_last_iteration = False" in the configuration file
             if  (
                     cfg.get('optimization/force_last_iteration', False) and
-                    is_hic_done and
+                    is_hic_done and is_damid_done and is_fish_done and is_sprite_done and 
                     opt_iter == 0
                 ):
                 force_next_iteration = True
@@ -180,10 +192,13 @@ def run_pipeline(cfgfile):
                 ):
                 force_next_iteration = True
 
-            # if sufficiently low number of violations and there is no need to force additional iterations...
+            # if sufficiently low number of violations(is_acceptable = 0)  and there is no need to force additional iterations (force_next_iteration = 0)...
             if is_acceptable and not force_next_iteration:
 
+                igm.logger.info('Violations are acceptable, no need to force another A/M iteration: add extra data batches...')
+
                 # ... all good, either go to the next parameter set...
+
                 if is_hic_incomplete:
                     # ... remove current HiC sigma value from cfg["runtime"], and move on to the next
                     del cfg["runtime"]["Hi-C"]["sigma"]
@@ -202,8 +217,15 @@ def run_pipeline(cfgfile):
                     # reset iteration number counter
                     opt_iter = 0
 
-                # ... or, if both HiC and DamID converged, exit the pipeline successfully
-                if is_hic_done and is_damid_done and is_fish_done:
+                if is_sprite_incomplete:
+                    # ... remove current DamiD sigma value from cfg["runtime"], and move on to the next
+                    del cfg["runtime"]["sprite"]["volume_fraction"]
+                    # reset iteration number counter
+                    opt_iter = 0
+
+
+                # ... or, if lists of thresholds have been swept over fully, exit the pipeline successfully
+                if is_hic_done and is_damid_done and is_fish_done and is_sprite_done:
 
                     igm.logger.info('Pipeline completed')
                     open('completed', 'w').close()
@@ -236,7 +258,7 @@ def run_pipeline(cfgfile):
 
                 # if violations are acceptable, force next iteratiron for the same set of parameters
                 if is_acceptable:
-                    igm.logger.info('Violations acceptable; yet, forcing next iteration')
+                    igm.logger.info('Violations acceptable; yet, minimum number of required iterations not reached')
                 
                 igm.logger.info('iteration # %d' % opt_iter)
                 igm.logger.info('\n\n')
@@ -254,7 +276,7 @@ def run_pipeline(cfgfile):
         raise
 
 # start the run as a subprocess
-print('[CONTROL] Starting IGM run...')
+print('[CONTROL] Starting Integrated Genome Modeling run...')
 p = Process(target=run_pipeline, args=(cfgfile, ))
 p.start()
 
@@ -327,4 +349,4 @@ except OSError:
 
 print('[CONTROL] Exiting')
 print('\n')
-print('[CONTROL] IGM run pipeline successfully completed! Please shut down the controller and the workers')
+print('[CONTROL] IGM run successfully completed, the igm-model.hss file containts the details of the optimized data-driven population! Please shut down the controller and the workers')
