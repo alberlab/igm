@@ -190,6 +190,7 @@ Important notes
   
 Test
 ----
+Sample files at provided to simulate a Hi-C only population of WTC11 (spherical nucleus) at 2Mb resolution, to get familiar with the basics of the code
 -   Enter the ```test``` folder: data and scripts for a 2Mb IGM calculation with Hi-C restraints are provided;
     -   ```.hcs``` file is a 2Mb resolution Hi-C contact map
     - ``` config_file.json ``` is the .json configuration file with all the parameters needed for the calculation.
