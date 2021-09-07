@@ -110,7 +110,14 @@ In order to run IGM to generate a population which uses a given combination of d
  
  -   Go into ```igm-config.json``` file (or your config file) and edit ```optimization/kernel_opts/lammps/lammps_executable``` so that it points to the actual lammps executable file being installed (see Installation on Linux)
 -   If run serially (as a test), go into ```igm-config.json``` (or your config) file and set ```parallel/controller``` to "serial". Then execute IGM (from the command line or by submitting a serial job to HPC cluster) by typing ```igm-run config_file.json >> output.txt```. 
--   If run in parallel (this is for actual calculations), go into ```igm-config.json``` file and set ```parallel/controller``` to "ipyparallel" and then follow the steps detailed in ```HCP_scripts\steps_to_submit_IGM.txt``` file and in the documentation, which rely on scripts also in the ```HCP_scripts``` folder. Specifically: create a running ipcluster environment (```bash create_ipcluster_environment.sh``` followed by ```qsub submit_engines.sh```) and only then submit the actual IGM calculation (```qsub submit_igm.sh```), which executes the ```igm-run igm-config.json``` command. [Commands and sintax will need to be adapted if different scheduler than SGE is available]
+-   If run in parallel (this is for actual calculations), go into ```igm-config.json``` file and set ```parallel/controller``` to "ipyparallel" and then follow the steps detailed in ```HCP_scripts\steps_to_submit_IGM.txt``` file and in the documentation, which rely on scripts also in the ```HCP_scripts``` folder. Specifically: create a running ipcluster environment (```bash create_ipcluster_environment.sh``` followed by ```qsub submit_engines.sh```) and only then submit the actual IGM calculation (```qsub submit_igm.sh```), which executes the ```igm-run igm-config.json``` command. [Commands and sintax will need to be adapted if different scheduler than SGE is available], i.e.
+ 
+ ```
+ bash create_ipcluster_environment.sh
+ qsub submit_engines.sh
+ qsub submit_igm.sh
+ ```
+ 
 -   A successful run should generate a ```igm.log``` and ```stepdb.splite``` files, a number of temporary files from the Assignment Steps and finally  a sequence of intermediate .hss genome populations, each resulting from a different A/M iteration (see ```IGM_documentation.pdf```). The file ```igm-model.hss``` will contain the optimized population at the end of the pipeline. hss files can be read conveniently using the ```alabtools``` package which was mentioned already.
 -   A non-successful run (for whatever reason) should produce the ```err_igm``` file with details about the reason why the run crashed.
  
