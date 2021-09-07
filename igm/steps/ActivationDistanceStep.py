@@ -34,43 +34,57 @@ actdist_fmt_str = "%6d %6d %10.2f %.5f"
 class ActivationDistanceStep(Step):
     def __init__(self, cfg):
 
-        """ The value of HiC sigma to be used this time around is defined and stored """
+	
+	""" The value of HiC sigma to be used this time around is defined and stored """
 
-        # prepare the list of HiC sigmas and write that to runtime status (cfg["runtime"]), unless already there
         if 'intra_sigma_list' not in cfg["runtime"]["Hi-C"]:
             cfg["runtime"]["Hi-C"]['intra_sigma_list'] = cfg["restraints"]["Hi-C"]["intra_sigma_list"][:]
         if 'inter_sigma_list' not in cfg["runtime"]["Hi-C"]:
             cfg["runtime"]["Hi-C"]['inter_sigma_list'] = cfg["restraints"]["Hi-C"]["inter_sigma_list"][:]
 
+        logger.info(cfg.get('runtime/Hi-C/inter_sigma_list'))
+
+        logger.info(cfg.get('runtime/Hi-C/intra_sigma_list'))
+        logger.info('GUIDO')
+
+        #logger.info(cfg.get('runtime/Hi-C/inter_sigma'))
+        #logger.info(cfg.get('runtime/Hi-C/inter_sigma'))
+
+
         # 'sigma' indicates the current HiC sigma to use in the Activation Step. 
         # Once 'sigma' is defined, the value is automatically removed from 'inter_sigma_list' and 'intra_sigma_list'
-        if "sigma" not in cfg["runtime"]["Hi-C"]:
+        if ("inter_sigma" not in cfg["runtime"]["Hi-C"]) and ("intra_sigma" not in cfg["runtime"]["Hi-C"]):
             inters = cfg.get('runtime/Hi-C/inter_sigma_list')
             intras = cfg.get('runtime/Hi-C/intra_sigma_list')
 
+            # as of now, assume inters and intras need to have the same lenght
             if len(inters) and len(intras):
                 # go to the next sigma, the larger between the intra and inter
-                if inters[0] == intras[0]:
+                # LB: changed this, let inter and intra be different if inters[0] == intras[0]:
                     cfg.set("runtime/Hi-C/inter_sigma", inters.pop(0))
                     cfg.set("runtime/Hi-C/intra_sigma", intras.pop(0))
-                    sigma = cfg.get('runtime/Hi-C/intra_sigma')
-                elif inters[0] > intras[0]:
-                    cfg.set("runtime/Hi-C/inter_sigma", inters.pop(0))
-                    sigma = cfg.get("runtime/Hi-C/inter_sigma")
-                else:
-                    cfg.set("runtime/Hi-C/intra_sigma", intras.pop(0))
-                    sigma = cfg.get("runtime/Hi-C/intra_sigma")
+                    intra_sigma = cfg.get('runtime/Hi-C/intra_sigma')
+                    inter_sigma = cfg.get('runtime/Hi-C/inter_sigma')
+                #elif inters[0] > intras[0]:
+                #    cfg.set("runtime/Hi-C/inter_sigma", inters.pop(0))
+                #    sigma = cfg.get("runtime/Hi-C/inter_sigma")
+                #else:
+                #    cfg.set("runtime/Hi-C/intra_sigma", intras.pop(0))
+                #    sigma = cfg.get("runtime/Hi-C/intra_sigma")
 
-            elif len(intras):
-                cfg.set("runtime/Hi-C/intra_sigma", intras.pop(0))
-                sigma = cfg.get("runtime/Hi-C/intra_sigma")
+            #elif len(intras):
+            #    cfg.set("runtime/Hi-C/intra_sigma", intras.pop(0))
+            #    sigma = cfg.get("runtime/Hi-C/intra_sigma")
 
-            else:
-                cfg.set("runtime/Hi-C/inter_sigma", inters.pop(0))
-                sigma = cfg.get("runtime/Hi-C/inter_sigma")
-        
+            #else:
+            #    cfg.set("runtime/Hi-C/inter_sigma", inters.pop(0))
+            #    sigma = cfg.get("runtime/Hi-C/inter_sigma")
+
             # set sigma value in cfg["runtime"]
-            cfg.set("runtime/Hi-C/sigma", sigma)
+            cfg.set("runtime/Hi-C/inter_sigma", inter_sigma)
+            cfg.set("runtime/Hi-C/intra_sigma", intra_sigma)
+
+	
         super(ActivationDistanceStep, self).__init__(cfg)
 
     # this is printed into the logger file and indicates that the HiC activationdistance step for a given sigma, at a given iteration, starts
@@ -86,7 +100,7 @@ class ActivationDistanceStep(Step):
         """ Reading parameters from cfg and actdist files, split into batches and save to tmp files """
 
         dictHiC        = self.cfg['restraints']['Hi-C']
-        sigma          = self.cfg['runtime']['Hi-C']["sigma"]
+        #sigma          = self.cfg['runtime']['Hi-C']["sigma"]
         inter_sigma    = self.cfg.get('runtime/Hi-C/inter_sigma', False)
         intra_sigma    = self.cfg.get('runtime/Hi-C/intra_sigma', False)
         contact_matrix = Contactmatrix(dictHiC["input_matrix"])
@@ -222,12 +236,18 @@ class ActivationDistanceStep(Step):
             prob.append(partial_actdist['prob'])
         #-
 
-        # build suffix to append to actdist file (code does not overwrite actdist files)
+       # build suffix to append to actdist file (code does not overwrite actdist files)
         additional_data = []
         if "Hi-C" in self.cfg['runtime']:
             additional_data.append(
-                'sigma_{:.4f}'.format(
-                    self.cfg['runtime']['Hi-C'].get('sigma', -1.0)
+                'INTERsigma_{:.4f}'.format(
+                    self.cfg['runtime']['Hi-C'].get('inter_sigma', -1.0)
+                )
+            )
+
+            additional_data.append(
+                'INTRAsigma_{:.4f}'.format(
+                    self.cfg['runtime']['Hi-C'].get('intra_sigma', -1.0)
                 )
             )
         if 'opt_iter' in self.cfg['runtime']:
@@ -236,6 +256,7 @@ class ActivationDistanceStep(Step):
                     self.cfg['runtime']['opt_iter']
                 )
             )
+
 
         # this is the activation distance tmp file storing the information about the currect act step
         tmp_actdist_file = actdist_file + '.tmp'
@@ -331,27 +352,48 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
     ii = copy_index[i]    # ii = [a, b], a is index on first chromosome, b is index on other copy
     jj = copy_index[j]
 
-    n_combinations = len(ii) * len(jj)
-    # n_possible_contacts = np.max(hss.index.copy) + 1
-    n_possible_contacts = min(len(ii), len(jj))
-    # for diploid cell n_combinations = 2*2 =4
-    # n_possible_contacts = 2
+    #n_combinations = len(ii) * len(jj)
+    ## n_possible_contacts = np.max(hss.index.copy) + 1
+    #n_possible_contacts = min(len(ii), len(jj))
+    ## for diploid cell n_combinations = 2*2 =4
+    ## n_possible_contacts = 2
 
     radii = hss.get_radii()
     ri, rj = radii[ii[0]], radii[jj[0]]
 
-    d_sq = np.empty((n_combinations, n_struct))
+    if chrom[i] == chrom[j]:   # intrachromosomal
 
-    it = 0
-    for k in ii:
-        for m in jj:
-            # extract array coordinates [ii[0], ii[1]], [jj[0], jj[1]]
+        n_combinations = len(ii)
+        n_possible_contacts = min(len(ii), len(jj))   # consider diploid and haploid
+        d_sq = np.empty((n_combinations, n_struct))
+
+        it = 0
+
+        for k, m in zip(ii, jj):    # loop over the (i,j) and (i',j') 
+
             x = hss.get_bead_crd(k)
             y = hss.get_bead_crd(m)
 
-            # compute (i-j) distances for all structures in population
             d_sq[it] = np.sum(np.square(x - y), axis=1)
             it += 1
+
+    else:      # interchromosomal
+
+        n_combinations = len(ii) * len(jj)
+        n_possible_contacts = len(ii) * len(jj)    # consider diploid and haploid
+        d_sq = np.empty((n_combinations, n_struct))
+
+        it = 0
+        for k in ii:
+            for m in jj:
+               # extract array coordinates [ii[0], ii[1]], [jj[0], jj[1]]
+               x = hss.get_bead_crd(k)
+               y = hss.get_bead_crd(m)
+
+               # compute (i-j) distances for all structures in population
+               d_sq[it] = np.sum(np.square(x - y), axis=1)
+               it += 1
+		
 
     # define i-j contact value
     rcutsq = np.square(contactRange * (ri + rj))
