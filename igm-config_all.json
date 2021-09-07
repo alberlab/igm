@@ -11,7 +11,7 @@
     },
     "model": {
         "population_size": 1000,
-        "occupancy": 0.6,
+        "occupancy": 0.4,
         "restraints": {
             "excluded": {
                 "evfactor": 1.0
