@@ -20,17 +20,17 @@ Due to the necessity of HPC resources, we strongly recommend that the software b
 
 In order to run IGM to generate a population which uses a given combination of data sources, the ```igm-config.json``` file needs to be edited accordingly, by specifying the input files and adding/removing the parameters for each data source when applicable. Then, software can be run using the syntax given below in the Demo section. A detailed description of the different entries that are available is given under ```igm/core/defaults```. A ```igm-config.json``` demo file for running a 2Mb resolution population using Hi-C data only is given in the ```test``` folder. Finally, a comprehensive configuration file ```igm-config_all.json`` for running a population with all data types is also provided here. Clearly, each user must specify their own input files.
 
-Documentation
-------------
-Available in pdf, ```IGM_documentation.pdf``` 
+ 
 
-Repository organization
+Repository Organization
 -----------------------
+
 - ``` igm ```: full IGM code(s)
 - ``` bin ```: IGM run, server and GUI scripts. In particular, refer to ```igm-run.sh``` (actual submission script) and ```igm-report.sh``` (post-processing automated script)
 - ``` test ```: example inputs for preliminary test runs
 - ``` HCP_scripts ```: create ipyparallel environment and submit igm run on a SGE scheduler based HCP resource
 - ```igm-run_scheme.pdf```: is a schematic which breaks down the different computing levels of IGM and tries to explain how the different parts of the code are related to one another.
+- ```IGM_documentation.pdf```: documentation
 
 
 Dependencies
@@ -94,7 +94,6 @@ Installation on linux
 
 
 
-
 Important notes
 ---------------
 -   IGM uses works mostly through the file system. The reason for the design stood on the local cluster details, persistence
@@ -115,14 +114,15 @@ Sample files at provided to simulate a Hi-C only population of WTC11 (spherical 
 -   Edit the path entries to the lammps executable file (and all paths, if needed)
 -   If run serially (as a test), go into ```igm-config.json``` file and set ```parallel/controller``` to "serial". Then execute IGM by typing ```igm-run config_file.json >> output.txt```.
     If run in parallel (in order to generate a population in a reasonable amount of time), follow the steps detailed in ```HCP_scripts\steps_to_submit_IGM.txt``` file and in the documentation. Specifically: create a running ipcluster environment (```bash create_ipcluster_environment.sh``` followed by ```qsub submit_engines.sh```) and only then submit the actual IGM calculation (```qsub submit_igm.sh```). [Commands and sintax will need to be adapted if different scheduler than SGE is available]
--   A successful run should generate a ```igm.log``` and ```stepdb.splite``` files, and finally a sequence of intermediate .hss genome populations (see ```IGM_documentation.pdf```, each resulting from a different A/M iteration (see Documentation). The file ```igm-model.hss``` will contain the optimized population at the end of the pipeline. 
+-   A successful run should generate a ```igm.log``` and ```stepdb.splite``` files, and finally a sequence of intermediate .hss genome populations (see ```IGM_documentation.pdf```, each resulting from a different A/M iteration (see Documentation). The file ```igm-model.hss``` will contain the optimized population at the end of the pipeline. hss files can be read conveniently using the ```alabtools``` package which was mentioned already. 
 
 Cite
 ------------
 If you use genome structures generated using this platform OR you use the platform to generate your own structure, please consider citing our work
     
-   Installation on MacOS (this is to be avoided, we realized any MacOS update can suddenly compromise the functionality of the code. This installation was sometimes used to test different parts of the code in a serial environment, but never to generate populations)
+   Installation on MacOS (updated, Spt 2019)
 --------------
+- this is to be avoided, we realized any MacOS update can suddenly compromise the functionality of the code. This installation was sometimes used to test different parts of the code in a serial environment, but never to generate populations)
 -   Installation on MacOS poses additional challenges, especially on 11.14 Mojave (updated Sept 2019).  ```gcc``` compiler may not be pre-installed; instead, the more efficient ```clang``` might be (this can be checked with ```gcc --version```):
 
     ``` 
