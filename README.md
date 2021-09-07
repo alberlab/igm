@@ -22,6 +22,7 @@ Repository Organization
 - ``` HCP_scripts ```: create ipyparallel environment and submit actual IGM run on a SGE scheduler based HCP cluster
 - ```igm-run_scheme.pdf```: is a schematic which breaks down the different computing levels of IGM and tries to explain how the different parts of the code are related to one another.
 - ```IGM_documentation.pdf```: documentation (in progress)
+- ```igm-config_all.json```: most comprehensive configuration file which shows parameters for all data sets that can be accommodated
 
 
 Dependencies
@@ -116,7 +117,7 @@ In order to run IGM to generate a population which uses a given combination of d
  
 In order to get familiar with the configuration file and  the code execution, we provide a ```config_file.json``` demo configuration file for running a 2Mb resolution WTC11 population using Hi-C data only: that is found in the ```test``` folder. 
 
-A comprehensive configuration file ```igm-config_all.json`` for running a HFF population with all data types (Hi-C, lamina DamID, SPRITE and 3D HIPMap FISH) is also provided here as a reference/template. Clearly, each user must specify their own input files.
+A comprehensive configuration file ```igm-config_all.json``` for running a HFF population with all data types (Hi-C, lamina DamID, SPRITE and 3D HIPMap FISH) is also provided here as a reference/template. Clearly, each user must specify their own input files.
  
  
  Software demo
