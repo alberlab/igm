@@ -30,6 +30,7 @@ Repository organization
 - ``` bin ```: IGM run, server and GUI scripts. In particular, refer to ```igm-run.sh``` (actual submission script) and ```igm-report.sh``` (post-processing automated script)
 - ``` test ```: example inputs for preliminary test runs
 - ``` HCP_scripts ```: create ipyparallel environment and submit igm run on a SGE scheduler based HCP resource
+- ```igm-run_scheme.pdf```: is a schematic which breaks down the different computing levels of IGM and tries to explain how the different parts of the code are related to one another.
 
 
 Dependencies
