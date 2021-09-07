@@ -105,7 +105,16 @@ Populations of 5 or 10 structures at 200kb resolution (which is the current high
 
 Due to the necessity of HPC resources, we strongly recommend that the software be installed and run in a Linux environment. ALL the populations we have generated and analyzed were generated using a Linux environment. We cannot guarantee full functionality on a MacOS or Windows.
 
-In order to run IGM to generate a population which uses a given combination of data sources, the ```igm-config.json``` file needs to be edited accordingly, by specifying the input files and adding/removing the parameters for each data source when applicable (a detailed description of the different entries that are available is given under ```igm/core/defaults```). Then, software can be run using ```igm-run igm-config.json```, by following the the steps given below in the Demo section.  A ```igm-config.json``` demo file for running a 2Mb resolution WTC11 population using Hi-C data only is given in the ```test``` folder. 
+In order to run IGM to generate a population which uses a given combination of data sources, the ```igm-config.json``` file needs to be edited accordingly, by specifying the input files and adding/removing the parameters for each data source when applicable (a detailed description of the different entries that are available is given under ```igm/core/defaults```). Then, software can be run using ```igm-run igm-config.json```. Specifically:
+ 
+ -   Go into ```igm-config.json``` file (or your config file) and edit ```optimization/kernel_opts/lammps/lammps_executable``` so that it points to the actual lammps executable file being installed (see Installation on Linux)
+-   If run serially (as a test), go into ```igm-config.json``` (or your config) file and set ```parallel/controller``` to "serial". Then execute IGM (from the command line or by submitting a serial job to HPC cluster) by typing ```igm-run config_file.json >> output.txt```. 
+-   If run in parallel (this is for actual calculations), go into ```igm-config.json``` file and set ```parallel/controller``` to "ipyparallel" and then follow the steps detailed in ```HCP_scripts\steps_to_submit_IGM.txt``` file and in the documentation, which rely on scripts also in the ```HCP_scripts``` folder. Specifically: create a running ipcluster environment (```bash create_ipcluster_environment.sh``` followed by ```qsub submit_engines.sh```) and only then submit the actual IGM calculation (```qsub submit_igm.sh```), which executes the ```igm-run igm-config.json``` command. [Commands and sintax will need to be adapted if different scheduler than SGE is available]
+-   A successful run should generate a ```igm.log``` and ```stepdb.splite``` files, a number of temporary files from the Assignment Steps and finally  a sequence of intermediate .hss genome populations, each resulting from a different A/M iteration (see ```IGM_documentation.pdf```). The file ```igm-model.hss``` will contain the optimized population at the end of the pipeline. hss files can be read conveniently using the ```alabtools``` package which was mentioned already.
+-   A non-successful run (for whatever reason) should produce the ```err_igm``` file with details about the reason why the run crashed.
+ 
+ 
+In order to get familiar with the configuration file and  the code execution, we provide a ```config_file.json``` demo configuration file for running a 2Mb resolution WTC11 population using Hi-C data only: that is found in the ```test``` folder. 
 
 A comprehensive configuration file ```igm-config_all.json`` for running a HFF population with all data types (Hi-C, lamina DamID, SPRITE and 3D HIPMap FISH) is also provided here as a reference/template. Clearly, each user must specify their own input files.
  
@@ -118,10 +127,9 @@ A comprehensive configuration file ```igm-config_all.json`` for running a HFF po
 -   Enter the ```test``` folder: data and scripts for a 2Mb IGM calculation with Hi-C restraints are provided;
     -   ```.hcs``` file is a 2Mb resolution Hi-C contact map
     - ``` config_file.json ``` is the .json configuration file with all the parameters needed for the calculation. In particular, we generate 100 structures, which means the lowest contact probability we can target is 0.01 (1 %). For different setups, we recommend using different names for the configuration file to avoid confusion. Whatever name is chosen, it will have to be updated when running the scripts.
--   Go into ```igm-config.json``` file (or your config file) and edit ```optimization/kernel_opts/lammps/lammps_executable``` so that it points to the actual lammps executable file being installed (see Installation on Linux)
--   If run serially (as a test), go into ```igm-config.json``` (or your config) file and set ```parallel/controller``` to "serial". Then execute IGM by typing ```igm-run config_file.json >> output.txt```. The serial calculation (on a normal computer) all the way down to 1% probability should be completed in a few hours.
--   If run in parallel (in order to generate a population in a reasonable amount of time), go into ```igm-config.json``` file and set ```parallel/controller``` to "ipyparallel" and then follow the steps detailed in ```HCP_scripts\steps_to_submit_IGM.txt``` file and in the documentation, which rely on scripts also in the. ```HCP_scripts``` folder. Specifically: create a running ipcluster environment (```bash create_ipcluster_environment.sh``` followed by ```qsub submit_engines.sh```) and only then submit the actual IGM calculation (```qsub submit_igm.sh```), which executes the ```igm-run igm-config.json``` command. [Commands and sintax will need to be adapted if different scheduler than SGE is available]
--   A successful run should generate a ```igm.log``` and ```stepdb.splite``` files, and finally a sequence of intermediate .hss genome populations (see ```IGM_documentation.pdf```, each resulting from a different A/M iteration (see Documentation). The file ```igm-model.hss``` will contain the optimized population at the end of the pipeline. hss files can be read conveniently using the ```alabtools``` package which was mentioned already. 
+ 
+ The serial calculation (on a normal computer) all the way down to 1% probability should be completed in a few hours.
+
 
 Cite
 ------------
