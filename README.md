@@ -27,10 +27,10 @@ Repository Organization
 
 - ``` igm ```: full IGM code(s)
 - ``` bin ```: IGM run, server and GUI scripts. In particular, refer to ```igm-run.sh``` (actual submission script) and ```igm-report.sh``` (post-processing automated script)
-- ``` test ```: example inputs for preliminary test runs
-- ``` HCP_scripts ```: create ipyparallel environment and submit igm run on a SGE scheduler based HCP resource
+- ``` test ```: example inputs (.hcs, .json files) for demo run
+- ``` HCP_scripts ```: create ipyparallel environment and submit actual IGM run on a SGE scheduler based HCP cluster
 - ```igm-run_scheme.pdf```: is a schematic which breaks down the different computing levels of IGM and tries to explain how the different parts of the code are related to one another.
-- ```IGM_documentation.pdf```: documentation
+- ```IGM_documentation.pdf```: documentation (in progress)
 
 
 Dependencies
@@ -111,7 +111,7 @@ Sample files at provided to simulate a Hi-C only population of WTC11 (spherical 
 -   Enter the ```test``` folder: data and scripts for a 2Mb IGM calculation with Hi-C restraints are provided;
     -   ```.hcs``` file is a 2Mb resolution Hi-C contact map
     - ``` config_file.json ``` is the .json configuration file with all the parameters needed for the calculation. In particular, we generate 100 structures, which means the lowest contact probability we can target is 0.01 (1 %).
--   Edit the path entries to the lammps executable file (and all paths, if needed)
+-   Edit the path entry to the lammps executable file (and all paths, if needed)
 -   If run serially (as a test), go into ```igm-config.json``` file and set ```parallel/controller``` to "serial". Then execute IGM by typing ```igm-run config_file.json >> output.txt```. The serial calculation (on a normal computer) all the way down to 1% probability should be completed in a few hours.
 -   If run in parallel (in order to generate a population in a reasonable amount of time), go into ```igm-config.json``` file and set ```parallel/controller``` to "ipyparallel" and then follow the steps detailed in ```HCP_scripts\steps_to_submit_IGM.txt``` file and in the documentation, which rely on scripts also in the. ```HCP_scripts``` folder. Specifically: create a running ipcluster environment (```bash create_ipcluster_environment.sh``` followed by ```qsub submit_engines.sh```) and only then submit the actual IGM calculation (```qsub submit_igm.sh```). [Commands and sintax will need to be adapted if different scheduler than SGE is available]
 -   A successful run should generate a ```igm.log``` and ```stepdb.splite``` files, and finally a sequence of intermediate .hss genome populations (see ```IGM_documentation.pdf```, each resulting from a different A/M iteration (see Documentation). The file ```igm-model.hss``` will contain the optimized population at the end of the pipeline. hss files can be read conveniently using the ```alabtools``` package which was mentioned already. 
