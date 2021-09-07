@@ -1,6 +1,0 @@
-How to create the parallel environment (step 1) and submit a successful parallel IGM calculation (step 2) on top of it.
-
- - remove the ```submit_engines.sh``` file (if there).
- - ```bash create_ipcluster_environment.sh```: this will submit the controller and create the ```submit_engines``` script, ready for you to submit (step 1a).
- - Wait for the controller job to start (and generate its own ```out`` and `err` files), and then submit the engines with ```qsub submit_engines``` (step 1b).
- - When the engines are also running, you can submit the actual IGM calculation on top of the (controller + engines) scaffold, using ```qsub submit_igm``` (step 2).
