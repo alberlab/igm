@@ -12,7 +12,7 @@ August 2021
 
 For any inquiry, please send an email to Lorenzo Boninsegna (bonimba@g.ucla.edu) (feedbacks and advice are much appreciated!!!)
 
-In order to generate population of structures, the code has to be run in parallel mode, and High Performance Computing is necessary. The scripts to do that on a SGE scheduler-based HPC resources are provided in the ```HCP_scripts``` folder. Just to get an estimate, using 250 independent cores allows generating a 1000 structure population in 10-15 hour computing time, which can vary depending on the number of different data sources that are used and on the number of iterations one decides to run.
+In order to generate population of structures, the code has to be run in parallel mode, and High Performance Computing is necessary. The scripts to do that on a SGE scheduler-based HPC resources are provided in the ```HCP_scripts``` folder. Just to get an estimate, using 250 independent cores allows generating a 1000 200 kb resolution structure population in 10-15 hour computing time, which can vary depending on the number of different data sources that are used and on the number of iterations one decides to run.
 
 Populations of 5 or 10 structures could in principled be generated serially on a "normal" desktop computer, but they have little statistical relevance. For example, 10 structures would only allow to deconvolute Hi-C contacts with probability larger than 10%, which is not sufficient for getting realistic populations. 
 
@@ -143,7 +143,8 @@ Sample files at provided to simulate a Hi-C only population of WTC11 (spherical 
     -   ```.hcs``` file is a 2Mb resolution Hi-C contact map
     - ``` config_file.json ``` is the .json configuration file with all the parameters needed for the calculation.
 -   Edit the path entries to the lammps executable file (and all paths, if needed)
--   ```igm-run config_file.json >> output.txt```. Ideally, this command is given within a bash submission script to a HPC cluster, as detailed in the ```HCP_scripts\steps_to_submit_IGM.txt``` file and in the documentation.
+-   If run serially (as a test), go into ```igm-config.json``` file and set ```parallel/controller``` to "serial". Then execute IGM by typing ```igm-run config_file.json >> output.txt```.
+    If run in parallel (in order to generate a population in a reasonable amount of time), follow the steps detailed in ```HCP_scripts\steps_to_submit_IGM.txt``` file and in the documentation. Specifically: create a running ipcluster environment (```bash create_ipcluster_environment.sh``` followed by ```qsub submit_engines.sh```) and only then submit the actual IGM calculation (```qsub submit_igm.sh```). [Commands and sintax will need to be adapted if different scheduler than SGE is available]
 -   A successful run should generate a igm.log and stepdb.splite files, and finally a sequence of intermediate .hss genome populations (see ```IGM_documentation.pdf```. 
 
 Cite
