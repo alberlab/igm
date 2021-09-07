@@ -135,8 +135,7 @@ A comprehensive configuration file ```igm-config_all.json``` for running a HFF p
 -   Enter the ```test``` folder: data and scripts for a 2Mb IGM calculation with Hi-C restraints are provided;
     -   ```.hcs``` file is a 2Mb resolution Hi-C contact map
     - ``` config_file.json ``` is the .json configuration file with all the parameters needed for the calculation. In particular, we generate 100 structures, which means the lowest contact probability we can target is 0.01 (1 %). For different setups, we recommend using different names for the configuration file to avoid confusion. Whatever name is chosen, it will have to be updated when running the scripts.
- 
- The serial calculation (on a normal computer) all the way down to 1% probability should be completed in a few hours.
+    - Run IGM as detailed in the previous section (```igm-run config_file.json```), either serially or in parallel; the serial calculation (on a normal computer) all the way down to 1% probability should be completed in a few hours.
 
 
 Cite
