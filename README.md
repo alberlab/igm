@@ -92,7 +92,36 @@ Installation on linux
 -   If all the dependencies have been installed correctly, successful code installation should only take a few minutes.
     
 
-Installation on MacOS (this is to be avoided, we realized any MacOS update can suddenly compromise the functionality of the code. This installation was sometimes used to test different parts of the code in a serial environment, but never to generate populations)
+
+
+
+Important notes
+---------------
+-   IGM uses works mostly through the file system. The reason for the design stood on the local cluster details, persistence
+    of data, and minimization of memory required by the scheduler and workers. That means, in short, that scheduler, workers 
+    and the node which executes the igm-run script *need to have access to a shared filesystem where all the files will be 
+    located*.
+-   Preprocessing of data is a big deal itself. Hi-C matrices need to be transformed to probability matrices, DamID 
+    profiles too, FISH and SPRITE data needs to be preprocessed and transformed to the correct format. Some of these
+    processes have yet to be completely and exaustively documented publicly. We are working on it, but in the meantime
+    email if you need help.
+  
+Demo
+----
+Sample files at provided to simulate a Hi-C only population of WTC11 (spherical nucleus) at 2Mb resolution, to get familiar with the basics of the code
+-   Enter the ```test``` folder: data and scripts for a 2Mb IGM calculation with Hi-C restraints are provided;
+    -   ```.hcs``` file is a 2Mb resolution Hi-C contact map
+    - ``` config_file.json ``` is the .json configuration file with all the parameters needed for the calculation.
+-   Edit the path entries to the lammps executable file (and all paths, if needed)
+-   If run serially (as a test), go into ```igm-config.json``` file and set ```parallel/controller``` to "serial". Then execute IGM by typing ```igm-run config_file.json >> output.txt```.
+    If run in parallel (in order to generate a population in a reasonable amount of time), follow the steps detailed in ```HCP_scripts\steps_to_submit_IGM.txt``` file and in the documentation. Specifically: create a running ipcluster environment (```bash create_ipcluster_environment.sh``` followed by ```qsub submit_engines.sh```) and only then submit the actual IGM calculation (```qsub submit_igm.sh```). [Commands and sintax will need to be adapted if different scheduler than SGE is available]
+-   A successful run should generate a igm.log and stepdb.splite files, and finally a sequence of intermediate .hss genome populations (see ```IGM_documentation.pdf```. 
+
+Cite
+------------
+If you use genome structures generated using this platform OR you use the platform to generate your own structure, please consider citing our work
+    
+   Installation on MacOS (this is to be avoided, we realized any MacOS update can suddenly compromise the functionality of the code. This installation was sometimes used to test different parts of the code in a serial environment, but never to generate populations)
 --------------
 -   Installation on MacOS poses additional challenges, especially on 11.14 Mojave (updated Sept 2019).  ```gcc``` compiler may not be pre-installed; instead, the more efficient ```clang``` might be (this can be checked with ```gcc --version```):
 
@@ -123,30 +152,3 @@ If you are getting this printout, then there is NO actual gcc installed. In orde
 
 -   Then, ```alabtools``` can be installed in the regular way
 
-
-
-Important notes
----------------
--   IGM uses works mostly through the file system. The reason for the design stood on the local cluster details, persistence
-    of data, and minimization of memory required by the scheduler and workers. That means, in short, that scheduler, workers 
-    and the node which executes the igm-run script *need to have access to a shared filesystem where all the files will be 
-    located*.
--   Preprocessing of data is a big deal itself. Hi-C matrices need to be transformed to probability matrices, DamID 
-    profiles too, FISH and SPRITE data needs to be preprocessed and transformed to the correct format. Some of these
-    processes have yet to be completely and exaustively documented publicly. We are working on it, but in the meantime
-    email if you need help.
-  
-Demo
-----
-Sample files at provided to simulate a Hi-C only population of WTC11 (spherical nucleus) at 2Mb resolution, to get familiar with the basics of the code
--   Enter the ```test``` folder: data and scripts for a 2Mb IGM calculation with Hi-C restraints are provided;
-    -   ```.hcs``` file is a 2Mb resolution Hi-C contact map
-    - ``` config_file.json ``` is the .json configuration file with all the parameters needed for the calculation.
--   Edit the path entries to the lammps executable file (and all paths, if needed)
--   If run serially (as a test), go into ```igm-config.json``` file and set ```parallel/controller``` to "serial". Then execute IGM by typing ```igm-run config_file.json >> output.txt```.
-    If run in parallel (in order to generate a population in a reasonable amount of time), follow the steps detailed in ```HCP_scripts\steps_to_submit_IGM.txt``` file and in the documentation. Specifically: create a running ipcluster environment (```bash create_ipcluster_environment.sh``` followed by ```qsub submit_engines.sh```) and only then submit the actual IGM calculation (```qsub submit_igm.sh```). [Commands and sintax will need to be adapted if different scheduler than SGE is available]
--   A successful run should generate a igm.log and stepdb.splite files, and finally a sequence of intermediate .hss genome populations (see ```IGM_documentation.pdf```. 
-
-Cite
-------------
-If you use genome structures generated using this platform OR you use the platform to generate your own structure, please consider citing our work
