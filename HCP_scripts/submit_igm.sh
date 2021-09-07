@@ -6,9 +6,9 @@
 
 #$ -M bonimba@g.ucla.edu
 #$ -m ea
-#$ -N volume
-#$ -l h_data=8G
-#$ -l h_rt=10:00:00
+#$ -N jobname
+#$ -l h_data=40G
+#$ -l h_rt=30:00:00
 #$ -l highp
 #$ -cwd
 #$ -o out_igm
@@ -32,5 +32,5 @@ export OMP_NUM_THREADS=2
 echo "submitting IGM optimization..."
 
 # execute job
-igm-run conf_nucleolus.json >> igm_output.txt
+igm-run igm_config.json >> igm_output.txt
 
