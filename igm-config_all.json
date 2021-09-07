@@ -61,6 +61,7 @@
             "rtype" : "p",
             "kspring" : 1.0,
             "tmp_dir" : "fish_actdist",
+            "batch_size": 200,
             "keep_temporary_files" : "true",
             "tol_list" : [200.0, 100.0, 100.0, 100.0, 50.0, 50.0, 50.0, 25.0],
             "fish_assignment_file": "fish_assignment.h5"
