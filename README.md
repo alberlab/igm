@@ -82,6 +82,8 @@ Installation on linux
     ```
     
 -   If all the dependencies have been installed correctly, successful code installation should only take a few minutes.
+ 
+-   If ```igm``` installation is successful, typing ```igm``` from the command line + TAB should show the different options (```igm-run```, ```igm-report```, etc.)
     
 
 
