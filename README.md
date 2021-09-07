@@ -18,7 +18,7 @@ Due to the necessity of HCP resources, we strongly recommend that the software b
 
 Documentation
 ------------
-Available in pdf. 
+Available in pdf, ```IGM_documentation.pdf``` 
 
 Repository organization
 -----------------------
