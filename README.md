@@ -83,6 +83,9 @@ Installation on linux
     echo "[DEFAULT]" > ${HOME}/.igm/user_defaults.cfg
     echo "optimization/kernel_opts/lammps/lammps_executable = "$(pwd)/src/lmp_serial >> ${HOME}/.igm/user_defaults.cfg
     ```
+    
+-   If all the dependencies have been installed correctly, successful code installation should only take a few minutes.
+    
 
 Installation on MacOS (this is to be avoided, we realized any MacOS update can suddenly compromise the functionality of the code. This installation was sometimes used to test different parts of the code in a serial environment, but never to generate populations)
 --------------
