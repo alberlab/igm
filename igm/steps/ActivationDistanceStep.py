@@ -89,9 +89,10 @@ class ActivationDistanceStep(Step):
 
     # this is printed into the logger file and indicates that the HiC activationdistance step for a given sigma, at a given iteration, starts
     def name(self):
-        s = 'ActivationDistanceStep (sigma={:.2f}%, iter={:s})'
+        s = 'ActivationDistanceStep (INTER sigma={:.2f}%, INTRA sigma={:.2f}%, iter={:s})'
         return s.format(
-            self.cfg.get('runtime/Hi-C/sigma') * 100.0,
+            self.cfg.get('runtime/Hi-C/inter_sigma') * 100.0,
+            self.cfg.get('runtime/Hi-C/intra_sigma') * 100.0,
             str(self.cfg.get('runtime/opt_iter', 'NA'))
         )
 
