@@ -18,7 +18,7 @@ except ImportError:
     pass
 
 # dictionaries for the activation distance files
-fish_restr = { 'pair_min': [], 'radial_min' : [] , 'pair_max': [], 'radial_max' : [] }
+fish_restr = {'probes': [], 'pairs' : [], 'pair_min': [], 'radial_min' : [] , 'pair_max': [], 'radial_max' : [] }
 
 def get_pair_dists(ii, jj, n_bead, n_conf, crd):
     
@@ -132,7 +132,7 @@ class FishAssignmentStep(Step):
         batches = []
 
         fish_input_file = self.cfg.get('restraints/FISH/input_fish')
-
+       
         # this works for all scenarios: only pairs, only probes, both of them even in different numbers 
         with h5py.File(fish_input_file, 'r') as h5:
 
@@ -141,14 +141,14 @@ class FishAssignmentStep(Step):
             if 'pairs' in dict_entries:
                  logger.info('pairs are in FISH input!')
                  pairs = h5['pairs'][()]
-
+        
                  for i in range(0, len(pairs), batch_size):
                       batches.append((len(batches), 'pair', pairs[i: i+batch_size]))
 
             if 'probes' in dict_entries:
                  logger.info('probes are in FISH input')
                  probes = h5['probes'][()]
-
+        
                  for i in range(0, len(probes), batch_size):
                       batches.append((len(batches), 'probe', probes[i: i+batch_size]))
 
@@ -157,15 +157,16 @@ class FishAssignmentStep(Step):
 
     @staticmethod
     def task(batch, cfg, tmp_dir):
-        
-         # initialize empty dictionary to be populated later in loop
+
+
+        # initialize empty dictionary to be populated later in loop
         fish_restr = {'pair_min': [], 'radial_min' : [] , 'pair_max': [], 'radial_max' : [] }
 
-
+        
         # read in population file and extract coordinates
         hss = HssFile(cfg.get("optimization/structure_output"), 'r')
         crd = hss['coordinates']
-
+    
         # number of configurations, number of domains
         n_conf = crd.shape[1]
         n_bead = crd.shape[0]
@@ -174,7 +175,7 @@ class FishAssignmentStep(Step):
         copy_index = hss.index.copy_index
 
         assert(crd.shape[2] == 3)    # check consistency in array sizes
-
+  
         fish_input_file = cfg.get('restraints/FISH/input_fish')
 
         # load input file with distributions (maybe check if number of distances = number of poluation structures)
@@ -214,7 +215,8 @@ class FishAssignmentStep(Step):
                     if 'pair_max' in  target_entries:
                         target_max = ftf['pair_max'][pair_index][()]
                         fish_restr['pair_max'].append((pair_index, target_max[idxmax]))
-                        
+
+
         if entry_type == 'probe':
             for probe in entries:
 
@@ -231,7 +233,7 @@ class FishAssignmentStep(Step):
 
                     if (len(probe_index) != 1):
                         raise ValueError(f"Cannot find probe: {probe}")
-
+                    
                     probe_index = probe_index[0]
 
                     if 'radial_min' in  target_entries:
@@ -248,13 +250,13 @@ class FishAssignmentStep(Step):
         # intermediate file, create database, save npz file with features of the chunk (some entries might be empty lists)
         auxiliary_file = os.path.join(tmp_dir, 'tmp.%d.fish_targeting.npz' % batch_id)
 
-        np.savez(auxiliary_file,
-                             pair_min   = np.array(fish_restr['pair_min']),
+        np.savez(auxiliary_file,           
+                             pair_min   = np.array(fish_restr['pair_min']),      
                              pair_max   = np.array(fish_restr['pair_max']),
-                             radial_min = np.array(fish_restr['radial_min']),
-                             radial_max = np.array(fish_restr['radial_max'])
+                             radial_min = np.array(fish_restr['radial_min']),  
+                             radial_max = np.array(fish_restr['radial_max'])      
                )
-        
+
 
     def reduce(self):
 
@@ -280,7 +282,7 @@ class FishAssignmentStep(Step):
         fish_assignment_file = os.path.join(self.tmp_dir, "fish_assignment.h5")
         last_actdist_file = self.cfg['runtime']['FISH'].get("fish_assignment_file", None)
 
-        
+
         # again, read in pairs and probes
         fish_input_file = self.cfg.get('restraints/FISH/input_fish')
         with h5py.File(fish_input_file, 'r') as h5:
@@ -305,13 +307,13 @@ class FishAssignmentStep(Step):
 
         # (also see 'reduce' step in ActivationDistanceStep.py) Read in all *fish.npz files and concatenate all data into a single
         # 'fish_actdist_file' file, of type h5df (see 'create-dataset attributes)
-
+ 
         # concatenate: loop over chunks
         for batch_id, _, _  in self.argument_list:
-
+            
             # load auxiliary files and fill in lists
             auxiliary_file = os.path.join(self.tmp_dir, 'tmp.%d.fish_targeting.npz' % batch_id)
-
+ 
             t = np.load(auxiliary_file, allow_pickle=True)
 
             for pair_index, dists in t['pair_min']:
@@ -321,11 +323,11 @@ class FishAssignmentStep(Step):
             for probe_index, dists in t['radial_min']:
                 minraddists[probe_index] = dists
             for probe_index, dists in t['radial_max']:
-                maxraddists[probe_index] = dists
+                maxraddists[probe_index] = dists            
 
 
         tmp_assignment_file = fish_assignment_file + '.tmp'
-        
+
         # write fish actdist file for current iteration: need to distinguish if pairs or not, things are out
         with h5py.File(tmp_assignment_file, "w") as o5f:
 
@@ -350,9 +352,6 @@ class FishAssignmentStep(Step):
 
                   if 'radial_max' in dict_entries:
                        o5f.create_dataset('radial_max', data =  maxraddists,  dtype='f4')
-        
-        # we start with one empty element to avoid errors in np.concatenate
-   
         
         # save file temporary with appends
         swapfile = os.path.realpath('.'.join([fish_assignment_file, ] + additional_data))

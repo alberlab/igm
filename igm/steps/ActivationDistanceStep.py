@@ -13,6 +13,7 @@ from alabtools.analysis import HssFile
 from tqdm import tqdm
 
 from ..core import Step
+from ..utils.log import logger
 from ..utils.files import make_absolute_path
 
 try:
@@ -28,31 +29,31 @@ actdist_shape = [
     ('dist', 'float32'),
     ('prob', 'float32')
 ]
-actdist_fmt_str = "%6d %6d %10.2f %.5f"
+actdist_fmt_str = "%6d %6d %10.4f %.4f"
 
 
 class ActivationDistanceStep(Step):
     def __init__(self, cfg):
 
-	
-	""" The value of HiC sigma to be used this time around is defined and stored """
+        """ The value of HiC sigma to be used this time around is defined and stored """
 
+        # prepare the list of HiC sigmas and write that to runtime status (cfg["runtime"]), unless already there
         if 'intra_sigma_list' not in cfg["runtime"]["Hi-C"]:
             cfg["runtime"]["Hi-C"]['intra_sigma_list'] = cfg["restraints"]["Hi-C"]["intra_sigma_list"][:]
         if 'inter_sigma_list' not in cfg["runtime"]["Hi-C"]:
             cfg["runtime"]["Hi-C"]['inter_sigma_list'] = cfg["restraints"]["Hi-C"]["inter_sigma_list"][:]
 
         logger.info(cfg.get('runtime/Hi-C/inter_sigma_list'))
-
         logger.info(cfg.get('runtime/Hi-C/intra_sigma_list'))
-        logger.info('GUIDO')
+       
+        logger.info('LB')
 
-        #logger.info(cfg.get('runtime/Hi-C/inter_sigma'))
         #logger.info(cfg.get('runtime/Hi-C/inter_sigma'))
 
 
         # 'sigma' indicates the current HiC sigma to use in the Activation Step. 
         # Once 'sigma' is defined, the value is automatically removed from 'inter_sigma_list' and 'intra_sigma_list'
+            
         if ("inter_sigma" not in cfg["runtime"]["Hi-C"]) and ("intra_sigma" not in cfg["runtime"]["Hi-C"]):
             inters = cfg.get('runtime/Hi-C/inter_sigma_list')
             intras = cfg.get('runtime/Hi-C/intra_sigma_list')
@@ -79,12 +80,11 @@ class ActivationDistanceStep(Step):
             #else:
             #    cfg.set("runtime/Hi-C/inter_sigma", inters.pop(0))
             #    sigma = cfg.get("runtime/Hi-C/inter_sigma")
-
+        
             # set sigma value in cfg["runtime"]
             cfg.set("runtime/Hi-C/inter_sigma", inter_sigma)
             cfg.set("runtime/Hi-C/intra_sigma", intra_sigma)
 
-	
         super(ActivationDistanceStep, self).__init__(cfg)
 
     # this is printed into the logger file and indicates that the HiC activationdistance step for a given sigma, at a given iteration, starts
@@ -104,6 +104,11 @@ class ActivationDistanceStep(Step):
         #sigma          = self.cfg['runtime']['Hi-C']["sigma"]
         inter_sigma    = self.cfg.get('runtime/Hi-C/inter_sigma', False)
         intra_sigma    = self.cfg.get('runtime/Hi-C/intra_sigma', False)
+        
+
+        logger.info(inter_sigma)
+        logger.info(intra_sigma)
+
         contact_matrix = Contactmatrix(dictHiC["input_matrix"])
         input_matrix   = contact_matrix.matrix
         n              = input_matrix.shape[0]
@@ -237,7 +242,7 @@ class ActivationDistanceStep(Step):
             prob.append(partial_actdist['prob'])
         #-
 
-       # build suffix to append to actdist file (code does not overwrite actdist files)
+        # build suffix to append to actdist file (code does not overwrite actdist files)
         additional_data = []
         if "Hi-C" in self.cfg['runtime']:
             additional_data.append(
@@ -257,7 +262,6 @@ class ActivationDistanceStep(Step):
                     self.cfg['runtime']['opt_iter']
                 )
             )
-
 
         # this is the activation distance tmp file storing the information about the currect act step
         tmp_actdist_file = actdist_file + '.tmp'
@@ -308,24 +312,24 @@ def cleanProbability(pij, pexist):
 def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
 
     '''
-    Serial function to compute the activation distance for a pair of loci.
+    Serial function to compute the activation distance for a pair of loci .
 
     Parameters
     ----------
         i, j : int
             index of the first, second locus
         pwish : float
-            target contact probability
+            target contact probability (from hcs input file)
         plast : float
-            the last refined probability
+            the last refined probability (from previous iteration)
         hss : alabtools.analysis.HssFile
             file containing coordinates
         contactRange : int
             contact range of sum of radius of beads
         option : int
             calculation option:
-            (0) intra chromosome contacts are considered intra
-            (1) intra chromosome contacts are assigned intra/inter equally
+            (0) intra chromosome contacts are considered intra, assigned within the same copy only (i,j) and (i',j')
+            (1) intra chromosome contacts are assigned intra/inter equally [all four pairs (i,j), (i',j),(i,j'), (i',j')]
     Returns
     -------
 	List res of [i, j, ad, p] arrays
@@ -333,7 +337,9 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
         i (int): index of first locus
         j (int): index of second locus
         ad (float): the activation distance
-        p (float): the corrected probability
+        p (float): the corrected (upon iterative correction) probability
+
+    LB: here we implement the Assignment as from the PNAS paper, overcome Guido's approximations
     '''
 
     # import here in case is executed on a remote machine
@@ -353,15 +359,19 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
     ii = copy_index[i]    # ii = [a, b], a is index on first chromosome, b is index on other copy
     jj = copy_index[j]
 
-    #n_combinations = len(ii) * len(jj)
-    ## n_possible_contacts = np.max(hss.index.copy) + 1
-    #n_possible_contacts = min(len(ii), len(jj))
-    ## for diploid cell n_combinations = 2*2 =4
-    ## n_possible_contacts = 2
-
     radii = hss.get_radii()
     ri, rj = radii[ii[0]], radii[jj[0]]
 
+    # define i-j contact value
+    rcutsq = np.square(contactRange * (ri + rj))
+    
+    #n_combinations = len(ii) * len(jj)
+    # n_possible_contacts = np.max(hss.index.copy) + 1
+    #n_possible_contacts = min(len(ii), len(jj))
+    # for diploid cell n_combinations = 2*2 =4
+    # n_possible_contacts = 2
+    
+    # LB change, Apr 16th 2021: get the distribution of distances: d(i,j) and d(i',j') only for intra
     if chrom[i] == chrom[j]:   # intrachromosomal
 
         n_combinations = len(ii)
@@ -369,17 +379,17 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
         d_sq = np.empty((n_combinations, n_struct))
 
         it = 0
-
+   
         for k, m in zip(ii, jj):    # loop over the (i,j) and (i',j') 
 
             x = hss.get_bead_crd(k)
             y = hss.get_bead_crd(m)
-
+    
             d_sq[it] = np.sum(np.square(x - y), axis=1)
             it += 1
-
+          
     else:      # interchromosomal
-
+    
         n_combinations = len(ii) * len(jj)
         n_possible_contacts = len(ii) * len(jj)    # consider diploid and haploid
         d_sq = np.empty((n_combinations, n_struct))
@@ -394,10 +404,6 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
                # compute (i-j) distances for all structures in population
                d_sq[it] = np.sum(np.square(x - y), axis=1)
                it += 1
-		
-
-    # define i-j contact value
-    rcutsq = np.square(contactRange * (ri + rj))
 
     # sort distance arrays along the 'number of pairs' axis (along each column)
     d_sq.sort(axis=0)
@@ -413,12 +419,14 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
 
     # iterative correction to the probability (see Nan's PhD proposal)
 
-    # compute the fraction of excess contacts imposed 
-    t = cleanProbability(pnow, plast)
+    # compute the fraction of excess contacts imposed, replaced "plast" with "pwish"
+    #t = cleanProbability(pnow, plast)      # try p = cleanProbability(pnow, pwish) for IT correction
 
     # compute the 'corrected probability' of contacts to be assigned, to be used to 
     # determine the activation distances for Hi-C restraints
-    p = cleanProbability(pwish, t)
+    #p = cleanProbability(pwish, t)
+
+    p = pwish
 
     res = []
 
@@ -427,8 +435,7 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
         # identify the index pointing to what it is understood as activation distance
         o = min(n_possible_contacts * n_struct - 1,
                 int(round(n_possible_contacts * p * n_struct)))
-        
-        # identify the activation distance as the o-th quantile
+        # identify the activation distance as the o-th quantile, the take the sqrt
         activation_distance = np.sqrt(sortdist_sq[o])
 
         # if locii from same chromosome, there is a flag...if flag == 0, then
@@ -436,7 +443,9 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
         if (chrom[i] == chrom[j]) and (option == 0):
             res = [(i0, i1, activation_distance, p) for i0, i1 in zip(ii, jj)]
         else:
-            # if locii on different chromosomes, then we have 4 pairs of distances
+     
+            #logger.info(activation_distance, p)
+        #    # if locii on different chromosomes, then we have 4 pairs of distances
             res = [(i0, i1, activation_distance, p) for i0 in ii for i1 in jj]
 
     # return a list (n_pairs, 4), n_pairs = number of independent pairs
