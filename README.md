@@ -1,4 +1,4 @@
-
+ 
 IGM: An Integrated Genome Modeling Platform
 =====================================
 This is the modeling platform used in Frank U. Alber lab, University of California Los Angeles. The source code is in the ```igm``` folder.
@@ -19,7 +19,7 @@ Repository Organization
 - ``` igm ```: full IGM code(s)
 - ``` bin ```: IGM run, server and GUI scripts. In particular, refer to ```igm-run.sh``` (actual submission script) and ```igm-report.sh``` (post-processing automated script)
 - ``` test ```: example inputs (.hcs, .json files) for demo run
-- ``` HCP_scripts ```: create ipyparallel environment and submit actual IGM run on a SGE scheduler based HCP cluster
+- ``` HPC_scripts ```: create ipyparallel environment and submit actual IGM run on a SGE scheduler based HpC cluster
 - ```igm-run_scheme.pdf```: is a schematic which breaks down the different computing levels of IGM and tries to explain how the different parts of the code are related to one another.
 - ```IGM_documentation.pdf```: documentation (in progress)
 - ```igm-config_all.json```: most comprehensive configuration file which shows parameters for all data sets that can be accommodated
@@ -104,7 +104,7 @@ Instructions for Use
  
 In order to generate population of structures, the code has to be run in parallel mode, and High Performance Computing is necessary. The scripts to do that on a SGE scheduler-based HPC resources are provided in the ```HCP_scripts``` folder. Just to get an estimate, using 250 independent cores allows generating a 1000 200 kb resolution structure population in 10-15 hour computing time, which can vary depending on the number of different data sources that are used and on the number of iterations one decides to run.
 
-Populations of 5 or 10 structures at 200kb resolution (which is the current highest resolution we simulated) could in principle be generated serially on a "normal" desktop computer, but they have little statistical relevance. For example, 10 structures would only allow to deconvolute Hi-C contacts with probability larger than 10%, which is not sufficient for getting realistic populations. Serial executions are appropriate only at much lower resolution, as the computing burden is also much lower (an example is provided in the ```test``` folder, see also Software demo)
+Populations of 5 or 10 structures at 200kb resolution (which is the current highest resolution we simulated) could in principle be generated serially on a "normal" desktop computer, but they have little statistical relevance. For example, 10 structures would only allow to deconvolute Hi-C contacts with probability larger than 10%, which is not sufficient for getting realistic populations. Serial executions are appropriate only at much lower resolution, as the computing burden is also much lower (an example is provided in the ```demo``` folder, see also Software demo)
 
 Due to the necessity of HPC resources, we strongly recommend that the software be installed and run in a Linux environment. ALL the populations we have generated and analyzed were generated using a Linux environment. We cannot guarantee full functionality on a MacOS or Windows.
 
@@ -112,7 +112,7 @@ In order to run IGM to generate a population which uses a given combination of d
  
  -   Go into ```igm-config.json``` file (or your config file) and edit ```optimization/kernel_opts/lammps/lammps_executable``` so that it points to the actual lammps executable file being installed (see Installation on Linux)
 -   If run serially (as a test), go into ```igm-config.json``` (or your config) file and set ```parallel/controller``` to "serial". Then execute IGM (from the command line or by submitting a serial job to HPC cluster) by typing ```igm-run config_file.json >> output.txt```. 
--   If run in parallel (this is for actual calculations), go into ```igm-config.json``` file and set ```parallel/controller``` to "ipyparallel" and then follow the steps detailed in ```HCP_scripts\steps_to_submit_IGM.txt``` file and in the documentation, which rely on scripts also in the ```HCP_scripts``` folder. Specifically: create a running ipcluster environment (```bash create_ipcluster_environment.sh``` followed by ```qsub submit_engines.sh```) and only then submit the actual IGM calculation (```qsub submit_igm.sh```), which executes the ```igm-run igm-config.json``` command, i.e.
+-   If run in parallel (this is for actual calculations), go into ```igm-config.json``` file and set ```parallel/controller``` to "ipyparallel" and then follow the steps detailed in ```HPC_scripts\steps_to_submit_IGM.txt``` file and in the documentation, which rely on scripts also in the ```HPC_scripts``` folder. Specifically: create a running ipcluster environment (```bash create_ipcluster_environment.sh``` followed by ```qsub submit_engines.sh```) and only then submit the actual IGM calculation (```qsub submit_igm.sh```), which executes the ```igm-run igm-config.json``` command, i.e.
  
     ```
     bash create_ipcluster_environment.sh
@@ -126,7 +126,7 @@ In order to run IGM to generate a population which uses a given combination of d
 -   A non-successful run (for whatever reason) should produce the ```err_igm``` file with details about the reason why the run crashed.
  
  
-In order to get familiar with the configuration file and  the code execution, we provide a ```config_file.json``` demo configuration file for running a 2Mb resolution WTC11 population using Hi-C data only: that is found in the ```test``` folder. 
+In order to get familiar with the configuration file and  the code execution, we provide a ```config_file.json``` demo configuration file for running a 2Mb resolution WTC11 population using Hi-C data only: that is found in the ```demo``` folder. 
 
 A comprehensive configuration file ```igm-config_all.json``` for running a HFF population with all data types (Hi-C, lamina DamID, SPRITE and 3D HIPMap FISH) is also provided here as a reference/template. Clearly, each user must specify their own input files.
  
@@ -136,7 +136,7 @@ A comprehensive configuration file ```igm-config_all.json``` for running a HFF p
  
  Sample files at provided to simulate a Hi-C only population of WTC11 (spherical nucleus) at 2Mb resolution, to get familiar with the basics of the code
  
--   Enter the ```test``` folder: data and scripts for a 2Mb IGM calculation with Hi-C restraints are provided;
+-   Enter the ```demo``` folder: data and scripts for a 2Mb IGM calculation with Hi-C restraints are provided;
     -   ```.hcs``` file is a 2Mb resolution Hi-C contact map
     - ``` config_file.json ``` is the .json configuration file with all the parameters needed for the calculation. In particular, we generate 100 structures, which means the lowest contact probability we can target is 0.01 (1 %). For different setups, we recommend using different names for the configuration file to avoid confusion. Whatever name is chosen, it will have to be updated when running the scripts.
     - Run IGM as detailed in the previous section (```igm-run config_file.json```), either serially or in parallel; the serial calculation (on a normal computer) all the way down to 1% probability should be completed in a few hours.
