@@ -8,11 +8,13 @@ August 2021
 
 -  Hi-C data, SPRITE data
 -  lamina DamID data in combination with ellipsoidal/spherical nuclear envelope
--  FISH data, both "pairs" and "radial" options active (a code is available to interpolated data if the number of points in the availablr distribution is smaller than the number of structures we would like to simulate)
+-  FISH data, both "pairs" and "radial" options active
 
 For any inquiry, please send an email to Lorenzo Boninsegna (bonimba@g.ucla.edu) (feedbacks and advice are much appreciated!!!)
 
+In order to generate population of structures, the code has to be run in parallel mode. The scripts to do that on a SGE scheduler-based HCP resources are provided in the ```HCP_scripts``` folder. Just to get an estimate, using 250 independent cores allows generating a 1000 structure population in 10-15 hour computing time, which can vary depending on the number of different data sources that are used and on the number of iterations one decides to run.
 
+Due to the necessity of HCP resources, we strongly recommend that the software be installed and run in a Linux environment. ALL the populations we have generated and analyzed were generated using a Linux environment.
 
 Documentation
 ------------
@@ -82,7 +84,7 @@ Installation on linux
     echo "optimization/kernel_opts/lammps/lammps_executable = "$(pwd)/src/lmp_serial >> ${HOME}/.igm/user_defaults.cfg
     ```
 
-Installation on MacOS
+Installation on MacOS (this is to be avoided, we realized any MacOS update can suddenly compromise the functionality of the code. This installation was sometimes used to test different parts of the code in a serial environment, but never to generate populations)
 --------------
 -   Installation on MacOS poses additional challenges, especially on 11.14 Mojave (updated Sept 2019).  ```gcc``` compiler may not be pre-installed; instead, the more efficient ```clang``` might be (this can be checked with ```gcc --version```):
 
@@ -115,69 +117,6 @@ If you are getting this printout, then there is NO actual gcc installed. In orde
 
 
 
-Quickstart
-----------
-IGM has a web-based ui, which is probably the quickest way to setup and perform a IGM run. After installing igm,
-create a new directory, register it as IGM directory, and start a server
-
-```
-mkdir igm_test
-cd igm_test
-igm-register-dir
-igm-server
-```  
-
-You shoud see something like this:
-
-```
-##### Securing server #####
-Reading secure tokens from /home/polles/.igm/server-cfg.json
-
-######################
-##### IGM Server #####
-######################
-
-The way to connect to the server depends on your platform.
-The list of ips for this machine is: 
- ['xxx.xxx.xxx.xxx', '192.168.0.17'] 
-
-If the machine running igm-server is accessible from your workstation, my educated guess is to try to copy and paste the 
-following address in your browser:
-      192.168.0.17:43254?q=f50e03667b184cd0b98d684fbc66419e
-If the machine is not accessible from your workstation you may need to set up a tunnel (with --tunnel option) to a node 
-which is accessible from your workstation (for example a login node)
-
-The secure token for this session is: f50e03667b184cd0b98d684fbc66419e
-##### IGM server starting #####
-
-```
-
-There are details to take into consideration here. If you are running locally, it should be sufficient to point your
-browser to the address provided. If you are running on a cluster, you need to obtain access to that machine and port
-from your local machine.
-
-`igm-server` can also try to estabilish a ssh tunnel with a remote machine as endpoint using the --tunnel option.
-See `igm-server --help` for all the options.
-
-The first thing to set up in order to perform a run is a configuration file, in json format. The amount of options is 
-pretty massive, but to make it easier, it can be created from the UI. Most of the defaults are usually okay. For people
-allergic to UIs, the schema is described in a file included in IGM, its location can be found out using:
-
-```python -c "import igm; print(igm.__file__.replace('__init__.py', '') + 'core/defaults/config_schema.json')"```
-
-Use on clusters
----------------
-You can actually run a simulation on a local machine but, I mean, do you really want to? Anyway, the code should work 
-with three different kind of parallel schedulers. The first is a basic serial, for testing very quick runs. Then there
-are *dask* and *ipyparallel*. Ipyparallel is widely tested, for dask it may work. Also there is  a SLURM controller, but
-it may hurt your performance, so the other options are probably better. 
-
-The main idea is that, whatever is your undelying platform, you should first start a ipyparallel or dask cluster there,
-with a scheduler and workers running. Once that is up, you can run igm either from the UI or the command line.
-The command `igm-run` can be called from the igm directory and takes the configuration json as the only argument.
-
-`igm-run igm-config.json`
-
 Important notes
 ---------------
 -   IGM uses works mostly through the file system. The reason for the design stood on the local cluster details, persistence
@@ -197,6 +136,7 @@ Sample files at provided to simulate a Hi-C only population of WTC11 (spherical 
     - ``` config_file.json ``` is the .json configuration file with all the parameters needed for the calculation.
 -   Edit the path entries to the lammps executable file (and all paths, if needed)
 -   ```igm-run config_file.json >> output.txt```
+-   A successful run should generate a igm.log and stepdb.splite files, and finally a sequence of intermediate .hss genome populations. 
 
 Cite
 ------------
