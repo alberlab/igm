@@ -472,6 +472,14 @@
                 "min" : 0.0,
                 "description" : "The force constant for FISH restraints [F=-k(x - x0), where x is the distance, x0 the target distance, and k the force constant]"
             },
+		
+	    "batch_size" : {
+                "label" : "FISH data batch size",
+                "dtype" : "int",
+                "default" : 200,
+                "min" : 1,
+                "description" : "Batch size with which FISH data is processed"
+            },
 
             "tmp_dir" : {
                 "label" : "FISH temporary sub-directory",
