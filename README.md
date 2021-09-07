@@ -12,9 +12,11 @@ August 2021
 
 For any inquiry, please send an email to Lorenzo Boninsegna (bonimba@g.ucla.edu) (feedbacks and advice are much appreciated!!!)
 
-In order to generate population of structures, the code has to be run in parallel mode. The scripts to do that on a SGE scheduler-based HCP resources are provided in the ```HCP_scripts``` folder. Just to get an estimate, using 250 independent cores allows generating a 1000 structure population in 10-15 hour computing time, which can vary depending on the number of different data sources that are used and on the number of iterations one decides to run.
+In order to generate population of structures, the code has to be run in parallel mode, and High Performance Computing is necessary. The scripts to do that on a SGE scheduler-based HPC resources are provided in the ```HCP_scripts``` folder. Just to get an estimate, using 250 independent cores allows generating a 1000 structure population in 10-15 hour computing time, which can vary depending on the number of different data sources that are used and on the number of iterations one decides to run.
 
-Due to the necessity of HCP resources, we strongly recommend that the software be installed and run in a Linux environment. ALL the populations we have generated and analyzed were generated using a Linux environment.
+Populations of 5 or 10 structures could in principled be generated serially on a "normal" desktop computer, but they have little statistical relevance. For example, 10 structures would only allow to deconvolute Hi-C contacts with probability larger than 10%, which is not sufficient for getting realistic populations. 
+
+Due to the necessity of HPC resources, we strongly recommend that the software be installed and run in a Linux environment. ALL the populations we have generated and analyzed were generated using a Linux environment.
 
 Documentation
 ------------
@@ -131,15 +133,15 @@ Important notes
     processes have yet to be completely and exaustively documented publicly. We are working on it, but in the meantime
     email if you need help.
   
-Test
+Demo
 ----
 Sample files at provided to simulate a Hi-C only population of WTC11 (spherical nucleus) at 2Mb resolution, to get familiar with the basics of the code
 -   Enter the ```test``` folder: data and scripts for a 2Mb IGM calculation with Hi-C restraints are provided;
     -   ```.hcs``` file is a 2Mb resolution Hi-C contact map
     - ``` config_file.json ``` is the .json configuration file with all the parameters needed for the calculation.
 -   Edit the path entries to the lammps executable file (and all paths, if needed)
--   ```igm-run config_file.json >> output.txt```
--   A successful run should generate a igm.log and stepdb.splite files, and finally a sequence of intermediate .hss genome populations. 
+-   ```igm-run config_file.json >> output.txt```. Ideally, this command is given within a bash submission script to a HPC cluster, as detailed in the ```HCP_scripts``` folder and in the documentation.
+-   A successful run should generate a igm.log and stepdb.splite files, and finally a sequence of intermediate .hss genome populations (see ```IGM_documentation.pdf```. 
 
 Cite
 ------------
