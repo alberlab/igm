@@ -140,7 +140,7 @@ Sample files at provided to simulate a Hi-C only population of WTC11 (spherical 
     -   ```.hcs``` file is a 2Mb resolution Hi-C contact map
     - ``` config_file.json ``` is the .json configuration file with all the parameters needed for the calculation.
 -   Edit the path entries to the lammps executable file (and all paths, if needed)
--   ```igm-run config_file.json >> output.txt```. Ideally, this command is given within a bash submission script to a HPC cluster, as detailed in the ```HCP_scripts``` folder and in the documentation.
+-   ```igm-run config_file.json >> output.txt```. Ideally, this command is given within a bash submission script to a HPC cluster, as detailed in the ```HCP_scripts\steps_to_submit_IGM.txt``` file and in the documentation.
 -   A successful run should generate a igm.log and stepdb.splite files, and finally a sequence of intermediate .hss genome populations (see ```IGM_documentation.pdf```. 
 
 Cite
