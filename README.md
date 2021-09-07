@@ -105,7 +105,7 @@ Important notes
     processes have yet to be completely and exaustively documented publicly. We are working on it, but in the meantime
     email if you need help.
   
-Demo
+Instructions for Use & Demo
 ----
 Sample files at provided to simulate a Hi-C only population of WTC11 (spherical nucleus) at 2Mb resolution, to get familiar with the basics of the code
 -   Enter the ```test``` folder: data and scripts for a 2Mb IGM calculation with Hi-C restraints are provided;
