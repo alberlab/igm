@@ -420,13 +420,13 @@ def get_actdist(i, j, pwish, plast, hss, contactRange=2, option=0):
     # iterative correction to the probability (see Nan's PhD proposal)
 
     # compute the fraction of excess contacts imposed, replaced "plast" with "pwish"
-    #t = cleanProbability(pnow, plast)      # try p = cleanProbability(pnow, pwish) for IT correction
+    t = cleanProbability(pnow, plast)      # try p = cleanProbability(pnow, pwish) for IT correction
 
     # compute the 'corrected probability' of contacts to be assigned, to be used to 
     # determine the activation distances for Hi-C restraints
-    #p = cleanProbability(pwish, t)
+    p = cleanProbability(pwish, t)
 
-    p = pwish
+    #p = pwish
 
     res = []
 
