@@ -133,7 +133,7 @@ In order to run IGM to generate a population which uses a given combination of d
  [Commands and sintax will need to be adapted if different scheduler than SGE is available]
  
 -   A successful run should generate a ```igm.log``` and ```stepdb.splite``` files, a number of temporary files from the Assignment Steps and finally  a sequence of intermediate .hss genome populations, each resulting from a different A/M iteration (see ```IGM_documentation.pdf```). The file ```igm-model.hss``` will contain the optimized population at the end of the pipeline. hss files can be read conveniently using the ```alabtools``` package which was mentioned already.
--   A non-successful run (for whatever reason) should produce the ```err_igm``` file with details about the reason why the run crashed.
+-   A non-successful run (for whatever reason) should produce the ```err_igm``` file with details about the reason why the run crashed. If a run accidentally crashes (like, a node goes down), resubmitting the calculation using ```qsub submit_igm.sh``` (assuming the ipcluster environment is still up and running) will pick up exactly where the previous run left off. However, if a fresh new calculation has to start from the top, please make sure all the temporary files (including the database ```stepdb.splite```) and the ```tmp``` folder are removed before submitting.
  
  
 In order to get familiar with the configuration file and  the code execution, we provide a ```config_file.json``` demo configuration file for running a 2Mb resolution WTC11 population using Hi-C data only: that is found in the ```demo``` folder. 
