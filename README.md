@@ -45,8 +45,10 @@ available on pip. In addition, some other packages are required:
 Installation on linux
 ---------------------
 -   Many of the alabtools and IGM dependencies can be installed with a
-    few commands if you are using conda 
+    few commands if you are using conda
     (https://www.anaconda.com/distribution/)
+    
+    Please note, we are running conda versions back from 2019. More recent versions might cause compatibility issues.
     ```
     # optional - create a new environment for igm
     conda create -n igm python=3.6
