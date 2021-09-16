@@ -1,16 +1,24 @@
- 
+Achtung: if software downloaded before Sept. 16th, please reinstall
+===============
+
+We realized there were some broken files in the uploaded version, we corrected that. If you downloaded and installed the software before Sept 16th, please go ahead, purge the version you have and reinstall it. We apologize for that.
+
+For any inquiry, please send an email to Lorenzo Boninsegna (bonimba@g.ucla.edu) (feedbacks and advice are much appreciated!!!)
+
+
+
 IGM: An Integrated Genome Modeling Platform
 =====================================
 This is the modeling platform used in Frank U. Alber lab, University of California Los Angeles. The source code is in the ```igm``` folder.
 A population of individual full genome (diploid) structures is generated, which fully recapitulates a variety of experimental genomic and/or imaging data. It does NOT preprocess raw data.
 
-August 2021
+Sept 2021
 
 -  Hi-C data, SPRITE data
 -  lamina DamID data in combination with ellipsoidal/spherical nuclear envelope
 -  FISH data, both "pairs" and "radial" options active
 
-For any inquiry, please send an email to Lorenzo Boninsegna (bonimba@g.ucla.edu) (feedbacks and advice are much appreciated!!!)
+
  
 
 Repository Organization
