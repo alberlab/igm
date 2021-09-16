@@ -13,6 +13,8 @@ class Restraint(object):
     OTHER = -1
     CONSECUTIVE = 0
     HIC = 1
+    INTRA_HIC = 9
+    INTER_HIC = 10
     DAMID = 2
     FISH_RADIAL = 3
     FISH_PAIR = 4
