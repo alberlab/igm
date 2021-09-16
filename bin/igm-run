@@ -188,7 +188,7 @@ def run_pipeline(cfgfile):
             if  (
                     'Hi-C' in cfg['restraints'] and
                     opt_iter == 0 and
-                    cfg.get("runtime/Hi-C/sigma") <= cfg.get('optimization/force_minimum_iterations_hic_cutoff', 0.0)
+                    cfg.get("runtime/Hi-C/intra_sigma") <= cfg.get('optimization/force_minimum_iterations_hic_cutoff', 0.0)
                 ):
                 force_next_iteration = True
 
