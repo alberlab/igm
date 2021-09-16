@@ -1,7 +1,7 @@
-Notice: if software downloaded before Sept. 16th, please reinstall
+Notice: if software downloaded before Sept. 17th, 2021 please reinstall
 ===============
 
-We realized there were some broken files in the uploaded version, we corrected that. If you downloaded and installed the software before Sept 16th, please go ahead, purge the version you have and reinstall it. We apologize for that.
+We realized there were some broken files in the originally uploaded version, we corrected that. If you downloaded and installed the software before Sept 17th, please go ahead and reinstall it (see Installation section below). We apologize for the inconvenience.
 
 For any inquiry, please send an email to Lorenzo Boninsegna (bonimba@g.ucla.edu) (feedbacks and advice are much appreciated!!!)
 
