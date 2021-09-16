@@ -189,6 +189,7 @@ class Fish(Restraint):
                     self.forceID.append(f)
 
             if minpair:
+
                 pairs   = hff['pairs'][()]
                 targets = hff['pair_min'][:, struct_id][()]
 
@@ -253,8 +254,8 @@ class Fish(Restraint):
             
 
                    # find the furthest pair and keep it from getting
-                   # too close (look into this)
-                   m, n = sorted_pairs[0]
+                   # too close to each other (look into this)
+                   m, n = sorted_pairs[-1]
                    f = HarmonicLowerBound((m, n), 
                                        k=ck,
                                        d=max(0, target_dist - tol),

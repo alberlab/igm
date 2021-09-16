@@ -14,7 +14,7 @@ from alabtools.analysis import HssFile
 
 from ..core import StructGenStep
 from ..model import Model, Particle
-from ..restraints import Polymer, Envelope, Steric, HiC, Sprite, Damid, Nucleolus, GenEnvelope, Fish
+from ..restraints import Polymer, Envelope, Steric, intraHiC, interHiC, Sprite, Damid, Nucleolus, GenEnvelope, Fish
 from ..utils import HmsFile
 from ..utils.files import h5_create_group_if_not_exist, h5_create_or_replace_dataset, make_absolute_path
 from ..parallel.async_file_operations import FilePoller
@@ -22,7 +22,7 @@ from ..utils.log import logger, bcolors
 from .RandomInit import generate_random_in_sphere
 from tqdm import tqdm
 
-
+# specifying violation histogram properties
 DEFAULT_HIST_BINS = 100
 DEFAULT_HIST_MAX = 0.1
 
@@ -32,14 +32,19 @@ class ModelingStep(StructGenStep):
     def name(self):
 
         """ This explains verbatim which optimization is performed, is printed to the logger """
-        """ NEED TO POSSIBLY ADD THE FISH STRING """
 
         s = 'ModelingStep'
         additional_data = []
         if "Hi-C" in self.cfg['restraints']:
             additional_data .append(
-                'sigma={:.2f}%'.format(
-                    self.cfg['runtime']['Hi-C']['sigma'] * 100.0
+                'inter_sigma={:.2f}%'.format(
+                    self.cfg['runtime']['Hi-C']['inter_sigma'] * 100.0
+                )
+            )
+
+            additional_data .append(
+                'intra_sigma={:.2f}%'.format(
+                    self.cfg['runtime']['Hi-C']['intra_sigma'] * 100.0
                 )
             )
 
@@ -53,7 +58,7 @@ class ModelingStep(StructGenStep):
         if "sprite" in self.cfg['restraints']:
             additional_data .append(
                 'sprite={:.1f}%'.format(
-                    self.cfg['restraints']['sprite']['volume_fraction'] * 100.0
+                    self.cfg['runtime']['sprite']['volume_fraction'] * 100.0
                 )
             )
 
@@ -90,7 +95,7 @@ class ModelingStep(StructGenStep):
 
     def _run_poller(self):
 
-        """ Setup polling function (See also RelaxInit.py script) """
+        """ Setup, run and teardown polling function (See also RelaxInit.py script) """
 
         readyfiles = [
             os.path.join(self.tmp_dir, '%s.%d.ready' % (self.uid, struct_id))
@@ -163,6 +168,7 @@ class ModelingStep(StructGenStep):
         with HssFile(hssfilename, 'r') as hss:
             index = hss.index
             radii = hss.radii
+            chrom = hss.get_index().chrom
             if cfg.get('optimization/random_shuffling', False):
                 crd = generate_random_in_sphere(radii, cfg.get('model/restraints/envelope/nucleus_radius'))
             else:
@@ -201,7 +207,10 @@ class ModelingStep(StructGenStep):
             semiaxes = cfg.get('model/restraints/envelope/nucleus_semiaxes')
             ev = Envelope(shape, semiaxes, envelope_k)
         elif cfg['model']['restraints']['envelope']['nucleus_shape'] == 'exp_map':
-            volume_file  = cfg.get('model/restraints/envelope/input_map')
+            
+            env_idx = struct_id % 4
+
+            volume_file  = cfg['model']['restraints']['envelope']['input_map'][env_idx]
             ev = GenEnvelope(shape, volume_file, envelope_k)
 
         model.addRestraint(ev)
@@ -239,10 +248,15 @@ class ModelingStep(StructGenStep):
             contact_range = cfg.get('restraints/Hi-C/contact_range', 2.0)
             k             = cfg.get('restraints/Hi-C/contact_kspring', 0.05)
 
-            # effectively add HiC restraints (bonds)
-            hic           = HiC(actdist_file, contact_range, k)
-            model.addRestraint(hic)
-            monitored_restraints.append(hic)
+            # effectively add inter  HiC restraints (bonds)
+            interhic           = interHiC(actdist_file, chrom, contact_range, k)   # LB, add chrom option
+            model.addRestraint(interhic)
+            monitored_restraints.append(interhic)
+
+            intrahic           = intraHiC(actdist_file, chrom, contact_range, k)   # LB, add chrom option
+            model.addRestraint(intrahic)
+            monitored_restraints.append(intrahic)
+
 
         # add DAMID restraint
         if "DamID" in cfg['restraints']:
@@ -267,18 +281,22 @@ class ModelingStep(StructGenStep):
                 cfg.get('restraints/sprite/tmp_dir', 'sprite'),
                 cfg.get('parameters/tmp_dir')
             )
-            assignment_filename = make_absolute_path(
-                cfg.get('restraints/sprite/assignment_file', 'assignment.h5'),
+            sprite_assignment_filename = make_absolute_path(
+                cfg.get('restraints/sprite/assignment_file', 'sprite_assignment.h5'),
                 sprite_tmp
             )
 
+            kspring = cfg['restraints']['sprite']['kspring']
+            vol_fraction = cfg['runtime']['sprite']['volume_fraction']
+
             # effectively add SPRITE retraints 
             sprite = Sprite(
-                assignment_filename,
-                cfg.get('restraints/sprite/volume_fraction', 0.05),
-                struct_id,
-                cfg.get('restraints/sprite/kspring', 1.0)
+                sprite_assignment_filename,
+                volume_occupancy = vol_fraction,
+                struct_id = struct_id,
+                k = kspring
             )
+
             model.addRestraint(sprite)
             monitored_restraints.append(sprite)
 
@@ -331,6 +349,7 @@ class ModelingStep(StructGenStep):
                     else:
 			# one value is appended at the time to vs = []
                         vs.append(f.getViolationRatio(model.particles))
+
                 vs = np.array(vs)
                 H, edges = get_violation_histogram(vs)
                 violated_restr = np.count_nonzero(vs)          # how many violations
@@ -530,15 +549,15 @@ class ModelingStep(StructGenStep):
             '-v'
         ]
 
+        logger.info('Repacking...')
         sp = Popen(cmd, stderr=PIPE, stdout=PIPE)
-        logger.info('repacking...')
         stdout, stderr = sp.communicate()
         if sp.returncode != 0:
             print(' '.join(cmd))
             print('O:', stdout.decode('utf-8'))
             print('E:', stderr.decode('utf-8'))
             raise RuntimeError('repacking failed. error code: %d' % sp.returncode)
-        logger.info('done.')
+        logger.info('...done!')
 
         # save the output file with a unique file name if requested (see 'intermediate_name' function below)
         if self.keep_intermediate_structures:
@@ -571,22 +590,28 @@ class ModelingStep(StructGenStep):
         additional_data = []
         
         if "DamID" in self.cfg['runtime']:
-            additional_data .append(
+            additional_data.append(
                 'damid_{:.4f}'.format(
                     self.cfg.get('runtime/DamID/sigma', -1.0)
                 )
             )
         if "Hi-C" in self.cfg['runtime']:
-            additional_data .append(
-                'sigma_{:.4f}'.format(
-                    self.cfg['runtime']['Hi-C'].get('sigma', -1.0)
+            additional_data.append(
+                'inter_sigma_{:.4f}'.format(
+                    self.cfg['runtime']['Hi-C'].get('inter_sigma', -1.0)
+                )
+            )
+
+            additional_data.append(
+                'intra_sigma_{:.4f}'.format(
+                    self.cfg['runtime']['Hi-C'].get('intra_sigma', -1.0)
                 )
             )
 
         if "sprite" in self.cfg['restraints']:
-            additional_data .append(
+            additional_data.append(
                 'sprite_{:.1f}'.format(
-                    self.cfg['restraints']['sprite']['volume_fraction'] * 100.0
+                    self.cfg['runtime']['sprite']['volume_fraction'] * 100.0
                 )
             )
 

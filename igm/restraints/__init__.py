@@ -9,3 +9,5 @@ from .damid       import Damid
 from .nucleolus   import Nucleolus
 from .genenvelope import GenEnvelope
 from .fish        import Fish
+from .inter_hic   import interHiC
+from .intra_hic   import intraHiC
