@@ -1,4 +1,4 @@
-Achtung: if software downloaded before Sept. 16th, please reinstall
+Notice: if software downloaded before Sept. 16th, please reinstall
 ===============
 
 We realized there were some broken files in the uploaded version, we corrected that. If you downloaded and installed the software before Sept 16th, please go ahead, purge the version you have and reinstall it. We apologize for that.
