@@ -121,8 +121,8 @@ def run_pipeline(cfgfile):
                 iter_steps.append(igm.HicEvaluationStep)
                 igm.logger.info('Running Hi-C evaluation step...')
 
-            igm.logger.info('Running the following steps ' + str(iter_steps))
-            igm.logger.info('\n\n')
+            #igm.logger.info('Running the following steps ' + str(iter_steps))
+            #igm.logger.info('\n\n')
 
             # run all the steps from master list "iter_steps"
             for StepClass in iter_steps:
@@ -201,7 +201,8 @@ def run_pipeline(cfgfile):
 
                 if is_hic_incomplete:
                     # ... remove current HiC sigma value from cfg["runtime"], and move on to the next
-                    del cfg["runtime"]["Hi-C"]["sigma"]
+                    del cfg["runtime"]["Hi-C"]["intra_sigma"]
+                    del cfg["runtime"]["Hi-C"]["inter_sigma"]
                     # reset iteration number counter
                     opt_iter = 0
 
