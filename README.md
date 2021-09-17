@@ -181,5 +181,5 @@ If you are getting this printout, then there is NO actual gcc installed. In orde
 
 -   Make sure the default gcc compiler points to that folder. This is the tricky part, since editing the PATH variable does not seem to always work. Renaming the executables seems to work but, again, no guarantee (see for instance ```https://stackoverflow.com/questions/28970935/osx-replace-gcc-version-4-2-1-with-4-9-installed-via-homebrew/28982564```)
 
--   Then, ```alabtools``` can be installed in the regular way
+-   Then, ```alabtools``` can be installed in the regular way (and ```igm``` also)
 
