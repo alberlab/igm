@@ -158,8 +158,8 @@ If you use genome structures generated using this platform OR you use the platfo
     
    Installation on MacOS (updated, Spt 2019)
 --------------
-- this is to be avoided, we realized any MacOS update can suddenly compromise the functionality of the code. This installation was sometimes used to test different parts of the code in a serial environment, but never to generate populations)
--   Installation on MacOS poses additional challenges, especially on 11.14 Mojave (updated Sept 2019).  ```gcc``` compiler may not be pre-installed; instead, the more efficient ```clang``` might be (this can be checked with ```gcc --version```):
+- this is tricky, we realized first hand that any MacOS update can suddenly compromise the functionality of the code. This installation was sometimes used to test different parts of the code in a serial environment, but never to generate populations.
+-   Installation on MacOS poses additional challenges, especially on 11.14 Mojave (updated Sept 2019).  Standard  GNU ```gcc``` compiler may not be pre-installed; instead, the more efficient ```clang``` might be (this can be checked with ```gcc --version```):
 
     ``` 
     $ which gcc
@@ -175,16 +175,11 @@ If you use genome structures generated using this platform OR you use the platfo
 If you are getting this printout, then there is NO actual gcc installed. In order to circumvent that, the following procedure worked for me:
 
 -   First install ```gcc``` using ```Homebrew```: 
-    ``` brew install gcc```
+    ``` brew install gcc@9```
 
-    A gcc compiler will be installed, but we still need to make sure it supercedes the default ```clang```, anytime the C compiler is called. Assume the 9.0 version was installed, then the default installation path reads ```/usr/local/Cellar/gcc/9.0.2/```
+    A gcc compiler will be installed, but we still need to make sure it supercedes the default ```clang```, anytime the C compiler is called. Assume the 9 version was installed, then the default installation path reads ```/usr/local/Cellar/gcc/9.0.2/```
 
--   Make sure the default gcc compiler points to that folder, i.e.
-
-    ``` 
-    export CXX=/usr/local/Cellar/gcc/9.0.2/gcc+-9
-    export CC=/usr/local/Cellar/gcc/9.0.2/gcc-9
-    ```
+-   Make sure the default gcc compiler points to that folder. This is the tricky part, since editing the PATH variable does not seem to always work. Renaming the executables seems to work but, again, no guarantee (see for instance ```https://stackoverflow.com/questions/28970935/osx-replace-gcc-version-4-2-1-with-4-9-installed-via-homebrew/28982564```)
 
 -   Then, ```alabtools``` can be installed in the regular way
 
