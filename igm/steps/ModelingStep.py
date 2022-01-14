@@ -1,3 +1,9 @@
+#
+# Modeling Step: upon Assignment, each data point is cast into a spatial restraint, and simulated annealing and 
+# conjugated gradient are used to relax the structures into stable configurations
+# ------------------------------------
+
+
 from __future__ import division, print_function
 
 import os
@@ -323,7 +329,8 @@ class ModelingStep(StructGenStep):
             model.addRestraint(fish)
             monitored_restraints.append(fish) 
         
-        # ========Optimization
+        # ====== actual optimization: restraints have been assigned, now relax structures
+	
         cfg['runtime']['run_name'] = cfg.get('runtime/step_hash') + '_' + str(struct_id)
         optinfo = model.optimize(cfg)
 
