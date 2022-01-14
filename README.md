@@ -25,8 +25,8 @@ Repository Organization
 -----------------------
 
 - ``` igm ```: full IGM code(s)
-- ``` bin ```: IGM run, server and GUI scripts. In particular, refer to ```igm-run.sh``` (actual submission script) and ```igm-report.sh``` (post-processing automated script)
-- ``` test ```: example inputs (.hcs, .json files) for demo run
+- ``` bin ```: IGM run, server and GUI scripts. In particular, refer to ```igm-run.sh``` (actual submission script) and ```igm-report.sh``` (post-processing automated script). GUI scripts have been discontinued.
+- ``` demo ```: example inputs (.hcs, .json files) for demo run
 - ``` HPC_scripts ```: create ipyparallel environment and submit actual IGM run on a SGE scheduler based HpC cluster
 - ```igm-run_scheme.pdf```: is a schematic which breaks down the different computing levels of IGM and tries to explain how the different parts of the code are related to one another.
 - ```IGM_documentation.pdf```: documentation (in progress)
