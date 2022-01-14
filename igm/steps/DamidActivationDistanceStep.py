@@ -1,3 +1,10 @@
+#---------------------------------
+#
+# This code performs the ASSIGNMENT STEP for lamin DamID data (lamina contact probabilities). The core function is "get_damid_actdist()", and the numerics
+# is detailed in the Supporting Information, under "Assignment Step/lamina DamID"
+##
+#---------------------------------
+
 from __future__ import division, print_function
 import numpy as np
 import h5py
@@ -316,9 +323,6 @@ def get_damid_actdist(locid, pwish, plast, hss, contact_range=0.05, shape="spher
 
     r = hss.get_radii()[ ii[0] ]
 
-    # rescale pwish considering the number of copies
-    # pwish = np.clip(pwish/n_copies, 0, 1)
-
     d_sq = np.empty(n_copies*n_struct)
 
     for i in range(n_copies):
@@ -331,8 +335,7 @@ def get_damid_actdist(locid, pwish, plast, hss, contact_range=0.05, shape="spher
     d_sq[::-1].sort()
 
     contact_count = np.count_nonzero(d_sq >= rcutsq)
-    # pnow        = float(contact_count) / (n_copies * n_struct)
-    # approx 1 when at least one contact is there in each cell
+
     pnow = float(contact_count) / n_struct / n_copies
 
     # iterative correction
