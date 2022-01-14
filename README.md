@@ -1,22 +1,16 @@
-Notice: if software downloaded before Sept. 17th, 2021 please reinstall
-===============
-
-We realized there were some broken files in the originally uploaded version, we corrected that. If you downloaded and installed the software before Sept 17th, please go ahead and reinstall it (see Installation section below). We apologize for the inconvenience.
-
-For any inquiry, please send an email to Lorenzo Boninsegna (bonimba@g.ucla.edu) (feedbacks and advice are much appreciated!!!)
-
-
 
 IGM: An Integrated Genome Modeling Platform
 =====================================
-This is the modeling platform used in Frank U. Alber lab, University of California Los Angeles. The source code is in the ```igm``` folder.
+This is the modeling platform used in Frank U. Alber lab, University of California Los Angeles. For any inquiry, please send an email to Lorenzo Boninsegna (bonimba@g.ucla.edu) (feedbacks and advice are much appreciated!!!). The source code is in the ```igm``` folder.
 A population of individual full genome (diploid) structures is generated, which fully recapitulates a variety of experimental genomic and/or imaging data. It does NOT preprocess raw data.
 
-Sept 2021
+Jan 2022
 
 -  Hi-C data, SPRITE data
 -  lamina DamID data in combination with ellipsoidal/spherical nuclear envelope
 -  FISH data, both "pairs" and "radial" options active
+-  if software downloaded and installed before Sept. 17th, 2021, please reinstall [We realized there were some broken files in the originally uploaded version, we corrected that. If you downloaded and installed the software before Sept 17th, please go ahead and reinstall it (see Installation section below). We apologize for the inconvenience.]
+
 
 
  
@@ -109,8 +103,8 @@ Important notes
     processes have yet to be completely and exaustively documented publicly. We are working on it, but in the meantime
     email if you need help.
   
-Instructions for Use
-----
+Using IGM
+=====================
  
 In order to generate population of structures, the code has to be run in parallel mode, and High Performance Computing is necessary. The scripts to do that on a SGE scheduler-based HPC resources are provided in the ```HCP_scripts``` folder. Just to get an estimate, using 250 independent cores allows generating a 1000 200 kb resolution structure population in 10-15 hour computing time, which can vary depending on the number of different data sources that are used and on the number of iterations one decides to run.
 
