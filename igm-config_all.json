@@ -91,6 +91,7 @@
 
     },
     "optimization": {
+        "iter_corr_knob": 1,
         "min_iterations": 5,
         "force_last_iteration": true,
         "force_minimum_iterations_hic_cutoff": 0.0,
