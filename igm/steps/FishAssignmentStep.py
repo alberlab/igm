@@ -1,3 +1,11 @@
+# -----------------------------------------
+#
+# This code performs the Assignment Step for either radial or pairwise 3D FISH data. The numerics (including, but not limited to, distiction between
+# radial, pairwise, minimal and maximal distances) is detailed in the Supporting Information under "Assignment/3D HIPMap data"
+# -----------------------------------------
+# -----------------------------------------
+
+
 from __future__ import division, print_function
 import numpy as np
 import h5py
