@@ -154,7 +154,8 @@ A comprehensive configuration file ```igm-config_all.json``` for running a HFF p
 
 Cite
 ------------
-If you use genome structures generated using this platform OR you use the platform to generate your own structure, please consider citing our work
+If you use genome structures generated using this platform OR you use the platform to generate your own structure, please consider citing our work:
+ Boninsegna et al. (2021) https://www.biorxiv.org/content/10.1101/2021.08.22.457288v1 (currently, under revision)
     
    Installation on MacOS (updated, Spt 2019)
 --------------
