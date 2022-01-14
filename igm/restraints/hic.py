@@ -1,3 +1,7 @@
+## ---------------------------
+# Allocate Hi-C restraints (using the "Actdist.hdf5" file from the Assignment Step) as forces between particles to the model object in IGM
+## ---------------------------
+
 from __future__ import division, print_function
 
 import numpy as np
