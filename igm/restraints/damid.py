@@ -1,3 +1,9 @@
+## ---------------------------
+# Allocate DamID restraints (using the "DamIDActdist.hdf5" file from the Assignment Step) as "EllipticEnvelope" forces between particles to the model object in IGM
+## ---------------------------
+
+
+
 from __future__ import division, print_function
 
 import numpy as np
