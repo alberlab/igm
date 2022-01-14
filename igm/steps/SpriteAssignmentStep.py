@@ -1,3 +1,12 @@
+#
+#
+# This code performs the ASSIGNEMET STEP for single cell SPRITE data (Quinodoz, 2018). THe numerics is detailed in the Supporting Information under
+# "Assignment/SPRITE"
+#
+# --------------------------------
+# --------------------------------
+
+
 from __future__ import division, print_function
 import numpy as np
 import h5py
@@ -19,11 +28,31 @@ except ImportError:
 
 class SpriteAssignmentStep(Step):
 
+    def __init__(self, cfg):
+
+        """ The value of SPRITE SCALING to be used this time around is computed and stored """
+
+        # prepare the list of SPRITE tolerances in the "runtime" status, unless already there
+        if 'volume_fraction_list' not in cfg.get("runtime/sprite"):
+            cfg["runtime"]["sprite"]["volume_fraction_list"] = cfg.get("restraints/sprite/volume_fraction_list")[:]
+
+        # compute current SPRITE tolerance and save that to "runtime" status
+        if     'volume_fraction'  not in cfg.get("runtime/sprite"):
+            cfg["runtime"]["sprite"]["volume_fraction"]      = cfg.get("runtime/sprite/volume_fraction_list").pop(0)
+
+        super(SpriteAssignmentStep, self).__init__(cfg)
+
+
     def name(self):
-        s = 'SpriteAssignmentStep (volume_fraction={:.1f}%)' 
+
+        """ Define auxiliary name for the igm step """
+
+        s = 'SpriteAssignmentStep (volume_fraction={:.1f}%, iter={:s})'
         return s.format(
-            self.cfg['restraints']['sprite']['volume_fraction'] * 100.0
+            self.cfg.get('runtime/sprite/volume_fraction', -1),
+            str( self.cfg.get('runtime/opt_iter', 'N/A') )
         )
+
 
     def setup(self):
 
