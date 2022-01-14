@@ -1,3 +1,10 @@
+# ------------------------
+# This code performs the ASSIGNMENT STEP for HI-C DATA. The key function is "get_actdist", and the numerics is detailed
+# in the Supporting Information, under "Assignment Step/HiC"
+# ------------------------
+# ------------------------
+
+
 from __future__ import division, print_function
 import numpy as np
 import h5py
