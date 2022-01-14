@@ -133,7 +133,8 @@ class HarmonicUpperBound(Force):
 
     def getViolationRatio(self, particles):
 
-        return self.getScore(particles) / (self.k * self.d)
+        return 0 if self.d == 0 else self.getScore(particles) / (self.k * self.d)
+
 #-
 
 class HarmonicLowerBound(Force):
@@ -180,7 +181,7 @@ class HarmonicLowerBound(Force):
 
     def getViolationRatio(self, particles):
 
-        return self.getScore(particles) / (self.k * self.d)
+        return 0 if self.d == 0 else self.getScore(particles) / (self.k * self.d)
 #-
 
 class EllipticEnvelope(Force):
@@ -228,9 +229,11 @@ class EllipticEnvelope(Force):
 
             # note that those scores are somewhat approximate
             if k2 > 1 and self.k > 0:
-                t = ( 1.0 - 1.0/np.sqrt(k2) )*np.linalg.norm(x)
+                t = ( 1.0 - 1.0/np.sqrt(k2) )*np.linalg.norm(x)/self.scale
+
             elif k2 < 1 and self.k < 0:
-                t = ( 1.0 - 1.0/np.sqrt(k2) )*np.linalg.norm(x)
+                t = ( 1.0 - np.sqrt(k2))
+
             else:
                 t = 0
 
