@@ -1,3 +1,11 @@
+## ---------------------------
+# Allocate FISH restraints (using the "FISH	Actdist.hdf5" file from the Assignment Step) as combination of
+# "HarmonicUpperBound" and "HarmonicLowerBound" forces between particles to the model object in IGM
+## ---------------------------
+
+
+
+
 from __future__ import division, print_function
 
 import numpy as np
