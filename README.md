@@ -1,8 +1,9 @@
 
 IGM: An Integrated Genome Modeling Platform
 =====================================
-This is the modeling platform used in Frank U. Alber lab, University of California Los Angeles. For any inquiry, please send an email to Lorenzo Boninsegna (bonimba@g.ucla.edu) (feedbacks and advice are much appreciated!!!). The source code is in the ```igm``` folder.
-A population of individual full genome (diploid) structures is generated, which fully recapitulates a variety of experimental genomic and/or imaging data. It does NOT preprocess raw data.
+This is the modeling platform used in the Alber lab (University of California, Los Angeles). For any inquiry, please send an email to Lorenzo (bonimba@g.ucla.edu) (feedbacks and advice are much appreciated!!!). The source code is in the ```igm``` folder.
+
+In a nutshell: IGM generates a population of single cell full genome (diploid/haploid) structures, which fully recapitulate a variety of experimental genomic and/or imaging data. As of now, it does NOT preprocess raw experimental data [details about pre-processing are provided in the main reference, Boninsegna et al, Nature Methods (2022), see below]
 
 Jan 2022
 
@@ -12,6 +13,11 @@ Jan 2022
 -  if software downloaded and installed before Sept. 17th, 2021, please reinstall [We realized there were some broken files in the originally uploaded version, we corrected that. If you downloaded and installed the software before Sept 17th, please go ahead and reinstall it (see Installation section below). We apologize for the inconvenience.]
 
 
+Cite
+------------
+If you use genome structures generated using this platform OR you use the platform to generate your own structures, please use the following reference for citing purposes:
+ 
+ Boninsegna, L., Yildirim, A., Polles, G. et al. Integrative genome modeling platform reveals essentiality of rare contact events in 3D genome organizations. Nat Methods 19, 938–949 (2022). https://doi.org/10.1038/s41592-022-01527-x.
 
  
 
@@ -146,11 +152,6 @@ A comprehensive configuration file ```igm-config_all.json``` for running a HFF p
     - Run IGM as detailed in the previous section (```igm-run config_file.json```), either serially or in parallel; the serial calculation (on a normal computer) all the way down to 1% probability should be completed in a few hours.
 
 
-Cite
-------------
-If you use genome structures generated using this platform OR you use the platform to generate your own structure, please consider citing our work:
- 
- Boninsegna et al. (2021) https://www.biorxiv.org/content/10.1101/2021.08.22.457288v1 (in press, Nature Methods)
     
    Installation on MacOS (updated, Spt 2019)
 --------------
