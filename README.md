@@ -5,7 +5,7 @@ This is the modeling platform used in the Alber lab (University of California, L
 
 In a nutshell: IGM generates a population of single cell full genome (diploid/haploid) structures, which fully recapitulate a variety of experimental genomic and/or imaging data. As of now, it does NOT preprocess raw experimental data [details about pre-processing are provided in the main reference, Boninsegna et al, Nature Methods (2022), see below]
 
-**NEW**: how to go from 'mcool' to 'hcs' HiC input
+**NEW**: how to go from 'mcool' to 'hcs' HiC input, see below in the README.md
 
 Jan 2022
 
