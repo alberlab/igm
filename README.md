@@ -5,12 +5,14 @@ This is the modeling platform used in the Alber lab (University of California, L
 
 In a nutshell: IGM generates a population of single cell full genome (diploid/haploid) structures, which fully recapitulate a variety of experimental genomic and/or imaging data. As of now, it does NOT preprocess raw experimental data [details about pre-processing are provided in the main reference, Boninsegna et al, Nature Methods (2022), see below]
 
+**NEW**: how to go from 'mcool' to 'hcs' HiC input
+
 Jan 2022
 
 -  Hi-C data, SPRITE data
 -  lamina DamID data in combination with ellipsoidal/spherical nuclear envelope
 -  FISH data, both "pairs" and "radial" options active
--  if software downloaded and installed before Sept. 17th, 2021, please reinstall [We realized there were some broken files in the originally uploaded version, we corrected that. If you downloaded and installed the software before Sept 17th, please go ahead and reinstall it (see Installation section below). We apologize for the inconvenience.]
+-  if software downloaded and installed before Sept. 17th, 2021, please reinstall
 
 
 Cite
