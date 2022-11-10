@@ -170,6 +170,8 @@ import alabtools, numpy, scipy
  
 # Read in .mcool file at a give resolution
 m = alabtools.Contactmatrix(ZZZ, resolution = XXX, genome = YYY)
+
+A = m.matrix.toarray()
  ```
 
 where `ZZZ` = name of the .mcool file (string) , `XXX` = model resolution in kb (integer), `YYY` = genome segmentation (string), currently `alabtools` allows for 'hg19', 'hg38' (human) and 'mm9' (mouse) genome types.
