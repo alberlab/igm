@@ -163,8 +163,8 @@ The ```alabtools``` package is required to easily generate a suitable '.hcs' HiC
 
 Our own preprocessing pipeline is peculiar to the lab and detailed in the Supporting Information to the Nat Methods paper, and we will share that soon (still curating the scripts). However, any preprocessing steps that generate a balanced/filtered/appropriate matrix of contact probabilities at the desired genome model resolution (e.g., 200kpb, 1Mbp, etc) can be used, according to experience/need.
 
-`import alabtools, numpy, scipy`
-`m = alabtools.Contactmatrix(ZZZ, resolution = XXX, genome = YYY)`
+```import alabtools, numpy, scipy`
+    m = alabtools.Contactmatrix(ZZZ, resolution = XXX, genome = YYY)```
 
 where `ZZZ` = name of the .mcool file (string) , `XXX` = model resolution in kb (integer), `YYY` = genome segmentation (string), currently `alabtools` allows for 'hg19', 'hg38' (human) and 'mm9' (mouse) genome types.
 
@@ -172,10 +172,9 @@ where `ZZZ` = name of the .mcool file (string) , `XXX` = model resolution in kb 
 
 Now, you can perform any preprocessing on `A = m.matrix.toarray()` you see fit (filtering, matrix balancing, etc) to prepare the input (see preamble). After you are satisfied with your preprocessing, it is easy to store the updated/preprocessed (contact probability) NumPy array `A` by:
 
-`spm = scipy.sparse.csr_matrix(A)`
-`m.matrix = alab.matrix.sss_matrix((spm.data, spm.indices, spm.indptr))`
-
-`m.save('preprocessed_hic.hcs')`
+```spm = scipy.sparse.csr_matrix(A)
+m.matrix = alab.matrix.sss_matrix((spm.data, spm.indices, spm.indptr))
+m.save('preprocessed_hic.hcs')```
 
 The 'preprocessed_hic.hcs' file has now the correct format to be fed to the IGM modeling pipeline.
 
