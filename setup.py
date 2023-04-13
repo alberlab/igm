@@ -41,8 +41,8 @@ extensions = cythonize(extensions)
 
 setup(
         name = 'igm', 
-        version = '1.0.0', 
-        author = 'Guido Polles, Nan Hua', 
+        version = '1.0.0+tutorial', 
+        author = 'Guido Polles, Nan Hua, Francesco Musella, Ye West', 
         author_email = 'polles@usc.edu nhua@usc.edu', 
         url = 'https://github.com/alberlab/igm', 
         description = 'Integrated Genome Modeling',
