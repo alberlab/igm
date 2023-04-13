@@ -11,3 +11,4 @@ from .genenvelope import GenEnvelope
 from .fish        import Fish
 from .inter_hic   import interHiC
 from .intra_hic   import intraHiC
+from .speckle_volume import SpeckleVolume

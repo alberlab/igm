@@ -15,12 +15,13 @@ import shutil
 import json
 from subprocess import Popen, PIPE
 import traceback
+import pickle as pkl
 
 from alabtools.analysis import HssFile
 
 from ..core import StructGenStep
 from ..model import Model, Particle
-from ..restraints import Polymer, Envelope, Steric, intraHiC, interHiC, Sprite, Damid, Nucleolus, GenEnvelope, Fish
+from ..restraints import Polymer, Envelope, Steric, intraHiC, interHiC, Sprite, Damid, Nucleolus, GenEnvelope, Fish, SpeckleVolume
 from ..utils import HmsFile
 from ..utils.files import h5_create_group_if_not_exist, h5_create_or_replace_dataset, make_absolute_path
 from ..parallel.async_file_operations import FilePoller
@@ -243,6 +244,20 @@ class ModelingStep(StructGenStep):
                                        cfg['restraints']['nucleolus']['k_spring'])
                     model.addRestraint(nucl)
                     monitored_restraints.append(nucl)
+        
+        if "speckle_volume" in cfg['restraints']:
+            
+            # Read the pkl file with the speckle locations/radii
+            
+            speckles = pkl.load(open(cfg['restraints']['speckle_volume']['file'], 'rb'))
+            speckle_k = cfg['restraints']['speckle_volume']['k_spring']
+            
+            speckles = speckles[struct_id]
+            
+            spv = SpeckleVolume(speckles, speckle_k)
+            model.addRestraint(spv)
+            monitored_restraints.append(spv)
+            
 
         # ---- IGM MODELING RESTRAINTS FROM EXPERIMENTAL DATA ---- #
 

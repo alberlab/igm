@@ -29,7 +29,8 @@ class SpeckleVolume(Restraint):
         
         for spe in self.speckles:
             spe_crd, spe_rad = spe
-            f = model.addForce(NuclExcludedVolume(plist, spe_crd, spe_rad, self.k))
+            f = model.addForce(NuclExcludedVolume(plist, spe_crd, spe_rad, self.k),
+                               note=Restraint.SPECKLE_EXCLUDED_VOLUME)
         self.forceID.append(f)
         #-
     #=
