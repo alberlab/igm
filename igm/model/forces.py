@@ -14,9 +14,9 @@ class Force(object):
     HARMONIC_LOWER_BOUND = 2
     ENVELOPE = 3
     GENERAL_ENVELOPE = 4
-    NUCL_EXCLUDED_VOLUME = 5
+    SPHE_EXCLUDED_VOLUME = 5
 
-    FTYPES = ["EXCLUDED_VOLUME","HARMONIC_UPPER_BOUND","HARMONIC_LOWER_BOUND", "ENVELOPE", "GENERAL_ENVELOPE", "NUCL_EXCLUDED_VOLUME"]
+    FTYPES = ["EXCLUDED_VOLUME","HARMONIC_UPPER_BOUND","HARMONIC_LOWER_BOUND", "ENVELOPE", "GENERAL_ENVELOPE", "SPHE_EXCLUDED_VOLUME"]
 
     def __init__(self, ftype, particles, para, note=""):
         self.ftype = ftype
@@ -401,20 +401,21 @@ class ExpEnvelope(Force):
         return self.getScores(particles) / (self.k * self.scale)
 #---------
 
-class NuclExcludedVolume(Force):
+class SpheExcludedVolume(Force):
 
-    """ Define penalty term for nucleolus excluded volume. If compenetrazione, return a positive value, 
-        if no violations, return 0, easy """
+    """ Define penalty term for spherical body excluded volume.
+    If there is overlap, return a positive value, if no violations, return 0, easy """
 
-    ftype = Force.NUCL_EXCLUDED_VOLUME
+    ftype = Force.SPHE_EXCLUDED_VOLUME
 
     def __init__(self, particles, body_pos, body_r, k=1.0, note=""):
     
         self.particles  = particles
-        self.body_pos   = np.array([body_pos])     # coordinates of nucleolus center (has to be a (3,1) array)
-        self.body_r     = body_r                   # radius of spherical nucleulus
+        self.body_pos   = np.array([body_pos])     # coordinates of body center (has to be a (3,1) array)
+        self.body_r     = body_r                   # radius of spherical body
         self.k          = k
         self.note       = note
+        self.rnum = len(particles)
 
     def __str__(self):
         return "FORCE: {} (NATOMS: {}) {}".format(Force.FTYPES[self.ftype],
@@ -426,14 +427,15 @@ class NuclExcludedVolume(Force):
 
     def getScores(self, particles):
 
-        """ Define penalty term for nucleolus excluded volume. If nucleolus - bead compenetration, return a 
-            positive penalty value equalling (r_n + r_i - d(n,i)); otherwise, return 0"""
+        """ Define penalty term for spherical excluded volume.
+        If there is body - bead overlap, return a positive penalty value equalling (r_n + r_i - d(n,i));
+        otherwise, return 0"""
 
         # scipy.spatial.distance takes an array X (m, n); m = observations, n = space dimensionality
         from scipy.spatial import distance
 
         crd = np.array([particles[i].pos for i in self.particles])
-        dist = distance.cdist(crd, self.body_pos)   # distance between all particle centers and nucleulus center
+        dist = distance.cdist(crd, self.body_pos)   # distance between all particle centers and body center
                                                # it is a (n,1) array, n = number of particles
         rad = np.array([[particles[i].r for i in self.particles]]).T
         cap = rad + self.body_r     # sum of radii

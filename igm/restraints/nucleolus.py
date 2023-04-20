@@ -2,7 +2,7 @@ from __future__ import division, print_function
 
 from .restraint import Restraint
 from ..model.particle import Particle
-from ..model.forces import NuclExcludedVolume
+from ..model.forces import SpheExcludedVolume
 
 class Nucleolus(Restraint):
     """
@@ -30,7 +30,7 @@ class Nucleolus(Restraint):
       
         plist = [i for i, p in enumerate(model.particles) if p.ptype == Particle.NORMAL]
         
-        f = model.addForce(NuclExcludedVolume(plist, self.body_pos, self.body_r, self.k))
+        f = model.addForce(SpheExcludedVolume(plist, self.body_pos, self.body_r, self.k))
         self.forceID.append(f)
         #-
     #=

@@ -10,7 +10,7 @@
         "segmentation": 2500000
     },
     "model": {
-        "population_size": 100,
+        "population_size": 5,
         "occupancy": 0.4,
         "init_radius": 7000,
         "restraints": {
@@ -19,7 +19,7 @@
             },
             "envelope": {
                 "nucleus_shape": "ellipsoid",
-                "nucleus_radius": [3050.0, 2350.0, 2350.0],
+                "nucleus_semiaxes": [3050.0, 2350.0, 2350.0],
                 "nucleus_kspring": 1.0
             },
             "polymer": {
@@ -35,34 +35,12 @@
             "intra_sigma_list": [
                 1.0,
                 0.2,
-                0.1,
-                0.04,
-                0.02,
-		0.016,
-		0.012,
-		0.008,
-		0.008,
-		0.008,
-		0.008,
-		0.008,
-		0.008,
-		0.008
+                0.1
             ],
             "inter_sigma_list": [
                 1.0,
                 0.1,
-                0.05,
-                0.02,
-                0.01,
-		0.008,
-		0.006,
-		0.004,
-		0.0035,
-		0.003,
-		0.0025,
-		0.002,
-		0.0015,
-		0.001
+                0.05
             ],
             "contact_range": 2.0,
             "contact_kspring": 1.0,
@@ -70,6 +48,10 @@
             "tmp_dir": "actdist",
             "keep_temporary_files": false,
             "run_evaluation_step": false
+        },
+        "speckle_volume": {
+            "file": "speckles.pkl",
+            "kspring": 1.0
         }
     },
     "optimization": {
@@ -153,7 +135,7 @@
         "log_level": "debug"
     },
     "parallel": {
-        "controller": "ipyparallel",
+        "controller": "serial",
         "controller_options": {
             "ipyparallel": {
                 "max_tasks": 5000

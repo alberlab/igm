@@ -250,7 +250,7 @@ class ModelingStep(StructGenStep):
             # Read the pkl file with the speckle locations/radii
             
             speckles = pkl.load(open(cfg['restraints']['speckle_volume']['file'], 'rb'))
-            speckle_k = cfg['restraints']['speckle_volume']['k_spring']
+            speckle_k = cfg['restraints']['speckle_volume']['kspring']
             
             speckles = speckles[struct_id]
             

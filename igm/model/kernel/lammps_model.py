@@ -279,7 +279,7 @@ class LammpsModel(object):
         for f in model.forces:
             if (f.ftype == f.ENVELOPE) or (f.ftype == f.GENERAL_ENVELOPE):
                 self.envelopes.append(f)     # see Guido's email: la classe del model viene aggiunta alle envelopes del Lammpsmodel
-            elif f.ftype == f.EXCLUDED_VOLUME:
+            elif f.ftype == f.EXCLUDED_VOLUME or f.ftype == f.SPHE_EXCLUDED_VOLUME:
                 self.evfactor = f.k
 
             else:

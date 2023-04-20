@@ -2,7 +2,7 @@ from __future__ import division, print_function
 
 from .restraint import Restraint
 from ..model.particle import Particle
-from ..model.forces import NuclExcludedVolume
+from ..model.forces import SpheExcludedVolume
 
 class SpeckleVolume(Restraint):
     """
@@ -29,8 +29,8 @@ class SpeckleVolume(Restraint):
         
         for spe in self.speckles:
             spe_crd, spe_rad = spe
-            f = model.addForce(NuclExcludedVolume(plist, spe_crd, spe_rad, self.k),
-                               note=Restraint.SPECKLE_EXCLUDED_VOLUME)
+            f = model.addForce(SpheExcludedVolume(plist, spe_crd, spe_rad, self.k,
+                                                  note=Restraint.SPECKLE_EXCLUDED_VOLUME))
         self.forceID.append(f)
         #-
     #=
