@@ -120,3 +120,14 @@ igm/cython_compiled/sprite.cpp
 # pycharm
 .idea/
 
+# tutorial
+*.hss.randomInit
+*.hss.T
+*/out_igm
+*/err_igm
+*/igm_output.txt
+*/tmp/
+*igm-pid.txt
+*igm-socket
+*.hcs
+*stepdb.sqlite
