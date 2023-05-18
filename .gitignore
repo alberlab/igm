@@ -129,5 +129,4 @@ igm/cython_compiled/sprite.cpp
 */tmp/
 *igm-pid.txt
 *igm-socket
-*.hcs
 *stepdb.sqlite
