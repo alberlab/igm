@@ -97,7 +97,7 @@ class HarmonicUpperBound(Force):
 
     Parameters
     ----------
-    particles : tuple(int, int)
+    pairs_ij : tuple(int, int)
         Two particle indexes
     d : float
         mean distance
@@ -109,11 +109,11 @@ class HarmonicUpperBound(Force):
 
     ftype = Force.HARMONIC_UPPER_BOUND
 
-    def __init__(self, particles, d=0.0, k=1.0, note=""):
-        if len(particles) != 2:
+    def __init__(self, pairs_ij, d=0.0, k=1.0, note=""):
+        if len(pairs_ij) != 2:
             raise ValueError("Two particles required")
         else:
-            self.i, self.j = particles
+            self.i, self.j = pairs_ij
 
         self.d = d
         self.k = k
@@ -445,6 +445,12 @@ class SpheExcludedVolume(Force):
 
         # get rid of extra dimensions, turn this into a (n) array
         return s.ravel()
+    
+    def getViolationRatio(self, particles):
+        return self.getScore(particles) / self.k
+    
+    def getViolationRatios(self, particles):
+        return self.getScores(particles) / self.k
 
 #-
 
