@@ -11,7 +11,7 @@ spe_lst = [spe_1, spe_2, spe_3]  # list of speckles
 # in general, we would have a different list for each structure
 # for this tutorial, we will use the same list for all structures
 
-n_structures = 100  # number of structures
+n_structures = 5  # number of structures
 
 # create a list of lists of speckles
 speckles = [spe_lst for i in range(n_structures)]
