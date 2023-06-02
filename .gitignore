@@ -130,3 +130,11 @@ igm/cython_compiled/sprite.cpp
 *igm-pid.txt
 *igm-socket
 *stepdb.sqlite
+*igm.log
+# parallel scripts
+*err_controller
+*err_engines
+*out_controller
+*out_engines
+*script_engines.sh
+*script1.sh
