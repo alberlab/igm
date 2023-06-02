@@ -247,9 +247,13 @@ class ModelingStep(StructGenStep):
         
         if "speckle_volume" in cfg['restraints']:
             
-            # Read the pkl file with the speckle locations/radii
+            # Read file name from the cfg file
+            speckles_filename = cfg['restraints']['speckle_volume']['file']
+            # Make the path absolute
+            speckles_filename = make_absolute_path(speckles_filename)
             
-            speckles = pkl.load(open(cfg['restraints']['speckle_volume']['file'], 'rb'))
+            # Load the speckles from the file
+            speckles = pkl.load(open(speckles_filename, 'rb'))
             speckle_k = cfg['restraints']['speckle_volume']['kspring']
             
             speckles = speckles[struct_id]
