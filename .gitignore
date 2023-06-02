@@ -131,6 +131,7 @@ igm/cython_compiled/sprite.cpp
 *igm-socket
 *stepdb.sqlite
 *igm.log
+*.pkl
 # parallel scripts
 *err_controller
 *err_engines
