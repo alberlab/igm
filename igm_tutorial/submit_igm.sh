@@ -4,11 +4,11 @@
 #- IGM SUBMISSION SCRIPT, multi-threaded JOB
 #----------------------------------------#
 
-#$ -M bonimba@g.ucla.edu
+#$ -M fmusella@g.ucla.edu
 #$ -m ea
 #$ -N jobname
 #$ -l h_data=40G
-#$ -l h_rt=30:00:00
+#$ -l h_rt=96:00:00
 #$ -l highp
 #$ -cwd
 #$ -o out_igm

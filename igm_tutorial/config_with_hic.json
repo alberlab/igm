@@ -30,6 +30,25 @@
         }
     },
     "restraints": {
+        "Hi-C": {
+            "input_matrix": "mcrb_2.5MB.hcs",
+            "intra_sigma_list": [
+                1.0,
+                0.2,
+                0.1
+            ],
+            "inter_sigma_list": [
+                1.0,
+                0.1,
+                0.05
+            ],
+            "contact_range": 2.0,
+            "contact_kspring": 1.0,
+            "actdist_file": "actdist.h5",
+            "tmp_dir": "actdist",
+            "keep_temporary_files": false,
+            "run_evaluation_step": false
+        },
         "speckle_volume": {
             "file": "speckles.pkl",
             "kspring": 1.0
@@ -116,7 +135,7 @@
         "log_level": "debug"
     },
     "parallel": {
-        "controller": "ipyparallel",
+        "controller": "serial",
         "controller_options": {
             "ipyparallel": {
                 "max_tasks": 5000
