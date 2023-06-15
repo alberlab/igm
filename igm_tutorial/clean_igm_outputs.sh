@@ -13,4 +13,5 @@ rm out_controller
 rm out_engines
 rm script_engines.sh
 rm script1.sh
+rm completed
 
