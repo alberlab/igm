@@ -30,10 +30,6 @@
         }
     },
     "restraints": {
-        "speckle_volume": {
-            "file": "/u/home/f/fmusella/igm/igm_tutorial/speckles.pkl",
-            "kspring": 1.0
-        }
     },
     "optimization": {
         "min_iterations": 5,

@@ -32,5 +32,5 @@ export OMP_NUM_THREADS=2
 echo "submitting IGM optimization..."
 
 # execute job
-igm-run config.json >> igm_output.txt
+igm-run config_no_speckles.json >> igm_output.txt
 
