@@ -359,8 +359,8 @@ class ModelingStep(StructGenStep):
 
                 vs = np.array(vs)
                 H, edges = get_violation_histogram(vs)
-                violated_restr = np.count_nonzero(vs)          # how many violations
-                num_violations = np.count_nonzero(vs > tol)    # the same 'tol' value is used to compute the number of violations across different restraint kinds...is that too easy?
+                violated_restr = int(np.count_nonzero(vs))          # how many violations
+                num_violations = int(np.count_nonzero(vs > tol))    # the same 'tol' value is used to compute the number of violations across different restraint kinds...is that too easy?
                 vstat[repr(r)] = {
                     'histogram': {
                         'edges': edges.tolist(),
