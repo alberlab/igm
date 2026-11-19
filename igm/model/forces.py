@@ -80,7 +80,7 @@ class ExcludedVolume(Force):
         dist = distance.pdist(crd)
 
         # distance is computed by plain sum
-        cap = distance.pdist(rad, lambda u, v: u + v)
+        cap = distance.pdist(rad, lambda u, v: u[0] + v[0])
 
         # if (r_i + r_j) - d_ij < 0, then no penalty, so clip value to 0, otherwise, keep number
         s = (cap - dist).clip(min=0)

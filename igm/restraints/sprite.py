@@ -64,7 +64,7 @@ class Sprite(Restraint):
             for b in beads:
                 # apply harmonic restraint(s) to all beads making up the cluster, using the position of the centroid as "origin" (one-body terms)
                 f = model.addForce(HarmonicUpperBound(
-                    (b, centroid), float(csize-radii[b]), self.k, 
+                    (b, centroid), float((csize-radii[b]).item()), self.k,
                     note=Restraint.SPRITE))
                 self.forceID.append(f)
                 
